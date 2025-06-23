@@ -149,8 +149,12 @@
     
     if (isCapacitor) {
       log('Capacitor detected - native scanner should be available');
-      log(`Capacitor version: ${Capacitor.getVersion()}`);
-      log(`Platform: ${Capacitor.getPlatform()}`);
+      
+      // Log Capacitor object structure
+      log('Capacitor object keys:');
+      Object.keys(Capacitor).forEach(key => {
+        log(`  - ${key}: ${typeof Capacitor[key]}`);
+      });
       
       // Check what plugins are available
       if (Capacitor.Plugins) {
@@ -266,9 +270,22 @@ Confidence: ${barcode.confidence || 'N/A'}`;
       }
       
       log('✅ Capacitor is available');
-      log(`Capacitor version: ${Capacitor.getVersion()}`);
-      log(`Platform: ${Capacitor.getPlatform()}`);
-      log(`Native: ${Capacitor.isNative}`);
+      
+      // Log Capacitor object structure
+      log('Capacitor object structure:');
+      Object.keys(Capacitor).forEach(key => {
+        log(`  - ${key}: ${typeof Capacitor[key]}`);
+        if (typeof Capacitor[key] === 'object' && Capacitor[key] !== null) {
+          try {
+            const subKeys = Object.keys(Capacitor[key]);
+            if (subKeys.length > 0) {
+              log(`    Sub-keys: ${subKeys.join(', ')}`);
+            }
+          } catch (e) {
+            log(`    (Could not enumerate sub-keys)`);
+          }
+        }
+      });
       
       // Check global plugins
       if (Capacitor.Plugins) {
