@@ -185,23 +185,13 @@
       log('Attempting to launch native barcode scanner...');
       updateStatus('Launching native scanner...', 'info');
       
-      // Check if the plugin is available globally
-      let BarcodeScanner;
-      if (Capacitor.Plugins && Capacitor.Plugins.BarcodeScanner) {
-        BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
-        log('Found BarcodeScanner plugin in Capacitor.Plugins');
-      } else {
-        // Try to import the barcode scanner plugin
-        try {
-          const module = await import('@capacitor-mlkit/barcode-scanning');
-          BarcodeScanner = module.BarcodeScanner;
-          log('Successfully imported BarcodeScanner plugin via ES6 import');
-        } catch (importError) {
-          log(`Import error: ${importError.message}`, 'error');
-          log('This usually means the plugin is not properly installed or not available in this environment', 'error');
-          throw new Error(`Failed to load barcode scanner plugin: ${importError.message}`);
-        }
+      // Get the BarcodeScanner plugin from Capacitor.Plugins
+      const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+      if (!BarcodeScanner) {
+        throw new Error('BarcodeScanner plugin not found in Capacitor.Plugins');
       }
+      
+      log('Found BarcodeScanner plugin in Capacitor.Plugins');
       
       // Check if scanning is supported
       const { supported } = await BarcodeScanner.isSupported();
