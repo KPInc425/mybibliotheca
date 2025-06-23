@@ -703,16 +703,19 @@ async function getBestCamera() {
 async function getCameraConstraints() {
   if (isMobile) {
     const bestCameraId = await getBestCamera();
-    
-    // Simplified constraints to avoid conflicts with BarcodeDetector
+    // Use advanced constraints for focus and zoom if supported
     return {
       video: {
         width: { min: 640, ideal: 1280, max: 1920 },
         height: { min: 480, ideal: 720, max: 1080 },
         facingMode: "environment",
-        // Remove advanced constraints that conflict with BarcodeDetector
-        frameRate: { ideal: 15, max: 30 }
-        // Removed: focusMode, exposureMode, whiteBalanceMode to avoid conflicts
+        deviceId: bestCameraId ? { exact: bestCameraId } : undefined,
+        frameRate: { ideal: 15, max: 30 },
+        // Try advanced constraints for better close-up focus
+        advanced: [
+          { focusMode: 'continuous' },
+          { zoom: 1.2 }
+        ]
       }
     };
   } else {
@@ -961,39 +964,33 @@ function startScanner() {
               const track = videoStream.getVideoTracks()[0];
               if (track && track.getCapabilities) {
                 const capabilities = track.getCapabilities();
-                console.log('Tap to focus triggered');
-                
-                // Check if focus control is supported
-                if (capabilities.focusMode && capabilities.focusMode.length > 0) {
-                  console.log('Focus capabilities available:', capabilities.focusMode);
-                  
-                  // Try to trigger auto-focus without changing constraints
-                  if (capabilities.focusMode.includes('continuous')) {
-                    showNotification('🔍 Auto-focus active', 'info', 1000);
-                  } else if (capabilities.focusMode.includes('manual')) {
-                    // For manual focus cameras, try to trigger focus
-                    track.applyConstraints({
-                      focusMode: "manual",
-                      focusDistance: 0.1 // Close focus for barcode scanning
-                    }).then(() => {
-                      console.log('Manual focus set for close-up scanning');
-                      showNotification('🔍 Focus set for close-up', 'info', 1000);
-                      
-                      // Reset to continuous after a moment
-                      setTimeout(() => {
-                        track.applyConstraints({
-                          focusMode: "continuous"
-                        }).catch(err => {
-                          console.log('Could not reset to continuous focus:', err);
-                        });
-                      }, 2000);
-                    }).catch(err => {
-                      console.log('Manual focus not supported:', err);
-                      showNotification('🔍 Auto-focus only', 'info', 1000);
+                // Try to set zoom and focus on tap
+                let zoomSupported = capabilities.zoom !== undefined;
+                let focusSupported = capabilities.focusMode && capabilities.focusMode.includes('manual');
+                let zoomValue = 1.2;
+                if (zoomSupported) {
+                  let minZoom = capabilities.zoom.min || 1;
+                  let maxZoom = capabilities.zoom.max || 2;
+                  zoomValue = Math.min(Math.max(zoomValue, minZoom), maxZoom);
+                }
+                // Try to set both zoom and focus
+                let constraints = {};
+                if (zoomSupported) constraints.zoom = zoomValue;
+                if (focusSupported) {
+                  let min = capabilities.focusDistance?.min ?? 0;
+                  constraints.focusMode = 'manual';
+                  constraints.focusDistance = min;
+                }
+                if (Object.keys(constraints).length > 0) {
+                  track.applyConstraints(constraints).then(() => {
+                    showNotification('🔍 Tap-to-focus and zoom applied', 'info', 1200);
+                  }).catch(() => {
+                    // Fallback to continuous focus
+                    track.applyConstraints({ focusMode: 'continuous' }).then(() => {
+                      showNotification('🔍 Fallback to auto-focus', 'info', 1200);
                     });
-                  }
+                  });
                 } else {
-                  console.log('No focus control available');
                   showNotification('📱 Hold steady for best results', 'info', 1000);
                 }
               }
@@ -1038,7 +1035,7 @@ function startScanner() {
           
           // Show close-up scanning instructions
           setTimeout(() => {
-            showNotification('💡 Tip: Hold phone 5-10cm from barcode for best results. Tap screen to focus.', 'info', 5000);
+            showNotification('💡 For best results: Ensure good lighting, hold barcode 5–10cm from camera, tap to focus, and try moving barcode slowly closer/farther.', 'info', 6000);
           }, 3500);
           
           // Fade out distance guide after 3 seconds
@@ -1379,5 +1376,13 @@ document.addEventListener('keydown', function(e) {
     stopScanner();
   }
 });
+
+// (Optional, future) Native camera API integration for hybrid apps
+if (window.Capacitor || window.cordova) {
+  // Placeholder: Here you could use a native plugin for camera access
+  // e.g., Capacitor Camera, Cordova plugins, etc.
+  // This would require additional implementation and permissions
+  console.log('Native camera API detected: consider using native plugin for best focus control.');
+}
 </script>
 {% endblock %}
