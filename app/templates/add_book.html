@@ -656,7 +656,12 @@ function startScanner() {
   stopBtn.style.display = 'inline-block';
 
   if (scanner) {
-    scanner.stop();
+    // ZXing uses reset() instead of stop()
+    try {
+      scanner.reset();
+    } catch (error) {
+      console.log("Scanner reset error:", error);
+    }
     scanner = null;
   }
 
@@ -814,7 +819,12 @@ function stopScanner() {
   const videoElement = document.getElementById('scanner-video');
   
   if (scanner) {
-    scanner.stop();
+    // ZXing uses reset() instead of stop()
+    try {
+      scanner.reset();
+    } catch (error) {
+      console.log("Scanner reset error:", error);
+    }
     scanner = null;
   }
   
@@ -833,7 +843,12 @@ function refreshScanner() {
   
   // Stop current scanner
   if (scanner) {
-    scanner.stop();
+    // ZXing uses reset() instead of stop()
+    try {
+      scanner.reset();
+    } catch (error) {
+      console.log("Scanner reset error:", error);
+    }
     scanner = null;
   }
   
