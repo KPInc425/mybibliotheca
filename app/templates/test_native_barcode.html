@@ -301,21 +301,9 @@ Confidence: ${barcode.confidence || 'N/A'}`;
         log('❌ BarcodeScanner NOT found on window object', 'error');
       }
       
-      // Check if we can import the module
-      log('Testing ES6 import...');
-      import('@capacitor-mlkit/barcode-scanning')
-        .then(module => {
-          log('✅ ES6 import successful', 'success');
-          log(`Module keys: ${Object.keys(module).join(', ')}`);
-          if (module.BarcodeScanner) {
-            log('✅ BarcodeScanner found in imported module', 'success');
-          } else {
-            log('❌ BarcodeScanner NOT found in imported module', 'error');
-          }
-        })
-        .catch(error => {
-          log(`❌ ES6 import failed: ${error.message}`, 'error');
-        });
+      // Note: ES6 imports don't work in Capacitor environment
+      log('Note: ES6 imports are not available in Capacitor environment');
+      log('Plugins must be accessed via Capacitor.Plugins');
       
       showResult('Debug information logged above. Check the logs for details.', 'info');
       
