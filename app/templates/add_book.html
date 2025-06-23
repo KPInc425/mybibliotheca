@@ -355,19 +355,6 @@
         <button type="button" class="btn-scan" onclick="toggleScanner()" id="scannerBtn">
           📷 Scan Barcode
         </button>
-        <button type="button" class="btn-focus" onclick="cycleFocus()" id="focusBtn" style="
-          background: linear-gradient(135deg, #17a2b8, #138496);
-          border: none;
-          color: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 10px;
-          font-weight: 600;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(23, 162, 184, 0.3);
-          display: none;
-        ">
-          🔍 Focus
-        </button>
       </div>
       
       <!-- Scanner viewport -->
@@ -734,24 +721,14 @@ async function getCameraConstraints() {
   }
 }
 
-function cycleFocus() {
-  // Simulate a tap on the video element to trigger focus cycling
-  const videoElement = document.getElementById('scanner-video');
-  if (videoElement) {
-    videoElement.click();
-  }
-}
-
 function toggleScanner() {
   const scannerBtn = document.getElementById('scannerBtn');
-  const focusBtn = document.getElementById('focusBtn');
   
   if (scanner) {
     // Scanner is running, stop it
     stopScanner();
     scannerBtn.textContent = '📷 Scan Barcode';
     scannerBtn.className = 'btn-scan';
-    focusBtn.style.display = 'none';
   } else {
     // Scanner is not running, start it
     startScanner();
@@ -831,22 +808,10 @@ function startScanner() {
         facingMode: "environment",
         // Mobile-specific optimizations for close-up scanning
         frameRate: { ideal: 15, max: 30 },
-        // Better focus handling for close-up scanning
-        focusMode: "manual", // Start with manual focus for better close-up scanning
+        // Use continuous focus which works better on mobile
+        focusMode: "continuous",
         exposureMode: "continuous",
-        whiteBalanceMode: "continuous",
-        // Advanced constraints for better close-up focus
-        advanced: [
-          {
-            focusMode: "manual"
-          },
-          {
-            focusDistance: 0.15 // Start focused at 15cm for better close-up scanning
-          },
-          {
-            exposureMode: "continuous"
-          }
-        ]
+        whiteBalanceMode: "continuous"
       }
     };
     
@@ -984,56 +949,44 @@ function startScanner() {
           if (videoStream) {
             const track = videoStream.getVideoTracks()[0];
             if (track && track.getCapabilities && track.getCapabilities().focusMode) {
-              console.log('Tap to focus triggered for close-up scanning');
+              console.log('Tap to focus triggered');
               
-              // Try multiple focus distances for better close-up scanning
-              const focusDistances = [0.05, 0.1, 0.15, 0.2]; // 5cm, 10cm, 15cm, 20cm
-              let currentDistanceIndex = 0;
+              // Simple approach: trigger auto-focus by temporarily changing constraints
+              const currentConstraints = track.getConstraints();
               
-              function tryFocusDistance() {
-                if (currentDistanceIndex >= focusDistances.length) {
-                  console.log('Tried all focus distances');
-                  return;
-                }
+              track.applyConstraints({
+                ...currentConstraints,
+                focusMode: "manual"
+              }).then(() => {
+                console.log('Manual focus triggered');
+                showNotification('🔍 Focusing...', 'info', 1000);
                 
-                const distance = focusDistances[currentDistanceIndex];
-                console.log(`Trying focus distance: ${distance}m (${distance * 100}cm)`);
-                
-                track.applyConstraints({
-                  advanced: [
-                    {
-                      focusMode: 'manual'
-                    },
-                    {
-                      focusDistance: distance
-                    }
-                  ]
-                }).then(() => {
-                  console.log(`Manual focus applied at ${distance}m`);
-                  showNotification(`🔍 Focused at ${Math.round(distance * 100)}cm`, 'success', 1500);
-                  
-                  // Update focus indicator
-                  const focusIndicator = document.getElementById('focus-indicator');
-                  if (focusIndicator) {
-                    focusIndicator.textContent = `🎯 ${Math.round(distance * 100)}cm`;
-                    focusIndicator.style.background = 'rgba(40, 167, 69, 0.8)';
-                  }
-                  
-                  // Try next distance after 2 seconds
-                  setTimeout(() => {
-                    currentDistanceIndex++;
-                    tryFocusDistance();
-                  }, 2000);
-                  
-                }).catch(err => {
-                  console.log(`Focus distance ${distance}m failed:`, err);
-                  currentDistanceIndex++;
-                  tryFocusDistance();
-                });
-              }
-              
-              // Start trying focus distances
-              tryFocusDistance();
+                // Switch back to continuous focus after a moment
+                setTimeout(() => {
+                  track.applyConstraints({
+                    ...currentConstraints,
+                    focusMode: "continuous"
+                  }).then(() => {
+                    console.log('Back to continuous focus');
+                  }).catch(err => {
+                    console.log('Failed to switch back to continuous focus:', err);
+                  });
+                }, 1000);
+              }).catch(err => {
+                console.log('Focus change not supported:', err);
+                // Fallback: try to restart the track to trigger focus
+                track.stop();
+                setTimeout(() => {
+                  navigator.mediaDevices.getUserMedia(constraints).then(newStream => {
+                    videoStream = newStream;
+                    videoElement.srcObject = newStream;
+                    console.log('Camera restarted for focus');
+                    showNotification('🔄 Camera restarted', 'info', 2000);
+                  }).catch(err => {
+                    console.log('Failed to restart camera:', err);
+                  });
+                }, 100);
+              });
             }
           }
         });
@@ -1058,8 +1011,8 @@ function startScanner() {
           pointer-events: none;
           transition: all 0.3s ease;
         `;
-        focusIndicator.textContent = '🔍 Manual Focus';
-        focusIndicator.title = 'Tap screen to cycle through focus distances';
+        focusIndicator.textContent = '🔍 Tap to focus';
+        focusIndicator.title = 'Tap the video to trigger auto-focus';
         scannerDiv.appendChild(focusIndicator);
         
         clearTimeout(timeoutId);
@@ -1070,11 +1023,6 @@ function startScanner() {
         scannerBtn.disabled = false;
         scannerBtn.textContent = '⏹️ Stop Scanner';
         scannerBtn.className = 'btn-stop';
-        
-        // Show focus button
-        if (focusBtn) {
-          focusBtn.style.display = 'inline-block';
-        }
         
         // Show success notification
         showNotification('Scanner ready! Point camera at barcode', 'success', 3000);
