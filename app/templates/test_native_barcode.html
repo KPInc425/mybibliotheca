@@ -218,6 +218,9 @@
       <strong>Manual path:</strong><br>
       Settings → Apps → MyBibliotheca → Permissions → Enable Camera
     </div>
+    <button id="closeModal" class="modal-button secondary" style="margin-top: 15px; width: 100%;">
+      ✖️ Close Modal
+    </button>
   </div>
 </div>
 
@@ -267,28 +270,69 @@
       if (isCapacitor && Capacitor.Plugins.NativeSettings) {
         // Use the native settings plugin
         log('Using capacitor-native-settings plugin...');
-        Capacitor.Plugins.NativeSettings.open({
-          option: 'application'
-        });
-      } else if (isCapacitor && Capacitor.Plugins.App) {
-        // Fallback to Capacitor App plugin
-        log('Using Capacitor App plugin as fallback...');
-        Capacitor.Plugins.App.openSettings();
-      } else if (navigator.userAgent.includes('Android')) {
-        // Fallback to Android deep link
-        const packageName = 'com.ilgaming.mybibliotheca';
-        const settingsUrl = `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`;
-        
-        log(`Using Android deep link: ${settingsUrl}`);
-        window.location.href = settingsUrl;
+        try {
+          Capacitor.Plugins.NativeSettings.open({
+            option: 'application'
+          }).then(() => {
+            log('NativeSettings.open() completed successfully');
+          }).catch((error) => {
+            log(`NativeSettings.open() failed: ${error.message}`, 'error');
+            // Try fallback
+            tryFallbackSettings();
+          });
+        } catch (error) {
+          log(`NativeSettings.open() threw error: ${error.message}`, 'error');
+          tryFallbackSettings();
+        }
       } else {
-        // Generic fallback
-        alert('Please go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
+        tryFallbackSettings();
       }
     } catch (error) {
-      log(`Error opening settings: ${error.message}`, 'error');
+      log(`Error in openDeviceSettings: ${error.message}`, 'error');
       alert('Please manually go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
     }
+  }
+  
+  function tryFallbackSettings() {
+    log('Trying fallback settings methods...');
+    
+    if (isCapacitor && Capacitor.Plugins.App) {
+      // Fallback to Capacitor App plugin
+      log('Using Capacitor App plugin as fallback...');
+      try {
+        Capacitor.Plugins.App.openSettings();
+        log('App.openSettings() called');
+      } catch (error) {
+        log(`App.openSettings() failed: ${error.message}`, 'error');
+        tryAndroidDeepLink();
+      }
+    } else {
+      tryAndroidDeepLink();
+    }
+  }
+  
+  function tryAndroidDeepLink() {
+    if (navigator.userAgent.includes('Android')) {
+      // Fallback to Android deep link
+      const packageName = 'com.ilgaming.mybibliotheca';
+      const settingsUrl = `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`;
+      
+      log(`Using Android deep link: ${settingsUrl}`);
+      try {
+        window.location.href = settingsUrl;
+        log('Android deep link attempted');
+      } catch (error) {
+        log(`Android deep link failed: ${error.message}`, 'error');
+        showManualInstructions();
+      }
+    } else {
+      showManualInstructions();
+    }
+  }
+  
+  function showManualInstructions() {
+    log('All automatic methods failed, showing manual instructions');
+    alert('Please go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
   }
   
   // Initialize
@@ -331,13 +375,19 @@
     document.getElementById('confirmOpenSettings').addEventListener('click', function() {
       log('User confirmed opening device settings');
       openDeviceSettings();
-      hidePermissionHelp();
+      // Don't close modal immediately - let the user see the logs
+      // hidePermissionHelp();
     });
     
     document.getElementById('cancelSettings').addEventListener('click', function() {
       log('User cancelled opening device settings');
       hidePermissionHelp();
       showResult('Camera permissions are required to use the barcode scanner.', 'info');
+    });
+    
+    document.getElementById('closeModal').addEventListener('click', function() {
+      log('User closed modal manually');
+      hidePermissionHelp();
     });
   });
   
@@ -445,213 +495,4 @@ Confidence: ${barcode.confidence || 'N/A'}`;
       // Log Capacitor object structure
       log('Capacitor object structure:');
       Object.keys(Capacitor).forEach(key => {
-        log(`  - ${key}: ${typeof Capacitor[key]}`);
-        if (typeof Capacitor[key] === 'object' && Capacitor[key] !== null) {
-          try {
-            const subKeys = Object.keys(Capacitor[key]);
-            if (subKeys.length > 0) {
-              log(`    Sub-keys: ${subKeys.join(', ')}`);
-            }
-          } catch (e) {
-            log(`    (Could not enumerate sub-keys)`);
-          }
-        }
-      });
-      
-      // Check global plugins
-      if (Capacitor.Plugins) {
-        log('Available plugins in Capacitor.Plugins:');
-        Object.keys(Capacitor.Plugins).forEach(plugin => {
-          log(`  - ${plugin}`);
-        });
-        
-        if (Capacitor.Plugins.BarcodeScanner) {
-          log('✅ BarcodeScanner plugin found in Capacitor.Plugins', 'success');
-        } else {
-          log('❌ BarcodeScanner plugin NOT found in Capacitor.Plugins', 'error');
-        }
-      } else {
-        log('❌ Capacitor.Plugins is not available', 'error');
-      }
-      
-      // Check window object
-      log('Checking window object for plugins...');
-      if (window.BarcodeScanner) {
-        log('✅ BarcodeScanner found on window object', 'success');
-      } else {
-        log('❌ BarcodeScanner NOT found on window object', 'error');
-      }
-      
-      // Note: ES6 imports don't work in Capacitor environment
-      log('Note: ES6 imports are not available in Capacitor environment');
-      log('Plugins must be accessed via Capacitor.Plugins');
-      
-      showResult('Debug information logged above. Check the logs for details.', 'info');
-      
-    } catch (error) {
-      log(`Debug error: ${error.message}`, 'error');
-      showResult(`Debug error: ${error.message}`, 'error');
-    } finally {
-      button.disabled = false;
-      button.textContent = '🔍 Debug Plugin Availability';
-    }
-  });
-  
-  // Test Camera Permissions
-  document.getElementById('testPermissions').addEventListener('click', async function() {
-    const button = this;
-    button.disabled = true;
-    button.textContent = '📷 Testing...';
-    
-    try {
-      log('=== TESTING CAMERA PERMISSIONS ===');
-      
-      if (!isCapacitor) {
-        throw new Error('Capacitor not available');
-      }
-      
-      const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
-      if (!BarcodeScanner) {
-        throw new Error('BarcodeScanner plugin not found');
-      }
-      
-      log('BarcodeScanner plugin found');
-      
-      // Check if scanning is supported
-      log('Checking if barcode scanning is supported...');
-      const { supported } = await BarcodeScanner.isSupported();
-      log(`Barcode scanning supported: ${supported}`);
-      
-      if (!supported) {
-        throw new Error('Barcode scanning not supported on this device');
-      }
-      
-      // Check current permissions
-      log('Checking current camera permissions...');
-      const { granted } = await BarcodeScanner.checkPermissions();
-      log(`Current permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
-      
-      if (granted) {
-        log('✅ Camera permissions already granted', 'success');
-        showResult('Camera permissions are already granted!', 'success');
-        return;
-      }
-      
-      // Request permissions
-      log('Requesting camera permissions...');
-      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-      log(`Permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
-      
-      if (newGranted) {
-        log('✅ Camera permissions granted successfully!', 'success');
-        showResult('Camera permissions granted successfully!', 'success');
-        hidePermissionHelp();
-      } else {
-        log('❌ Camera permissions denied', 'error');
-        showResult('Camera permissions were denied. Please grant camera permissions in your device settings.', 'error');
-        showPermissionHelp();
-      }
-      
-    } catch (error) {
-      log(`Permission test error: ${error.message}`, 'error');
-      showResult(`Error: ${error.message}`, 'error');
-    } finally {
-      button.disabled = false;
-      button.textContent = '📷 Test Camera Permissions';
-    }
-  });
-  
-  // Test Browser Scanner (Fallback)
-  document.getElementById('testBrowserScanner').addEventListener('click', async function() {
-    const button = this;
-    button.disabled = true;
-    button.textContent = '🔄 Starting...';
-    
-    try {
-      log('Testing browser-based barcode scanner...');
-      updateStatus('Starting browser scanner...', 'info');
-      
-      // Check if BarcodeDetector is supported
-      if (!('BarcodeDetector' in window)) {
-        throw new Error('BarcodeDetector not supported in this browser');
-      }
-      
-      log('BarcodeDetector is supported');
-      
-      // Create a simple video element for testing
-      const video = document.createElement('video');
-      video.style.width = '100%';
-      video.style.height = '300px';
-      video.style.border = '2px solid #007bff';
-      video.style.borderRadius = '8px';
-      video.style.marginTop = '10px';
-      
-      // Replace result div with video
-      const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = '';
-      resultDiv.appendChild(video);
-      resultDiv.style.display = 'block';
-      
-      // Get camera stream
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      
-      video.srcObject = stream;
-      await video.play();
-      
-      log('Camera stream started');
-      updateStatus('Camera active - point at barcode', 'info');
-      
-      // Create BarcodeDetector
-      const barcodeDetector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'code_128', 'code_39']
-      });
-      
-      // Scan for barcodes
-      const scanInterval = setInterval(async () => {
-        try {
-          const barcodes = await barcodeDetector.detect(video);
-          if (barcodes.length > 0) {
-            const barcode = barcodes[0];
-            const result = `✅ Browser Scanner Detected!
-Format: ${barcode.format}
-Value: ${barcode.rawValue}`;
-            
-            log(`Browser scanner detected: ${barcode.rawValue} (${barcode.format})`, 'success');
-            showResult(result, 'success');
-            updateStatus(`Detected: ${barcode.rawValue}`, 'success');
-            
-            // Stop scanning
-            clearInterval(scanInterval);
-            stream.getTracks().forEach(track => track.stop());
-            video.remove();
-          }
-        } catch (error) {
-          log(`Browser scan error: ${error.message}`, 'error');
-        }
-      }, 1000);
-      
-      // Stop scanning after 30 seconds
-      setTimeout(() => {
-        clearInterval(scanInterval);
-        stream.getTracks().forEach(track => track.stop());
-        video.remove();
-        if (resultDiv.innerHTML === '') {
-          showResult('No barcode detected within 30 seconds', 'info');
-          updateStatus('Scan timeout', 'info');
-        }
-      }, 30000);
-      
-    } catch (error) {
-      log(`Browser scanner error: ${error.message}`, 'error');
-      showResult(`Error: ${error.message}`, 'error');
-      updateStatus('Browser scanner failed', 'error');
-    } finally {
-      button.disabled = false;
-      button.textContent = '🌐 Test Browser Barcode Scanner (Fallback)';
-    }
-  });
-</script>
-
-{% endblock %} 
+        log(`
