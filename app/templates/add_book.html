@@ -585,9 +585,21 @@ async function getBestCamera() {
     
     console.log("Available cameras:", videoDevices.map(d => d.label || d.deviceId));
     
-    // Prefer cameras that are likely to be the main camera
-    // Look for cameras with labels that suggest they're the main camera
-    const mainCamera = videoDevices.find(device => {
+    // First, filter for back-facing cameras only
+    const backCameras = videoDevices.filter(device => {
+      const label = device.label.toLowerCase();
+      return label.includes('back') || label.includes('rear') || label.includes('environment');
+    });
+    
+    console.log("Back-facing cameras:", backCameras.map(d => d.label || d.deviceId));
+    
+    if (backCameras.length === 0) {
+      console.log("No back-facing cameras found, using first available camera");
+      return videoDevices.length > 0 ? videoDevices[0].deviceId : undefined;
+    }
+    
+    // Among back cameras, prefer the main camera (avoid wide-angle, ultra-wide, etc.)
+    const mainBackCamera = backCameras.find(device => {
       const label = device.label.toLowerCase();
       // Avoid wide-angle, ultra-wide, or telephoto cameras
       return !label.includes('wide') && 
@@ -596,18 +608,14 @@ async function getBestCamera() {
              !label.includes('macro');
     });
     
-    if (mainCamera) {
-      console.log("Selected main camera:", mainCamera.label || mainCamera.deviceId);
-      return mainCamera.deviceId;
+    if (mainBackCamera) {
+      console.log("Selected main back camera:", mainBackCamera.label || mainBackCamera.deviceId);
+      return mainBackCamera.deviceId;
     }
     
-    // Fallback to first available camera
-    if (videoDevices.length > 0) {
-      console.log("Using fallback camera:", videoDevices[0].label || videoDevices[0].deviceId);
-      return videoDevices[0].deviceId;
-    }
-    
-    return undefined;
+    // Fallback to first back camera
+    console.log("Using fallback back camera:", backCameras[0].label || backCameras[0].deviceId);
+    return backCameras[0].deviceId;
   } catch (error) {
     console.error("Error enumerating cameras:", error);
     return undefined;
