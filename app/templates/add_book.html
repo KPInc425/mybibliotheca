@@ -529,7 +529,10 @@ function getCameraConstraints() {
     return {
       width: { min: 320, ideal: 640, max: 1280 },
       height: { min: 240, ideal: 480, max: 720 },
-      facingMode: "environment"
+      facingMode: "environment",
+      // Mobile-specific constraints
+      deviceId: undefined, // Let browser choose best camera
+      frameRate: { ideal: 10, max: 30 }
     };
   } else {
     return {
@@ -537,6 +540,20 @@ function getCameraConstraints() {
       height: { min: 300, ideal: 600, max: 720 },
       facingMode: "environment"
     };
+  }
+}
+
+// Check if camera is available
+async function checkCameraPermission() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: "environment" } 
+    });
+    stream.getTracks().forEach(track => track.stop());
+    return true;
+  } catch (error) {
+    console.error("Camera permission check failed:", error);
+    return false;
   }
 }
 
@@ -560,65 +577,115 @@ function startScanner() {
   // Reset scan attempts
   scanAttempts = 0;
 
-  Quagga.init({
-    inputStream: {
-      name: "Live",
-      type: "LiveStream",
-      target: scannerDiv,
-      constraints: getCameraConstraints()
-    },
-    locator: {
-      patchSize: "medium",
-      halfSample: true
-    },
-    numOfWorkers: 2,
-    frequency: 10,
-    decoder: {
-      readers: [
-        "ean_reader",
-        "code_128_reader",
-        "code_39_reader"
-      ]
-    },
-    locate: true
-  }, function(err) {
-    if (err) {
-      console.error("QuaggaJS init error:", err);
+  // Add timeout to prevent stuck state
+  const timeoutId = setTimeout(() => {
+    if (!quaggaStarted) {
+      console.error("Scanner initialization timeout");
+      showNotification('Scanner initialization timed out. Please try again.', 'error', 4000);
+      resetScannerUI();
+    }
+  }, 15000); // 15 second timeout
+
+  // Check camera permission first on mobile
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    checkCameraPermission().then(hasPermission => {
+      if (!hasPermission) {
+        console.error("Camera permission denied");
+        showNotification('Camera access denied. Please allow camera permissions in your browser settings.', 'error', 5000);
+        resetScannerUI();
+        clearTimeout(timeoutId);
+        return;
+      }
+      initializeQuagga();
+    }).catch(error => {
+      console.error("Camera check failed:", error);
+      initializeQuagga(); // Try anyway
+    });
+  } else {
+    initializeQuagga();
+  }
+
+  function initializeQuagga() {
+    Quagga.init({
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: scannerDiv,
+        constraints: getCameraConstraints()
+      },
+      locator: {
+        patchSize: "medium",
+        halfSample: true
+      },
+      numOfWorkers: isMobile ? 1 : 2, // Reduce workers on mobile
+      frequency: 10,
+      decoder: {
+        readers: [
+          "ean_reader",
+          "code_128_reader",
+          "code_39_reader"
+        ]
+      },
+      locate: true
+    }, function(err) {
+      clearTimeout(timeoutId); // Clear timeout on completion
       
-      // Provide specific error messages
-      let errorMessage = "Error starting scanner: ";
-      if (err.name === 'NotAllowedError') {
-        errorMessage += "Camera access denied. Please allow camera permissions.";
-      } else if (err.name === 'NotFoundError') {
-        errorMessage += "No camera found on this device.";
-      } else if (err.name === 'NotReadableError') {
-        errorMessage += "Camera is already in use by another application.";
-      } else {
-        errorMessage += err.message;
+      if (err) {
+        console.error("QuaggaJS init error:", err);
+        
+        // Provide specific error messages
+        let errorMessage = "Error starting scanner: ";
+        if (err.name === 'NotAllowedError') {
+          errorMessage += "Camera access denied. Please allow camera permissions.";
+        } else if (err.name === 'NotFoundError') {
+          errorMessage += "No camera found on this device.";
+        } else if (err.name === 'NotReadableError') {
+          errorMessage += "Camera is already in use by another application.";
+        } else if (err.name === 'NotSupportedError') {
+          errorMessage += "Camera not supported on this device.";
+        } else {
+          errorMessage += err.message;
+        }
+        
+        console.error(errorMessage);
+        showNotification(errorMessage, 'error', 5000);
+        resetScannerUI();
+        return;
       }
       
-      console.error(errorMessage);
-      scannerDiv.style.display = 'none';
-      stopBtn.style.display = 'none';
+      console.log("QuaggaJS initialized successfully");
+      
+      // Optimize canvas performance after QuaggaJS creates canvases
+      setTimeout(() => {
+        const canvases = scannerDiv.querySelectorAll('canvas');
+        canvases.forEach(canvas => {
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (ctx) {
+            console.log("Canvas optimized for frequent readback");
+          }
+        });
+      }, 100);
+      
+      Quagga.start();
+      quaggaStarted = true;
+      
+      // Reset button state
       startBtn.disabled = false;
       startBtn.textContent = '📷 Scan Barcode';
       
-      // Show error notification
-      showNotification('Scanner failed to start', 'error', 4000);
-      return;
-    }
-    
-    console.log("QuaggaJS initialized successfully");
-    Quagga.start();
-    quaggaStarted = true;
-    
-    // Reset button state
+      // Show success notification
+      showNotification('Scanner ready!', 'success', 2000);
+    });
+  }
+
+  function resetScannerUI() {
+    scannerDiv.style.display = 'none';
+    stopBtn.style.display = 'none';
     startBtn.disabled = false;
     startBtn.textContent = '📷 Scan Barcode';
-    
-    // Show success notification
-    showNotification('Scanner ready!', 'success', 2000);
-  });
+  }
 
   Quagga.offDetected();
   
@@ -687,6 +754,14 @@ function setupMobileOptimizations() {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
   if (isMobile) {
+    console.log("Mobile device detected:", navigator.userAgent);
+    
+    // Check if getUserMedia is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.error("getUserMedia not supported on this device");
+      showNotification('Camera not supported on this device/browser', 'error', 5000);
+    }
+    
     // Prevent zoom on input focus
     const inputs = document.querySelectorAll('input[type="text"], input[type="date"]');
     inputs.forEach(input => {
