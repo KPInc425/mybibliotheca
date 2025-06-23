@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  MyBibliotheca:
+  mybibliotheca:
     build: .
     ports:
       - "5054:5054"
@@ -32,7 +32,7 @@ services:
       start_period: 40s
 
   # Test service for running automated tests
-  MyBibliotheca-test:
+  mybibliotheca-test:
     build: .
     volumes:
       - ./data-test:/app/data
@@ -47,5 +47,5 @@ services:
       - test
 
 volumes:
-  MyBibliotheca_data:
+  mybibliotheca_data:
     driver: local

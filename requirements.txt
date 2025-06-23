@@ -12,6 +12,7 @@ Pillow>=10.4.0
 pytz==2024.1
 email-validator==2.1.0
 gunicorn
+waitress; sys_platform == "win32"  # Windows-compatible WSGI server
 psutil==5.9.0
 scrypt==0.8.24
 cryptography>=3.4.8

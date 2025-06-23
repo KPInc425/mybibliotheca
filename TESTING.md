@@ -20,7 +20,7 @@ This document describes the comprehensive testing suite for MyBibliotheca's mult
 
 **Usage**:
 ```bash
-docker exec -it MyBibliotheca-MyBibliotheca-1 python test_ui_auth.py
+docker exec -it mybibliotheca-mybibliotheca-1 python test_ui_auth.py
 ```
 
 ### 2. Extended User Tests (`test_ui_extended.py`)
@@ -34,7 +34,7 @@ docker exec -it MyBibliotheca-MyBibliotheca-1 python test_ui_auth.py
 
 **Usage**:
 ```bash
-docker exec -it MyBibliotheca-MyBibliotheca-1 python test_ui_extended.py
+docker exec -it mybibliotheca-mybibliotheca-1 python test_ui_extended.py
 ```
 
 ### 3. Complete Test Suite (`test_complete_auth.py`)
@@ -47,7 +47,7 @@ docker exec -it MyBibliotheca-MyBibliotheca-1 python test_ui_extended.py
 
 **Usage**:
 ```bash
-docker exec -it MyBibliotheca-MyBibliotheca-1 python test_complete_auth.py
+docker exec -it mybibliotheca-mybibliotheca-1 python test_complete_auth.py
 ```
 
 ### 4. Admin Tools Tests
@@ -60,8 +60,8 @@ docker exec -it MyBibliotheca-MyBibliotheca-1 python test_complete_auth.py
 
 **Usage**:
 ```bash
-docker exec -it MyBibliotheca-MyBibliotheca-1 python admin_tools.py list-users
-docker exec -it MyBibliotheca-MyBibliotheca-1 python admin_tools.py system-stats
+docker exec -it mybibliotheca-mybibliotheca-1 python admin_tools.py list-users
+docker exec -it mybibliotheca-mybibliotheca-1 python admin_tools.py system-stats
 ```
 
 ## Test Features
@@ -94,13 +94,13 @@ docker-compose up -d
 ### Single Test Execution
 ```bash
 # Run specific test
-docker exec -it MyBibliotheca-MyBibliotheca-1 python test_ui_auth.py
+docker exec -it mybibliotheca-mybibliotheca-1 python test_ui_auth.py
 ```
 
 ### Complete Test Suite
 ```bash
 # Run all tests with comprehensive reporting
-docker exec -it MyBibliotheca-MyBibliotheca-1 python test_complete_auth.py
+docker exec -it mybibliotheca-mybibliotheca-1 python test_complete_auth.py
 ```
 
 ### Expected Output
@@ -153,7 +153,7 @@ The test suite validates:
 
 2. **Database Migration Needed**
    ```bash
-   docker exec -it MyBibliotheca-MyBibliotheca-1 python migrate_to_multi_user.py
+   docker exec -it mybibliotheca-mybibliotheca-1 python migrate_to_multi_user.py
    ```
 
 3. **Port Conflicts**
@@ -163,7 +163,7 @@ The test suite validates:
 ### Test Debugging
 
 To debug failing tests:
-1. Check container logs: `docker logs MyBibliotheca-MyBibliotheca-1`
+1. Check container logs: `docker logs mybibliotheca-mybibliotheca-1`
 2. Run individual test components
 3. Verify database state with admin tools
 4. Check application logs within container
@@ -188,7 +188,7 @@ Example CI integration:
 test_auth:
   script:
     - docker-compose up -d
-    - docker exec MyBibliotheca-MyBibliotheca-1 python test_complete_auth.py
+    - docker exec mybibliotheca-mybibliotheca-1 python test_complete_auth.py
   artifacts:
     reports:
       junit: test_results.xml

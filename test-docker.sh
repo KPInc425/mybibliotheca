@@ -98,7 +98,7 @@ print_status "Running migration test..."
 docker run --rm \
     -v "$(pwd)/data-test:/app/data" \
     -e DATABASE_URL=sqlite:////app/data/books.db \
-    MyBibliotheca-MyBibliotheca python3 migrate_to_multi_user.py
+    mybibliotheca-mybibliotheca python3 migrate_to_multi_user.py
 
 if [ $? -eq 0 ]; then
     print_success "Database migration completed successfully"
@@ -240,7 +240,7 @@ fi
 # Phase 8: Run unit tests (if available)
 echo
 print_status "Phase 8: Running unit tests..."
-if docker-compose --profile test run --rm MyBibliotheca-test; then
+if docker-compose --profile test run --rm mybibliotheca-test; then
     print_success "Unit tests passed"
 else
     print_warning "Unit tests failed or not available"

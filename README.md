@@ -127,16 +127,16 @@ Use the built-in admin tools for password management:
 
 ```bash
 # Reset admin password (interactive)
-docker exec -it mybibliotheca python3 admin_tools.py reset-admin-password
+docker exec -it mybibliotheca-mybibliotheca-1 python3 admin_tools.py reset-admin-password
 
 # Create additional admin user
-docker exec -it mybibliotheca python3 admin_tools.py create-admin
+docker exec -it mybibliotheca-mybibliotheca-1 python3 admin_tools.py create-admin
 
 # List all users
-docker exec -it mybibliotheca python3 admin_tools.py list-users
+docker exec -it mybibliotheca-mybibliotheca-1 python3 admin_tools.py list-users
 
 # System statistics
-docker exec -it mybibliotheca python3 admin_tools.py system-stats
+docker exec -it mybibliotheca-mybibliotheca-1 python3 admin_tools.py system-stats
 ```
 
 ### Migration from V1.x
@@ -292,7 +292,7 @@ For development and testing, use the development compose file:
 docker compose -f docker-compose.dev.yml up -d
 
 # Run tests
-docker compose -f docker-compose.dev.yml --profile test up MyBibliotheca-test
+docker compose -f docker-compose.dev.yml --profile test up mybibliotheca-test
 ```
 
 ---
