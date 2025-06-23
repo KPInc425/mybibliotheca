@@ -964,34 +964,17 @@ function startScanner() {
               const track = videoStream.getVideoTracks()[0];
               if (track && track.getCapabilities) {
                 const capabilities = track.getCapabilities();
-                // Try to set zoom and focus on tap
-                let zoomSupported = capabilities.zoom !== undefined;
-                let focusSupported = capabilities.focusMode && capabilities.focusMode.includes('manual');
-                let zoomValue = 1.2;
-                if (zoomSupported) {
-                  let minZoom = capabilities.zoom.min || 1;
+                if (capabilities.zoom) {
                   let maxZoom = capabilities.zoom.max || 2;
-                  zoomValue = Math.min(Math.max(zoomValue, minZoom), maxZoom);
-                }
-                // Try to set both zoom and focus
-                let constraints = {};
-                if (zoomSupported) constraints.zoom = zoomValue;
-                if (focusSupported) {
-                  let min = capabilities.focusDistance?.min ?? 0;
-                  constraints.focusMode = 'manual';
-                  constraints.focusDistance = min;
-                }
-                if (Object.keys(constraints).length > 0) {
-                  track.applyConstraints(constraints).then(() => {
-                    showNotification('🔍 Tap-to-focus and zoom applied', 'info', 1200);
+                  let zoomValue = Math.min(2, maxZoom);
+                  track.applyConstraints({ zoom: zoomValue }).then(() => {
+                    showNotification('🔍 Digital zoom applied', 'info', 1200);
+                    console.log('Zoom set to', zoomValue);
                   }).catch(() => {
-                    // Fallback to continuous focus
-                    track.applyConstraints({ focusMode: 'continuous' }).then(() => {
-                      showNotification('🔍 Fallback to auto-focus', 'info', 1200);
-                    });
+                    showNotification('⚠️ Zoom not supported', 'warning', 1200);
                   });
                 } else {
-                  showNotification('📱 Hold steady for best results', 'info', 1000);
+                  showNotification('⚠️ Zoom not supported', 'warning', 1200);
                 }
               }
             }
