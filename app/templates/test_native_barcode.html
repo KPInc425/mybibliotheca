@@ -272,26 +272,21 @@
     try {
       log('Attempting to open device settings...');
       
-      if (isCapacitor && Capacitor.Plugins.NativeSettings) {
-        // Use the native settings plugin with correct parameters
-        log('Using capacitor-native-settings plugin...');
+      if (isCapacitor && Capacitor.Plugins.App) {
+        // Use Capacitor App plugin to open settings
+        log('Using Capacitor App plugin...');
         try {
-          // Try different options for opening app settings
-          Capacitor.Plugins.NativeSettings.open({
-            option: 'application_details'
-          }).then(() => {
-            log('NativeSettings.open() completed successfully');
-          }).catch((error) => {
-            log(`NativeSettings.open() failed: ${error.message}`, 'error');
-            // Try alternative option
-            tryAlternativeSettings();
-          });
+          Capacitor.Plugins.App.openSettings();
+          log('App.openSettings() called successfully');
         } catch (error) {
-          log(`NativeSettings.open() threw error: ${error.message}`, 'error');
-          tryAlternativeSettings();
+          log(`App.openSettings() failed: ${error.message}`, 'error');
+          tryAndroidDeepLink();
         }
+      } else if (navigator.userAgent.includes('Android')) {
+        // Try Android deep link directly
+        tryAndroidDeepLink();
       } else {
-        tryAlternativeSettings();
+        showManualInstructions();
       }
     } catch (error) {
       log(`Error in openDeviceSettings: ${error.message}`, 'error');
@@ -299,49 +294,44 @@
     }
   }
   
-  function tryAlternativeSettings() {
-    log('Trying alternative settings methods...');
-    
-    if (isCapacitor && Capacitor.Plugins.NativeSettings) {
-      // Try opening general settings first
-      log('Trying to open general settings...');
-      try {
-        Capacitor.Plugins.NativeSettings.open({
-          option: 'settings'
-        }).then(() => {
-          log('General settings opened successfully');
-        }).catch((error) => {
-          log(`General settings failed: ${error.message}`, 'error');
-          tryAndroidDeepLink();
-        });
-      } catch (error) {
-        log(`General settings threw error: ${error.message}`, 'error');
-        tryAndroidDeepLink();
-      }
-    } else {
-      tryAndroidDeepLink();
-    }
-  }
-  
   function tryAndroidDeepLink() {
     if (navigator.userAgent.includes('Android')) {
-      // Try different Android deep link formats
+      // Try multiple Android deep link formats
       const packageName = 'com.ilgaming.mybibliotheca';
       
-      // Try the newer Android settings format
-      const settingsUrl = `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`;
-      const alternativeUrl = `android-app://com.android.settings/.applications.ManageApplications`;
+      // Try different Android settings formats
+      const deepLinks = [
+        `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`,
+        `android-app://com.android.settings/.applications.ManageApplications`,
+        `android-app://com.android.settings/.applications.ApplicationPkgNameResolver?pkg=${packageName}`,
+        `android-app://com.android.settings/.applications.AppOpsDetails?pkg=${packageName}`
+      ];
       
-      log(`Trying Android deep link: ${settingsUrl}`);
+      log(`Trying Android deep links...`);
+      
+      // Try the first deep link
       try {
-        window.location.href = settingsUrl;
-        log('Android deep link attempted');
+        window.location.href = deepLinks[0];
+        log(`Android deep link 1 attempted: ${deepLinks[0]}`);
         
-        // If that doesn't work, try the alternative after a delay
+        // If that doesn't work, try the others after delays
         setTimeout(() => {
-          log(`Trying alternative Android deep link: ${alternativeUrl}`);
-          window.location.href = alternativeUrl;
-        }, 2000);
+          try {
+            window.location.href = deepLinks[1];
+            log(`Android deep link 2 attempted: ${deepLinks[1]}`);
+          } catch (error) {
+            log(`Android deep link 2 failed: ${error.message}`, 'error');
+          }
+        }, 3000);
+        
+        setTimeout(() => {
+          try {
+            window.location.href = deepLinks[2];
+            log(`Android deep link 3 attempted: ${deepLinks[2]}`);
+          } catch (error) {
+            log(`Android deep link 3 failed: ${error.message}`, 'error');
+          }
+        }, 6000);
         
       } catch (error) {
         log(`Android deep link failed: ${error.message}`, 'error');
