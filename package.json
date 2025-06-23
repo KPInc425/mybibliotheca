@@ -5,6 +5,7 @@
     "@capacitor/app": "^7.0.1",
     "@capacitor/camera": "^7.0.1",
     "@capacitor/cli": "^7.4.0",
-    "@capacitor/core": "^7.4.0"
+    "@capacitor/core": "^7.4.0",
+    "capacitor-native-settings": "^7.0.1"
   }
 }

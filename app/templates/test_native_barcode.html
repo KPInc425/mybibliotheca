@@ -264,30 +264,26 @@
     try {
       log('Attempting to open device settings...');
       
-      if (navigator.userAgent.includes('Android')) {
-        // Use Android-specific deep link to open app settings
+      if (isCapacitor && Capacitor.Plugins.NativeSettings) {
+        // Use the native settings plugin
+        log('Using capacitor-native-settings plugin...');
+        Capacitor.Plugins.NativeSettings.open({
+          option: 'application'
+        });
+      } else if (isCapacitor && Capacitor.Plugins.App) {
+        // Fallback to Capacitor App plugin
+        log('Using Capacitor App plugin as fallback...');
+        Capacitor.Plugins.App.openSettings();
+      } else if (navigator.userAgent.includes('Android')) {
+        // Fallback to Android deep link
         const packageName = 'com.ilgaming.mybibliotheca';
         const settingsUrl = `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`;
         
-        log(`Opening Android settings with URL: ${settingsUrl}`);
+        log(`Using Android deep link: ${settingsUrl}`);
         window.location.href = settingsUrl;
-        
-        // Fallback: if deep link fails, try Capacitor App plugin
-        setTimeout(() => {
-          if (isCapacitor && Capacitor.Plugins.App) {
-            log('Trying Capacitor App plugin as fallback...');
-            Capacitor.Plugins.App.openSettings();
-          }
-        }, 2000);
-        
       } else {
-        // For non-Android devices, use Capacitor App plugin
-        if (isCapacitor && Capacitor.Plugins.App) {
-          log('Using Capacitor App plugin for non-Android device...');
-          Capacitor.Plugins.App.openSettings();
-        } else {
-          alert('Please go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
-        }
+        // Generic fallback
+        alert('Please go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
       }
     } catch (error) {
       log(`Error opening settings: ${error.message}`, 'error');
