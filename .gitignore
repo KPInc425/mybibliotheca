@@ -218,3 +218,23 @@ app/templates/index.html
 
 # MAC-Foo
 .DS_Store
+
+node_modules
+
+# Capacitor/Native
+android/
+ios/
+*.iml
+.idea/
+.vscode/
+# Android Studio/Gradle
+.gradle/
+local.properties
+*.keystore
+# Capacitor config
+capacitor.config.ts
+capacitor.config.json.backup
+# Build output
+app/build/
+android/app/build/
+android/build/

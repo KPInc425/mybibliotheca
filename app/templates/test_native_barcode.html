@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+{% block title %}Test Native Barcode Scanner - MyBibliotheca{% endblock %}
+{% block content %}
+
+<style>
+  .test-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  .test-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  .test-button {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    text-align: center;
+  }
+  
+  .test-button:hover {
+    background: #0056b3;
+  }
+  
+  .test-button:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+  }
+  
+  .result {
+    margin: 20px 0;
+    padding: 15px;
+    border-radius: 8px;
+    font-family: monospace;
+    white-space: pre-wrap;
+  }
+  
+  .result.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  
+  .result.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+  
+  .result.info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+  }
+  
+  .status {
+    text-align: center;
+    font-weight: bold;
+    margin: 10px 0;
+  }
+  
+  .back-link {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #007bff;
+    text-decoration: none;
+  }
+  
+  .back-link:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<div class="test-container">
+  <div class="test-header">
+    <h1>🧪 Test Native Barcode Scanner</h1>
+    <p>This page tests the MLKit native barcode scanner plugin</p>
+  </div>
+  
+  <div id="status" class="status">Ready to test native barcode scanner</div>
+  
+  <button id="testNativeScanner" class="test-button">
+    📱 Launch Native Barcode Scanner
+  </button>
+  
+  <button id="testBrowserScanner" class="test-button">
+    🌐 Test Browser Barcode Scanner (Fallback)
+  </button>
+  
+  <div id="result" class="result info" style="display: none;"></div>
+  
+  <div id="logs" style="margin-top: 20px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
+  
+  <a href="{{ url_for('main.index') }}" class="back-link">⬅️ Back to Library</a>
+</div>
+
+<script>
+  // Check if we're running in a Capacitor environment
+  const isCapacitor = typeof Capacitor !== 'undefined';
+  const isNative = isCapacitor && Capacitor.isNative;
+  
+  function log(message, type = 'info') {
+    const logsDiv = document.getElementById('logs');
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = document.createElement('div');
+    logEntry.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff';
+    logEntry.textContent = `[${timestamp}] ${message}`;
+    logsDiv.appendChild(logEntry);
+    logsDiv.scrollTop = logsDiv.scrollHeight;
+    console.log(message);
+  }
+  
+  function updateStatus(message, type = 'info') {
+    const statusDiv = document.getElementById('status');
+    statusDiv.textContent = message;
+    statusDiv.className = `status ${type}`;
+  }
+  
+  function showResult(message, type = 'info') {
+    const resultDiv = document.getElementById('result');
+    resultDiv.textContent = message;
+    resultDiv.className = `result ${type}`;
+    resultDiv.style.display = 'block';
+  }
+  
+  // Initialize
+  document.addEventListener('DOMContentLoaded', function() {
+    log('Test page loaded');
+    log(`Capacitor available: ${isCapacitor}`);
+    log(`Native platform: ${isNative}`);
+    
+    if (isCapacitor) {
+      log('Capacitor detected - native scanner should be available');
+      updateStatus('Native scanner ready', 'success');
+    } else {
+      log('Running in browser - will use fallback scanner');
+      updateStatus('Browser mode - using fallback scanner', 'info');
+    }
+  });
+  
+  // Test Native Scanner
+  document.getElementById('testNativeScanner').addEventListener('click', async function() {
+    const button = this;
+    button.disabled = true;
+    button.textContent = '🔄 Launching...';
+    
+    try {
+      if (!isCapacitor) {
+        throw new Error('Capacitor not available - cannot use native scanner');
+      }
+      
+      log('Attempting to launch native barcode scanner...');
+      updateStatus('Launching native scanner...', 'info');
+      
+      // Import the barcode scanner plugin
+      const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
+      
+      // Check if scanning is supported
+      const { supported } = await BarcodeScanner.isSupported();
+      if (!supported) {
+        throw new Error('Barcode scanning not supported on this device');
+      }
+      
+      log('Barcode scanning is supported');
+      
+      // Check permissions
+      const { granted } = await BarcodeScanner.checkPermissions();
+      if (!granted) {
+        log('Requesting camera permissions...');
+        const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+        if (!newGranted) {
+          throw new Error('Camera permission denied');
+        }
+      }
+      
+      log('Camera permissions granted');
+      
+      // Start scanning
+      log('Starting barcode scan...');
+      const { barcodes } = await BarcodeScanner.scan();
+      
+      if (barcodes && barcodes.length > 0) {
+        const barcode = barcodes[0];
+        const result = `✅ Barcode Detected!
+Format: ${barcode.format}
+Value: ${barcode.rawValue}
+Type: ${barcode.type}
+Confidence: ${barcode.confidence || 'N/A'}`;
+        
+        log(`Native scanner detected: ${barcode.rawValue} (${barcode.format})`, 'success');
+        showResult(result, 'success');
+        updateStatus(`Detected: ${barcode.rawValue}`, 'success');
+      } else {
+        log('No barcode detected');
+        showResult('No barcode detected', 'info');
+        updateStatus('No barcode detected', 'info');
+      }
+      
+    } catch (error) {
+      log(`Native scanner error: ${error.message}`, 'error');
+      showResult(`Error: ${error.message}`, 'error');
+      updateStatus('Native scanner failed', 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = '📱 Launch Native Barcode Scanner';
+    }
+  });
+  
+  // Test Browser Scanner (Fallback)
+  document.getElementById('testBrowserScanner').addEventListener('click', async function() {
+    const button = this;
+    button.disabled = true;
+    button.textContent = '🔄 Starting...';
+    
+    try {
+      log('Testing browser-based barcode scanner...');
+      updateStatus('Starting browser scanner...', 'info');
+      
+      // Check if BarcodeDetector is supported
+      if (!('BarcodeDetector' in window)) {
+        throw new Error('BarcodeDetector not supported in this browser');
+      }
+      
+      log('BarcodeDetector is supported');
+      
+      // Create a simple video element for testing
+      const video = document.createElement('video');
+      video.style.width = '100%';
+      video.style.height = '300px';
+      video.style.border = '2px solid #007bff';
+      video.style.borderRadius = '8px';
+      video.style.marginTop = '10px';
+      
+      // Replace result div with video
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+      resultDiv.appendChild(video);
+      resultDiv.style.display = 'block';
+      
+      // Get camera stream
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      
+      video.srcObject = stream;
+      await video.play();
+      
+      log('Camera stream started');
+      updateStatus('Camera active - point at barcode', 'info');
+      
+      // Create BarcodeDetector
+      const barcodeDetector = new BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'code_128', 'code_39']
+      });
+      
+      // Scan for barcodes
+      const scanInterval = setInterval(async () => {
+        try {
+          const barcodes = await barcodeDetector.detect(video);
+          if (barcodes.length > 0) {
+            const barcode = barcodes[0];
+            const result = `✅ Browser Scanner Detected!
+Format: ${barcode.format}
+Value: ${barcode.rawValue}`;
+            
+            log(`Browser scanner detected: ${barcode.rawValue} (${barcode.format})`, 'success');
+            showResult(result, 'success');
+            updateStatus(`Detected: ${barcode.rawValue}`, 'success');
+            
+            // Stop scanning
+            clearInterval(scanInterval);
+            stream.getTracks().forEach(track => track.stop());
+            video.remove();
+          }
+        } catch (error) {
+          log(`Browser scan error: ${error.message}`, 'error');
+        }
+      }, 1000);
+      
+      // Stop scanning after 30 seconds
+      setTimeout(() => {
+        clearInterval(scanInterval);
+        stream.getTracks().forEach(track => track.stop());
+        video.remove();
+        if (resultDiv.innerHTML === '') {
+          showResult('No barcode detected within 30 seconds', 'info');
+          updateStatus('Scan timeout', 'info');
+        }
+      }, 30000);
+      
+    } catch (error) {
+      log(`Browser scanner error: ${error.message}`, 'error');
+      showResult(`Error: ${error.message}`, 'error');
+      updateStatus('Browser scanner failed', 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = '🌐 Test Browser Barcode Scanner (Fallback)';
+    }
+  });
+</script>
+
+{% endblock %} 

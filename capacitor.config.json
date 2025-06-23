@@ -1,0 +1,9 @@
+{
+  "appId": "com.ilgaming.mybibliotheca",
+  "appName": "MyBibliotheca",
+  "webDir": "app",
+  "server": {
+    "url": "https://books.ilgaming.xyz",
+    "cleartext": false
+  }
+}

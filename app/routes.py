@@ -999,3 +999,9 @@ def assign_book(uid):
     db.session.commit()
     flash(f'Book "{book.title}" assigned to {user.username}.', 'success')
     return redirect(url_for('main.library'))
+
+@bp.route('/test-native-barcode')
+@login_required
+def test_native_barcode():
+    """Temporary test page for native barcode scanner"""
+    return render_template('test_native_barcode.html')
