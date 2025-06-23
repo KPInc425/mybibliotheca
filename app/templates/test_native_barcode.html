@@ -204,19 +204,24 @@
     <div class="modal-title">📱 Camera Permissions Required</div>
     <div class="modal-content">
       <p>The barcode scanner needs camera access to work.</p>
-      <p>Would you like to open your device settings to enable camera permissions?</p>
+      <p>I'll try to open your device settings. If it doesn't work, you can manually navigate to:</p>
+      <p><strong>Settings → Apps → MyBibliotheca → Permissions → Enable Camera</strong></p>
     </div>
     <div class="modal-buttons">
       <button id="confirmOpenSettings" class="modal-button primary">
-        ✅ Yes, Open Settings
+        ✅ Try to Open Settings
       </button>
       <button id="cancelSettings" class="modal-button secondary">
         ❌ Cancel
       </button>
     </div>
     <div class="modal-path">
-      <strong>Manual path:</strong><br>
-      Settings → Apps → MyBibliotheca → Permissions → Enable Camera
+      <strong>Manual navigation:</strong><br>
+      1. Open your device Settings<br>
+      2. Tap "Apps" or "Applications"<br>
+      3. Find "MyBibliotheca" in the list<br>
+      4. Tap "Permissions"<br>
+      5. Enable "Camera" permission
     </div>
     <button id="closeModal" class="modal-button secondary" style="margin-top: 15px; width: 100%;">
       ✖️ Close Modal
@@ -268,42 +273,49 @@
       log('Attempting to open device settings...');
       
       if (isCapacitor && Capacitor.Plugins.NativeSettings) {
-        // Use the native settings plugin
+        // Use the native settings plugin with correct parameters
         log('Using capacitor-native-settings plugin...');
         try {
+          // Try different options for opening app settings
           Capacitor.Plugins.NativeSettings.open({
-            option: 'application'
+            option: 'application_details'
           }).then(() => {
             log('NativeSettings.open() completed successfully');
           }).catch((error) => {
             log(`NativeSettings.open() failed: ${error.message}`, 'error');
-            // Try fallback
-            tryFallbackSettings();
+            // Try alternative option
+            tryAlternativeSettings();
           });
         } catch (error) {
           log(`NativeSettings.open() threw error: ${error.message}`, 'error');
-          tryFallbackSettings();
+          tryAlternativeSettings();
         }
       } else {
-        tryFallbackSettings();
+        tryAlternativeSettings();
       }
     } catch (error) {
       log(`Error in openDeviceSettings: ${error.message}`, 'error');
-      alert('Please manually go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
+      showManualInstructions();
     }
   }
   
-  function tryFallbackSettings() {
-    log('Trying fallback settings methods...');
+  function tryAlternativeSettings() {
+    log('Trying alternative settings methods...');
     
-    if (isCapacitor && Capacitor.Plugins.App) {
-      // Fallback to Capacitor App plugin
-      log('Using Capacitor App plugin as fallback...');
+    if (isCapacitor && Capacitor.Plugins.NativeSettings) {
+      // Try opening general settings first
+      log('Trying to open general settings...');
       try {
-        Capacitor.Plugins.App.openSettings();
-        log('App.openSettings() called');
+        Capacitor.Plugins.NativeSettings.open({
+          option: 'settings'
+        }).then(() => {
+          log('General settings opened successfully');
+        }).catch((error) => {
+          log(`General settings failed: ${error.message}`, 'error');
+          tryAndroidDeepLink();
+        });
       } catch (error) {
-        log(`App.openSettings() failed: ${error.message}`, 'error');
+        log(`General settings threw error: ${error.message}`, 'error');
         tryAndroidDeepLink();
       }
     } else {
@@ -313,14 +325,24 @@
   
   function tryAndroidDeepLink() {
     if (navigator.userAgent.includes('Android')) {
-      // Fallback to Android deep link
+      // Try different Android deep link formats
       const packageName = 'com.ilgaming.mybibliotheca';
-      const settingsUrl = `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`;
       
-      log(`Using Android deep link: ${settingsUrl}`);
+      // Try the newer Android settings format
+      const settingsUrl = `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`;
+      const alternativeUrl = `android-app://com.android.settings/.applications.ManageApplications`;
+      
+      log(`Trying Android deep link: ${settingsUrl}`);
       try {
         window.location.href = settingsUrl;
         log('Android deep link attempted');
+        
+        // If that doesn't work, try the alternative after a delay
+        setTimeout(() => {
+          log(`Trying alternative Android deep link: ${alternativeUrl}`);
+          window.location.href = alternativeUrl;
+        }, 2000);
+        
       } catch (error) {
         log(`Android deep link failed: ${error.message}`, 'error');
         showManualInstructions();
