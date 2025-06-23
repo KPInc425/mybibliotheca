@@ -364,7 +364,7 @@
       <div id="scanner" style="
         width: 100%;
         max-width: 400px;
-        height: 300px;
+        height: 225px;
         display: none;
         margin: 1rem auto;
         overflow: hidden;
@@ -378,8 +378,8 @@
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 85%;
-          height: 45%;
+          width: 80%;
+          height: 60%;
           z-index: 10;
           pointer-events: none;
           border: 2px solid var(--gold);
@@ -539,20 +539,25 @@ async function getCameraConstraints() {
     const bestCameraId = await getBestCamera();
     
     return {
-      width: { min: 640, ideal: 1280, max: 1920 },
-      height: { min: 480, ideal: 720, max: 1080 },
+      width: { min: 320, ideal: 640, max: 1280 },
+      height: { min: 240, ideal: 480, max: 720 },
       facingMode: "environment",
       // Use the best camera for barcode scanning
       deviceId: bestCameraId ? { exact: bestCameraId } : undefined,
       frameRate: { ideal: 10, max: 15 },
-      // Simplified constraints that work better on mobile
-      aspectRatio: { ideal: 4/3 }
+      // Use standard aspect ratio that matches most mobile cameras
+      aspectRatio: { ideal: 16/9 },
+      // Focus settings for better barcode scanning
+      focusMode: "continuous",
+      exposureMode: "continuous"
     };
   } else {
     return {
       width: { min: 640, ideal: 1280, max: 1920 },
       height: { min: 480, ideal: 720, max: 1080 },
-      facingMode: "environment"
+      facingMode: "environment",
+      focusMode: "continuous",
+      exposureMode: "continuous"
     };
   }
 }
@@ -722,27 +727,40 @@ function startScanner() {
             const video = scannerDiv.querySelector('video');
             if (video && video.srcObject) {
               const track = video.srcObject.getVideoTracks()[0];
-              if (track && track.getCapabilities && track.getSettings) {
-                // Try to focus at the tap location
-                const rect = video.getBoundingClientRect();
-                const x = (e.clientX - rect.left) / rect.width;
-                const y = (e.clientY - rect.top) / rect.height;
+              if (track && track.getCapabilities) {
+                console.log('Tap to focus triggered');
                 
-                console.log('Tap to focus at:', x, y);
+                // Try to trigger auto-focus by temporarily changing constraints
+                const currentConstraints = track.getConstraints();
                 
-                // Some cameras support focus constraints
-                if (track.getCapabilities().focusMode && track.getCapabilities().focusMode.includes('manual')) {
-                  track.applyConstraints({
-                    advanced: [{
-                      focusMode: 'manual',
-                      focusDistance: 0.1 // Close focus
-                    }]
-                  }).then(() => {
-                    console.log('Manual focus applied');
-                  }).catch(err => {
-                    console.log('Manual focus not supported:', err);
-                  });
-                }
+                // Temporarily set focus mode to trigger auto-focus
+                track.applyConstraints({
+                  ...currentConstraints,
+                  advanced: [{
+                    focusMode: 'continuous'
+                  }]
+                }).then(() => {
+                  console.log('Auto-focus triggered');
+                  // Show visual feedback
+                  showNotification('Focusing...', 'info', 1000);
+                }).catch(err => {
+                  console.log('Auto-focus not supported:', err);
+                  // Fallback: try to restart the track to trigger focus
+                  track.stop();
+                  setTimeout(() => {
+                    navigator.mediaDevices.getUserMedia({
+                      video: {
+                        deviceId: { exact: track.getSettings().deviceId },
+                        facingMode: "environment"
+                      }
+                    }).then(stream => {
+                      video.srcObject = stream;
+                      console.log('Camera restarted for focus');
+                    }).catch(err => {
+                      console.log('Failed to restart camera:', err);
+                    });
+                  }, 100);
+                });
               }
             }
           });
