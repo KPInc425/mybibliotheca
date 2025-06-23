@@ -493,12 +493,8 @@ const SCAN_COOLDOWN = 2000;
 let scanAttempts = 0;
 const MAX_SCAN_ATTEMPTS = 10;
 
-// Check if the detected format is likely to be an ISBN
-function isLikelyISBNFormat(format) {
-  // ISBNs are typically EAN-13 or Code 128
-  const isbnFormats = ['ean_13', 'ean', 'code_128', 'code_39'];
-  return isbnFormats.includes(format);
-}
+// Global mobile detection
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
 // Enhanced validation - check both format and code structure
 function isValidISBNCode(code, format) {
@@ -518,6 +514,13 @@ function isValidISBNCode(code, format) {
   }
   
   return false;
+}
+
+// Check if the detected format is likely to be an ISBN
+function isLikelyISBNFormat(format) {
+  // ISBNs are typically EAN-13 or Code 128
+  const isbnFormats = ['ean_13', 'ean', 'code_128', 'code_39'];
+  return isbnFormats.includes(format);
 }
 
 // Floating notification system
@@ -547,8 +550,6 @@ function showNotification(message, type = 'info', duration = 3000) {
 
 // Get optimal camera constraints based on device
 function getCameraConstraints() {
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  
   if (isMobile) {
     return {
       width: { min: 320, ideal: 640, max: 1280 },
@@ -595,7 +596,6 @@ function startScanner() {
   stopBtn.style.display = 'inline-block';
 
   // Show mobile guide if on mobile
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const mobileGuide = document.getElementById('mobile-guide');
   if (isMobile && mobileGuide) {
     mobileGuide.style.display = 'block';
@@ -619,8 +619,6 @@ function startScanner() {
   }, 15000); // 15 second timeout
 
   // Check camera permission first on mobile
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  
   if (isMobile) {
     checkCameraPermission().then(hasPermission => {
       if (!hasPermission) {
@@ -783,8 +781,6 @@ function stopScanner() {
 
 // Add mobile-specific optimizations
 function setupMobileOptimizations() {
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  
   if (isMobile) {
     console.log("Mobile device detected:", navigator.userAgent);
     
