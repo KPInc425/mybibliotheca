@@ -358,6 +358,18 @@
         <button type="button" class="btn-stop" onclick="stopScanner()" style="display: none;" id="stopBtn">
           ⏹️ Stop Scanner
         </button>
+        <button type="button" class="btn-refresh" onclick="refreshScanner()" style="
+          background: linear-gradient(135deg, #6c757d, #5a6268);
+          border: none;
+          color: white;
+          padding: 0.75rem 1.5rem;
+          border-radius: 10px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        ">
+          🔄 Refresh Scanner
+        </button>
       </div>
       
       <!-- Scanner viewport -->
@@ -470,8 +482,31 @@
 </div>
 
 <!-- ZXing (modern barcode scanning library) -->
-<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js?v=2024"></script>
 <script>
+// Clear any potential cached QuaggaJS references
+if (typeof Quagga !== 'undefined') {
+  console.log("Clearing old QuaggaJS references");
+  delete window.Quagga;
+  // Force page refresh to clear any cached scripts
+  if (confirm("Detected old scanner code. Refresh page to use new scanner?")) {
+    window.location.reload(true);
+  }
+}
+
+// Verify ZXing is loaded
+if (typeof ZXing === 'undefined') {
+  console.error("ZXing library not loaded!");
+  alert("Error: Barcode scanner library not loaded. Please refresh the page.");
+} else {
+  console.log("ZXing library loaded successfully:", ZXing);
+}
+
+// Add cache-busting for development
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  console.log("Development mode detected - cache busting enabled");
+}
+
 let scanner = null;
 let lastScanTime = 0;
 const SCAN_COOLDOWN = 2000;
@@ -632,109 +667,120 @@ function startScanner() {
   initializeZXingScanner();
 
   function initializeZXingScanner() {
-    getCameraConstraints().then(constraints => {
-      // Create ZXing scanner
-      const codeReader = new ZXing.BrowserMultiFormatReader();
-      
-      codeReader.listVideoInputDevices()
-        .then((videoInputDevices) => {
-          console.log("ZXing available devices:", videoInputDevices);
-          
-          // Find the best camera
-          const bestCamera = videoInputDevices.find(device => {
-            const label = device.label.toLowerCase();
-            return label.includes('back') || label.includes('rear');
-          }) || videoInputDevices[0];
-          
-          if (!bestCamera) {
-            throw new Error("No camera found");
-          }
-          
-          console.log("Using camera:", bestCamera.label);
-          
-          // Start scanning
-          return codeReader.decodeFromVideoDevice(
-            bestCamera.deviceId,
-            scannerDiv,
-            (result, err) => {
-              if (result) {
-                const now = Date.now();
-                
-                if (now - lastScanTime < SCAN_COOLDOWN) {
-                  return;
-                }
-                
-                const code = result.text;
-                const format = result.format;
-                console.log("Detected code:", code, "Format:", format);
-                
-                scanAttempts++;
-                
-                if (isValidISBNCode(code, format)) {
-                  console.log("Valid ISBN detected:", code);
-                  document.getElementById('isbn').value = code;
-                  stopScanner();
-                  lastScanTime = now;
-                  
-                  // Show success notification
-                  showNotification(`ISBN detected: ${code}`, 'success', 2000);
-                  
-                  // Auto-fetch the book data
-                  setTimeout(() => {
-                    document.querySelector('button[name="fetch"]').click();
-                  }, 500);
-                } else {
-                  console.log("Invalid ISBN format:", code, format);
-                  
-                  // Stop after too many invalid attempts
-                  if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
-                    stopScanner();
-                  }
-                }
+    console.log("Initializing ZXing scanner...");
+    
+    // Create ZXing scanner with specific formats for ISBN
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    
+    // Configure for ISBN scanning
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39
+    ]);
+    
+    codeReader.hints = hints;
+    
+    codeReader.listVideoInputDevices()
+      .then((videoInputDevices) => {
+        console.log("ZXing available devices:", videoInputDevices);
+        
+        if (videoInputDevices.length === 0) {
+          throw new Error("No cameras found");
+        }
+        
+        // Find the best camera for barcode scanning
+        const bestCamera = videoInputDevices.find(device => {
+          const label = device.label.toLowerCase();
+          return label.includes('back') || label.includes('rear') || label.includes('environment');
+        }) || videoInputDevices[0];
+        
+        console.log("Using camera:", bestCamera.label);
+        
+        // Start scanning with the selected camera
+        return codeReader.decodeFromVideoDevice(
+          bestCamera.deviceId,
+          scannerDiv,
+          (result, err) => {
+            if (result) {
+              const now = Date.now();
+              
+              if (now - lastScanTime < SCAN_COOLDOWN) {
+                return;
               }
               
-              if (err && !(err instanceof ZXing.NotFoundException)) {
-                console.log("Scanning error:", err);
+              const code = result.text;
+              const format = result.format;
+              console.log("ZXing detected code:", code, "Format:", format);
+              
+              scanAttempts++;
+              
+              if (isValidISBNCode(code, format)) {
+                console.log("Valid ISBN detected:", code);
+                document.getElementById('isbn').value = code;
+                stopScanner();
+                lastScanTime = now;
+                
+                // Show success notification
+                showNotification(`ISBN detected: ${code}`, 'success', 2000);
+                
+                // Auto-fetch the book data
+                setTimeout(() => {
+                  document.querySelector('button[name="fetch"]').click();
+                }, 500);
+              } else {
+                console.log("Invalid ISBN format:", code, format);
+                showNotification(`Invalid format: ${format}`, 'warning', 2000);
+                
+                // Stop after too many invalid attempts
+                if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
+                  stopScanner();
+                  showNotification('Too many invalid scans. Please try again.', 'error', 3000);
+                }
               }
             }
-          );
-        })
-        .then(() => {
-          scanner = codeReader;
-          clearTimeout(timeoutId);
-          
-          console.log("ZXing scanner initialized successfully");
-          
-          // Reset button state
-          startBtn.disabled = false;
-          startBtn.textContent = '📷 Scan Barcode';
-          
-          // Show success notification
-          showNotification('Scanner ready!', 'success', 2000);
-        })
-        .catch((err) => {
-          clearTimeout(timeoutId);
-          console.error("ZXing scanner init error:", err);
-          
-          let errorMessage = "Error starting scanner: ";
-          if (err.name === 'NotAllowedError') {
-            errorMessage += "Camera access denied. Please allow camera permissions.";
-          } else if (err.name === 'NotFoundError') {
-            errorMessage += "No camera found on this device.";
-          } else if (err.name === 'NotReadableError') {
-            errorMessage += "Camera is already in use by another application.";
-          } else {
-            errorMessage += err.message;
+            
+            if (err && !(err instanceof ZXing.NotFoundException)) {
+              console.log("ZXing scanning error:", err);
+            }
           }
-          
-          showNotification(errorMessage, 'error', 5000);
-          resetScannerUI();
-        });
-    }).catch(error => {
-      console.error("Error getting camera constraints:", error);
-      showNotification('Error accessing camera', 'error', 4000);
-      resetScannerUI();
-    });
+        );
+      })
+      .then(() => {
+        scanner = codeReader;
+        clearTimeout(timeoutId);
+        
+        console.log("ZXing scanner initialized successfully");
+        
+        // Reset button state
+        startBtn.disabled = false;
+        startBtn.textContent = '📷 Scan Barcode';
+        
+        // Show success notification
+        showNotification('Scanner ready! Point camera at barcode', 'success', 3000);
+      })
+      .catch((err) => {
+        clearTimeout(timeoutId);
+        console.error("ZXing scanner init error:", err);
+        
+        let errorMessage = "Error starting scanner: ";
+        if (err.name === 'NotAllowedError') {
+          errorMessage += "Camera access denied. Please allow camera permissions.";
+        } else if (err.name === 'NotFoundError') {
+          errorMessage += "No camera found on this device.";
+        } else if (err.name === 'NotReadableError') {
+          errorMessage += "Camera is already in use by another application.";
+        } else if (err.name === 'OverconstrainedError') {
+          errorMessage += "Camera constraints not supported. Trying alternative settings.";
+        } else {
+          errorMessage += err.message;
+        }
+        
+        showNotification(errorMessage, 'error', 5000);
+        resetScannerUI();
+      });
   }
 
   function resetScannerUI() {
@@ -756,6 +802,29 @@ function stopScanner() {
   
   scannerDiv.style.display = 'none';
   stopBtn.style.display = 'none';
+}
+
+function refreshScanner() {
+  console.log("Refreshing scanner...");
+  
+  // Stop current scanner
+  if (scanner) {
+    scanner.stop();
+    scanner = null;
+  }
+  
+  // Clear any cached state
+  if (typeof Quagga !== 'undefined') {
+    delete window.Quagga;
+  }
+  
+  // Show notification
+  showNotification('Refreshing scanner...', 'info', 2000);
+  
+  // Force a small delay then restart
+  setTimeout(() => {
+    startScanner();
+  }, 1000);
 }
 
 // Add mobile-specific optimizations
