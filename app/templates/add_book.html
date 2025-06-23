@@ -385,6 +385,14 @@
         border-radius: 15px;
         cursor: pointer;
       ">
+        <!-- Video element required by ZXing -->
+        <video id="scanner-video" style="
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 15px;
+        "></video>
+        
         <div id="scanner-overlay" style="
           position: absolute;
           top: 50%;
@@ -669,6 +677,15 @@ function startScanner() {
   function initializeZXingScanner() {
     console.log("Initializing ZXing scanner...");
     
+    // Get the video element
+    const videoElement = document.getElementById('scanner-video');
+    if (!videoElement) {
+      console.error("Video element not found!");
+      showNotification('Scanner error: Video element not found', 'error', 4000);
+      resetScannerUI();
+      return;
+    }
+    
     // Create ZXing scanner with specific formats for ISBN
     const codeReader = new ZXing.BrowserMultiFormatReader();
     
@@ -699,10 +716,10 @@ function startScanner() {
         
         console.log("Using camera:", bestCamera.label);
         
-        // Start scanning with the selected camera
+        // Start scanning with the selected camera and video element
         return codeReader.decodeFromVideoDevice(
           bestCamera.deviceId,
-          scannerDiv,
+          videoElement,
           (result, err) => {
             if (result) {
               const now = Date.now();
@@ -794,10 +811,17 @@ function startScanner() {
 function stopScanner() {
   const scannerDiv = document.getElementById('scanner');
   const stopBtn = document.getElementById('stopBtn');
+  const videoElement = document.getElementById('scanner-video');
   
   if (scanner) {
     scanner.stop();
     scanner = null;
+  }
+  
+  // Clean up video element
+  if (videoElement) {
+    videoElement.srcObject = null;
+    videoElement.load();
   }
   
   scannerDiv.style.display = 'none';
@@ -811,6 +835,13 @@ function refreshScanner() {
   if (scanner) {
     scanner.stop();
     scanner = null;
+  }
+  
+  // Clean up video element
+  const videoElement = document.getElementById('scanner-video');
+  if (videoElement) {
+    videoElement.srcObject = null;
+    videoElement.load();
   }
   
   // Clear any cached state
