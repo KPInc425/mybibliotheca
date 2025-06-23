@@ -276,7 +276,7 @@
     }
     
     #scanner {
-      height: 250px !important;
+      height: 300px !important;
       max-width: 100% !important;
       margin: 1rem 0 !important;
     }
@@ -289,8 +289,8 @@
     
     /* Better mobile scanner positioning */
     #scanner-overlay {
-      width: 90% !important;
-      height: 50% !important;
+      width: 80% !important;
+      height: 60% !important;
     }
   }
 
@@ -376,30 +376,13 @@
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 80%;
-          height: 40%;
+          width: 70%;
+          height: 50%;
           z-index: 10;
           pointer-events: none;
           border: 2px solid var(--gold);
           border-radius: 10px;
         "></div>
-        
-        <!-- Mobile scanning guide -->
-        <div id="mobile-guide" style="
-          position: absolute;
-          top: 10px;
-          left: 50%;
-          transform: translateX(-50%);
-          color: white;
-          background: rgba(0,0,0,0.7);
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-size: 0.8rem;
-          z-index: 15;
-          display: none;
-        ">
-          📱 Center barcode in the box
-        </div>
       </div>
     </div>
 
@@ -552,19 +535,26 @@ function showNotification(message, type = 'info', duration = 3000) {
 function getCameraConstraints() {
   if (isMobile) {
     return {
-      width: { min: 320, ideal: 640, max: 1280 },
-      height: { min: 240, ideal: 480, max: 720 },
+      width: { min: 640, ideal: 1280, max: 1920 },
+      height: { min: 480, ideal: 720, max: 1080 },
       facingMode: "environment",
-      // Mobile-specific constraints for better quality
+      // Mobile-specific constraints for better focus and center usage
       deviceId: undefined, // Let browser choose best camera
-      frameRate: { ideal: 10, max: 15 }, // Lower frame rate for better quality
-      // Remove focus constraints that might cause issues
+      frameRate: { ideal: 15, max: 30 },
+      // Focus settings for better barcode scanning
+      focusMode: "continuous",
+      exposureMode: "continuous",
+      whiteBalanceMode: "continuous",
+      // Ensure we get the full camera view
+      aspectRatio: { ideal: 4/3 }
     };
   } else {
     return {
       width: { min: 640, ideal: 1280, max: 1920 },
       height: { min: 480, ideal: 720, max: 1080 },
-      facingMode: "environment"
+      facingMode: "environment",
+      focusMode: "continuous",
+      exposureMode: "continuous"
     };
   }
 }
@@ -594,12 +584,6 @@ function startScanner() {
   
   scannerDiv.style.display = 'block';
   stopBtn.style.display = 'inline-block';
-
-  // Show mobile guide if on mobile
-  const mobileGuide = document.getElementById('mobile-guide');
-  if (isMobile && mobileGuide) {
-    mobileGuide.style.display = 'block';
-  }
 
   if (quaggaStarted) {
     Quagga.stop();
@@ -646,11 +630,11 @@ function startScanner() {
         constraints: getCameraConstraints()
       },
       locator: {
-        patchSize: "medium",
-        halfSample: true
+        patchSize: "large",
+        halfSample: false,
       },
       numOfWorkers: isMobile ? 1 : 2,
-      frequency: 10,
+      frequency: 15,
       decoder: {
         readers: [
           "ean_reader",
@@ -696,13 +680,6 @@ function startScanner() {
       
       // Show success notification
       showNotification('Scanner ready!', 'success', 2000);
-      
-      // Add mobile-specific tips
-      if (isMobile) {
-        setTimeout(() => {
-          showNotification('Tip: Hold phone steady, 4-8 inches from barcode', 'info', 4000);
-        }, 2500);
-      }
     });
   }
 
@@ -764,7 +741,6 @@ function startScanner() {
 function stopScanner() {
   const scannerDiv = document.getElementById('scanner');
   const stopBtn = document.getElementById('stopBtn');
-  const mobileGuide = document.getElementById('mobile-guide');
   
   if (quaggaStarted) {
     Quagga.stop();
@@ -773,9 +749,6 @@ function stopScanner() {
   
   scannerDiv.style.display = 'none';
   stopBtn.style.display = 'none';
-  if (mobileGuide) {
-    mobileGuide.style.display = 'none';
-  }
   Quagga.offDetected();
 }
 
