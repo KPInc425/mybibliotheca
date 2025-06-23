@@ -111,6 +111,23 @@
   
   <div id="result" class="result info" style="display: none;"></div>
   
+  <div id="permissionHelp" class="result info" style="display: none;">
+    <h4>📱 Camera Permissions Required</h4>
+    <p>The barcode scanner needs camera access to work.</p>
+    <p>Would you like to open your device settings to enable camera permissions?</p>
+    <div style="margin-top: 15px;">
+      <button id="confirmOpenSettings" class="test-button" style="background: #17a2b8; margin-right: 10px; display: inline-block; width: auto;">
+        ✅ Yes, Open Settings
+      </button>
+      <button id="cancelSettings" class="test-button" style="background: #6c757d; display: inline-block; width: auto;">
+        ❌ Cancel
+      </button>
+    </div>
+    <p style="margin-top: 15px; font-size: 12px; color: #666;">
+      <strong>Manual path:</strong> Settings → Apps → MyBibliotheca → Permissions → Enable Camera
+    </p>
+  </div>
+  
   <div id="logs" style="margin-top: 20px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
   
   <a href="{{ url_for('main.index') }}" class="back-link">⬅️ Back to Library</a>
@@ -143,6 +160,39 @@
     resultDiv.textContent = message;
     resultDiv.className = `result ${type}`;
     resultDiv.style.display = 'block';
+  }
+  
+  function showPermissionHelp() {
+    const helpDiv = document.getElementById('permissionHelp');
+    helpDiv.style.display = 'block';
+  }
+  
+  function hidePermissionHelp() {
+    const helpDiv = document.getElementById('permissionHelp');
+    helpDiv.style.display = 'none';
+  }
+  
+  function openDeviceSettings() {
+    try {
+      if (isCapacitor && Capacitor.Plugins.App) {
+        // Use Capacitor App plugin to open settings
+        Capacitor.Plugins.App.openSettings();
+        log('Opening device settings via Capacitor App plugin');
+      } else {
+        // Fallback for browser or if App plugin not available
+        log('Attempting to open settings via browser...');
+        if (navigator.userAgent.includes('Android')) {
+          // Try to open Android settings
+          window.location.href = 'android-app://com.android.settings/.applications.InstalledAppDetails?pkg=com.ilgaming.mybibliotheca';
+        } else {
+          // Generic fallback
+          alert('Please go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
+        }
+      }
+    } catch (error) {
+      log(`Error opening settings: ${error.message}`, 'error');
+      alert('Please manually go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
+    }
   }
   
   // Initialize
@@ -220,7 +270,9 @@
           }
         } catch (permissionError) {
           log(`Permission request error: ${permissionError.message}`, 'error');
-          throw new Error(`Camera permission error: ${permissionError.message}`);
+          showResult(`Camera permission error: ${permissionError.message}`, 'error');
+          showPermissionHelp();
+          return;
         }
       }
       
@@ -377,9 +429,11 @@ Confidence: ${barcode.confidence || 'N/A'}`;
       if (newGranted) {
         log('✅ Camera permissions granted successfully!', 'success');
         showResult('Camera permissions granted successfully!', 'success');
+        hidePermissionHelp();
       } else {
         log('❌ Camera permissions denied', 'error');
         showResult('Camera permissions were denied. Please grant camera permissions in your device settings.', 'error');
+        showPermissionHelp();
       }
       
     } catch (error) {
@@ -481,6 +535,20 @@ Value: ${barcode.rawValue}`;
       button.disabled = false;
       button.textContent = '🌐 Test Browser Barcode Scanner (Fallback)';
     }
+  });
+  
+  // Confirm Open Settings
+  document.getElementById('confirmOpenSettings').addEventListener('click', function() {
+    log('User confirmed opening device settings');
+    openDeviceSettings();
+    hidePermissionHelp();
+  });
+  
+  // Cancel Settings
+  document.getElementById('cancelSettings').addEventListener('click', function() {
+    log('User cancelled opening device settings');
+    hidePermissionHelp();
+    showResult('Camera permissions are required to use the barcode scanner.', 'info');
   });
 </script>
 
