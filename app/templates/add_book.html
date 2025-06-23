@@ -524,31 +524,53 @@ let animationFrameId = null;
 // Global mobile detection
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+// Check if the detected format is likely to be an ISBN
+function isLikelyISBNFormat(format) {
+  // ISBNs are typically EAN-13, EAN-8, Code 128, or Code 39
+  // BarcodeDetector API returns lowercase format names
+  const isbnFormats = [
+    'ean_13', 'ean_8', 'code_128', 'code_39',  // BarcodeDetector API formats
+    'EAN_13', 'EAN_8', 'CODE_128', 'CODE_39',  // Legacy formats
+    'EAN13', 'EAN8', 'CODE128', 'CODE39'       // Alternative formats
+  ];
+  return isbnFormats.includes(format);
+}
+
 // Enhanced validation - check both format and code structure
 function isValidISBNCode(code, format) {
   const cleanCode = code.replace(/[-\s]/g, '');
   
+  console.log("Validating ISBN:", cleanCode, "Format:", format);
+  
   // First check format
   if (!isLikelyISBNFormat(format)) {
+    console.log("Format not recognized as ISBN:", format);
     return false;
   }
   
   // Then check code structure
-  if (cleanCode.length === 10 || cleanCode.length === 13) {
-    if (cleanCode.length === 13) {
-      return cleanCode.startsWith('978') || cleanCode.startsWith('979');
+  if (cleanCode.length === 13) {
+    // ISBN-13: must start with 978 or 979
+    if (cleanCode.startsWith('978') || cleanCode.startsWith('979')) {
+      console.log("Valid ISBN-13 detected:", cleanCode);
+      return true;
+    } else {
+      console.log("Invalid ISBN-13 prefix:", cleanCode);
+      return false;
     }
-    return /^\d{9}[\dX]$/i.test(cleanCode);
+  } else if (cleanCode.length === 10) {
+    // ISBN-10: 9 digits + 1 digit or X
+    if (/^\d{9}[\dX]$/i.test(cleanCode)) {
+      console.log("Valid ISBN-10 detected:", cleanCode);
+      return true;
+    } else {
+      console.log("Invalid ISBN-10 format:", cleanCode);
+      return false;
+    }
+  } else {
+    console.log("Invalid length:", cleanCode.length);
+    return false;
   }
-  
-  return false;
-}
-
-// Check if the detected format is likely to be an ISBN
-function isLikelyISBNFormat(format) {
-  // ISBNs are typically EAN-13, EAN-8, Code 128, or Code 39
-  const isbnFormats = ['EAN_13', 'EAN_8', 'CODE_128', 'CODE_39', 'EAN13', 'EAN8', 'CODE128', 'CODE39'];
-  return isbnFormats.includes(format);
 }
 
 // Floating notification system
