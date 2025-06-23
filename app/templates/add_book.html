@@ -109,6 +109,7 @@
     box-shadow: 0 8px 25px var(--shadow) !important;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
   }
 
   #scanner-overlay {
@@ -276,7 +277,7 @@
     }
     
     #scanner {
-      height: 300px !important;
+      height: 350px !important;
       max-width: 100% !important;
       margin: 1rem 0 !important;
     }
@@ -289,8 +290,8 @@
     
     /* Better mobile scanner positioning */
     #scanner-overlay {
-      width: 80% !important;
-      height: 60% !important;
+      width: 90% !important;
+      height: 50% !important;
     }
   }
 
@@ -370,14 +371,15 @@
         position: relative;
         background-color: #000;
         border-radius: 15px;
+        cursor: pointer;
       ">
         <div id="scanner-overlay" style="
           position: absolute;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 70%;
-          height: 50%;
+          width: 85%;
+          height: 45%;
           z-index: 10;
           pointer-events: none;
           border: 2px solid var(--gold);
@@ -542,23 +544,15 @@ async function getCameraConstraints() {
       facingMode: "environment",
       // Use the best camera for barcode scanning
       deviceId: bestCameraId ? { exact: bestCameraId } : undefined,
-      frameRate: { ideal: 15, max: 30 },
-      // Focus settings for better barcode scanning
-      focusMode: "continuous",
-      exposureMode: "continuous",
-      whiteBalanceMode: "continuous",
-      // Ensure we get the main camera (not wide-angle)
-      aspectRatio: { ideal: 4/3 },
-      // Try to get the standard camera, not ultra-wide
-      zoom: { ideal: 1.0, min: 0.8, max: 1.2 }
+      frameRate: { ideal: 10, max: 15 },
+      // Simplified constraints that work better on mobile
+      aspectRatio: { ideal: 4/3 }
     };
   } else {
     return {
       width: { min: 640, ideal: 1280, max: 1920 },
       height: { min: 480, ideal: 720, max: 1080 },
-      facingMode: "environment",
-      focusMode: "continuous",
-      exposureMode: "continuous"
+      facingMode: "environment"
     };
   }
 }
@@ -680,11 +674,11 @@ function startScanner() {
           constraints: constraints
         },
         locator: {
-          patchSize: "large", // Better for mobile focus
-          halfSample: false,  // Full resolution for better detection
+          patchSize: "medium", // Better for mobile stability
+          halfSample: true,    // Better performance on mobile
         },
         numOfWorkers: isMobile ? 1 : 2,
-        frequency: 15, // Higher frequency for better detection
+        frequency: 10, // Lower frequency for better stability
         decoder: {
           readers: [
             "ean_reader",
@@ -721,6 +715,39 @@ function startScanner() {
         
         console.log("QuaggaJS initialized successfully");
         
+        // Add tap-to-focus functionality for mobile
+        if (isMobile) {
+          scannerDiv.addEventListener('click', function(e) {
+            // Get the video element
+            const video = scannerDiv.querySelector('video');
+            if (video && video.srcObject) {
+              const track = video.srcObject.getVideoTracks()[0];
+              if (track && track.getCapabilities && track.getSettings) {
+                // Try to focus at the tap location
+                const rect = video.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = (e.clientY - rect.top) / rect.height;
+                
+                console.log('Tap to focus at:', x, y);
+                
+                // Some cameras support focus constraints
+                if (track.getCapabilities().focusMode && track.getCapabilities().focusMode.includes('manual')) {
+                  track.applyConstraints({
+                    advanced: [{
+                      focusMode: 'manual',
+                      focusDistance: 0.1 // Close focus
+                    }]
+                  }).then(() => {
+                    console.log('Manual focus applied');
+                  }).catch(err => {
+                    console.log('Manual focus not supported:', err);
+                  });
+                }
+              }
+            }
+          });
+        }
+        
         Quagga.start();
         quaggaStarted = true;
         
@@ -730,6 +757,13 @@ function startScanner() {
         
         // Show success notification
         showNotification('Scanner ready!', 'success', 2000);
+        
+        // Add mobile-specific focus hint
+        if (isMobile) {
+          setTimeout(() => {
+            showNotification('Tap anywhere on camera view to focus', 'info', 4000);
+          }, 2500);
+        }
       });
     }).catch(error => {
       console.error("Error getting camera constraints:", error);
