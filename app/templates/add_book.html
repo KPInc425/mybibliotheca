@@ -274,6 +274,56 @@
     .library-header h1 {
       font-size: 2rem;
     }
+    
+    #scanner {
+      height: 250px !important;
+      max-width: 100% !important;
+    }
+    
+    .btn-scan, .btn-stop, .btn-fetch {
+      min-height: 44px;
+      min-width: 44px;
+      font-size: 1rem;
+    }
+  }
+
+  /* Floating Notification System */
+  .floating-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    z-index: 9999;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .floating-notification.show {
+    transform: translateX(0);
+  }
+
+  .floating-notification.success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+  }
+
+  .floating-notification.error {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+  }
+
+  .floating-notification.warning {
+    background: linear-gradient(135deg, #ffc107, #e0a800);
+    color: #212529;
+  }
+
+  .floating-notification.info {
+    background: linear-gradient(135deg, #17a2b8, #138496);
+  }
+
+  @media (max-width: 768px) {
   }
 </style>
 
@@ -282,6 +332,9 @@
   <p class="mb-0">Scan, search, or manually add books to your library</p>
 </div>
 
+<!-- Floating Notification Container -->
+<div id="notification-container"></div>
+
 <div class="form-container">
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -289,6 +342,7 @@
     <!-- Scanner Section -->
     <div class="scanner-section">
       <h4 style="color: var(--primary-brown); margin-bottom: 1rem;">📱 Barcode Scanner</h4>
+      
       <div class="scanner-buttons">
         <button type="button" class="btn-scan" onclick="startScanner()">
           📷 Scan Barcode
@@ -308,6 +362,7 @@
         overflow: hidden;
         position: relative;
         background-color: #000;
+        border-radius: 15px;
       ">
         <div id="scanner-overlay" style="
           position: absolute;
@@ -318,6 +373,8 @@
           height: 40%;
           z-index: 10;
           pointer-events: none;
+          border: 2px solid var(--gold);
+          border-radius: 10px;
         "></div>
       </div>
     </div>
@@ -409,10 +466,26 @@
 let quaggaStarted = false;
 let lastScanTime = 0;
 const SCAN_COOLDOWN = 2000;
+let scanAttempts = 0;
+const MAX_SCAN_ATTEMPTS = 10;
 
-function isValidISBN(code) {
+// Check if the detected format is likely to be an ISBN
+function isLikelyISBNFormat(format) {
+  // ISBNs are typically EAN-13 or Code 128
+  const isbnFormats = ['ean_13', 'ean', 'code_128', 'code_39'];
+  return isbnFormats.includes(format);
+}
+
+// Enhanced validation - check both format and code structure
+function isValidISBNCode(code, format) {
   const cleanCode = code.replace(/[-\s]/g, '');
   
+  // First check format
+  if (!isLikelyISBNFormat(format)) {
+    return false;
+  }
+  
+  // Then check code structure
   if (cleanCode.length === 10 || cleanCode.length === 13) {
     if (cleanCode.length === 13) {
       return cleanCode.startsWith('978') || cleanCode.startsWith('979');
@@ -423,9 +496,58 @@ function isValidISBN(code) {
   return false;
 }
 
+// Floating notification system
+function showNotification(message, type = 'info', duration = 3000) {
+  const container = document.getElementById('notification-container');
+  const notification = document.createElement('div');
+  notification.className = `floating-notification ${type}`;
+  notification.textContent = message;
+  
+  container.appendChild(notification);
+  
+  // Trigger animation
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 10);
+  
+  // Remove notification
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => {
+      if (container.contains(notification)) {
+        container.removeChild(notification);
+      }
+    }, 300);
+  }, duration);
+}
+
+// Get optimal camera constraints based on device
+function getCameraConstraints() {
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    return {
+      width: { min: 320, ideal: 640, max: 1280 },
+      height: { min: 240, ideal: 480, max: 720 },
+      facingMode: "environment"
+    };
+  } else {
+    return {
+      width: { min: 400, ideal: 800, max: 1280 },
+      height: { min: 300, ideal: 600, max: 720 },
+      facingMode: "environment"
+    };
+  }
+}
+
 function startScanner() {
   const scannerDiv = document.getElementById('scanner');
   const stopBtn = document.getElementById('stopBtn');
+  const startBtn = document.querySelector('.btn-scan');
+  
+  // Show loading state
+  startBtn.disabled = true;
+  startBtn.textContent = '🔄 Starting...';
   
   scannerDiv.style.display = 'block';
   stopBtn.style.display = 'inline-block';
@@ -435,16 +557,15 @@ function startScanner() {
     quaggaStarted = false;
   }
 
+  // Reset scan attempts
+  scanAttempts = 0;
+
   Quagga.init({
     inputStream: {
       name: "Live",
       type: "LiveStream",
       target: scannerDiv,
-      constraints: {
-        width: 400,
-        height: 300,
-        facingMode: "environment"
-      }
+      constraints: getCameraConstraints()
     },
     locator: {
       patchSize: "medium",
@@ -455,29 +576,48 @@ function startScanner() {
     decoder: {
       readers: [
         "ean_reader",
-        "ean_8_reader", 
-        "ean_5_reader",
-        "ean_2_reader",
-        "upc_reader",
-        "upc_e_reader",
-        "code_39_reader",
         "code_128_reader",
-        "i2of5_reader"
+        "code_39_reader"
       ]
     },
     locate: true
   }, function(err) {
     if (err) {
       console.error("QuaggaJS init error:", err);
-      alert("Error starting scanner: " + err.message);
+      
+      // Provide specific error messages
+      let errorMessage = "Error starting scanner: ";
+      if (err.name === 'NotAllowedError') {
+        errorMessage += "Camera access denied. Please allow camera permissions.";
+      } else if (err.name === 'NotFoundError') {
+        errorMessage += "No camera found on this device.";
+      } else if (err.name === 'NotReadableError') {
+        errorMessage += "Camera is already in use by another application.";
+      } else {
+        errorMessage += err.message;
+      }
+      
+      console.error(errorMessage);
       scannerDiv.style.display = 'none';
       stopBtn.style.display = 'none';
+      startBtn.disabled = false;
+      startBtn.textContent = '📷 Scan Barcode';
+      
+      // Show error notification
+      showNotification('Scanner failed to start', 'error', 4000);
       return;
     }
     
     console.log("QuaggaJS initialized successfully");
     Quagga.start();
     quaggaStarted = true;
+    
+    // Reset button state
+    startBtn.disabled = false;
+    startBtn.textContent = '📷 Scan Barcode';
+    
+    // Show success notification
+    showNotification('Scanner ready!', 'success', 2000);
   });
 
   Quagga.offDetected();
@@ -491,19 +631,38 @@ function startScanner() {
     
     if (result && result.codeResult && result.codeResult.code) {
       const code = result.codeResult.code;
-      console.log("Detected code:", code, "Format:", result.codeResult.format);
+      const format = result.codeResult.format;
+      console.log("Detected code:", code, "Format:", format);
       
-      if (isValidISBN(code)) {
+      // Skip only the most problematic non-ISBN formats
+      const skipFormats = ['ean_8', 'upc_e', 'i2of5'];
+      if (skipFormats.includes(format)) {
+        console.log("Skipping non-ISBN format:", format, code);
+        return;
+      }
+      
+      scanAttempts++;
+      
+      if (isValidISBNCode(code, format)) {
         console.log("Valid ISBN detected:", code);
         document.getElementById('isbn').value = code;
         stopScanner();
         lastScanTime = now;
         
+        // Show success notification
+        showNotification(`ISBN detected: ${code}`, 'success', 2000);
+        
+        // Auto-fetch the book data
         setTimeout(() => {
           document.querySelector('button[name="fetch"]').click();
         }, 500);
       } else {
-        console.log("Invalid ISBN format:", code);
+        console.log("Invalid ISBN format:", code, format);
+        
+        // Stop after too many invalid attempts
+        if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
+          stopScanner();
+        }
       }
     }
   });
@@ -523,6 +682,38 @@ function stopScanner() {
   Quagga.offDetected();
 }
 
+// Add mobile-specific optimizations
+function setupMobileOptimizations() {
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  if (isMobile) {
+    // Prevent zoom on input focus
+    const inputs = document.querySelectorAll('input[type="text"], input[type="date"]');
+    inputs.forEach(input => {
+      input.addEventListener('focus', function() {
+        this.style.fontSize = '16px'; // Prevents zoom on iOS
+      });
+    });
+    
+    // Add touch-friendly button sizing
+    const buttons = document.querySelectorAll('.btn-scan, .btn-stop, .btn-fetch');
+    buttons.forEach(button => {
+      button.style.minHeight = '44px'; // iOS minimum touch target
+      button.style.minWidth = '44px';
+    });
+  }
+}
+
+// Initialize mobile optimizations
+document.addEventListener('DOMContentLoaded', setupMobileOptimizations);
+
 window.addEventListener('beforeunload', stopScanner);
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && quaggaStarted) {
+    stopScanner();
+  }
+});
 </script>
 {% endblock %}
