@@ -97,6 +97,10 @@
     📱 Launch Native Barcode Scanner
   </button>
   
+  <button id="debugPlugins" class="test-button" style="background: #6c757d;">
+    🔍 Debug Plugin Availability
+  </button>
+  
   <button id="testBrowserScanner" class="test-button">
     🌐 Test Browser Barcode Scanner (Fallback)
   </button>
@@ -145,6 +149,17 @@
     
     if (isCapacitor) {
       log('Capacitor detected - native scanner should be available');
+      log(`Capacitor version: ${Capacitor.getVersion()}`);
+      log(`Platform: ${Capacitor.getPlatform()}`);
+      
+      // Check what plugins are available
+      if (Capacitor.Plugins) {
+        log('Available plugins:');
+        Object.keys(Capacitor.Plugins).forEach(plugin => {
+          log(`  - ${plugin}`);
+        });
+      }
+      
       updateStatus('Native scanner ready', 'success');
     } else {
       log('Running in browser - will use fallback scanner');
@@ -166,8 +181,23 @@
       log('Attempting to launch native barcode scanner...');
       updateStatus('Launching native scanner...', 'info');
       
-      // Import the barcode scanner plugin
-      const { BarcodeScanner } = await import('@capacitor-mlkit/barcode-scanning');
+      // Check if the plugin is available globally
+      let BarcodeScanner;
+      if (Capacitor.Plugins && Capacitor.Plugins.BarcodeScanner) {
+        BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+        log('Found BarcodeScanner plugin in Capacitor.Plugins');
+      } else {
+        // Try to import the barcode scanner plugin
+        try {
+          const module = await import('@capacitor-mlkit/barcode-scanning');
+          BarcodeScanner = module.BarcodeScanner;
+          log('Successfully imported BarcodeScanner plugin via ES6 import');
+        } catch (importError) {
+          log(`Import error: ${importError.message}`, 'error');
+          log('This usually means the plugin is not properly installed or not available in this environment', 'error');
+          throw new Error(`Failed to load barcode scanner plugin: ${importError.message}`);
+        }
+      }
       
       // Check if scanning is supported
       const { supported } = await BarcodeScanner.isSupported();
@@ -217,6 +247,77 @@ Confidence: ${barcode.confidence || 'N/A'}`;
     } finally {
       button.disabled = false;
       button.textContent = '📱 Launch Native Barcode Scanner';
+    }
+  });
+  
+  // Debug Plugin Availability
+  document.getElementById('debugPlugins').addEventListener('click', function() {
+    const button = this;
+    button.disabled = true;
+    button.textContent = '🔍 Debugging...';
+    
+    try {
+      log('=== DEBUGGING PLUGIN AVAILABILITY ===');
+      
+      if (!isCapacitor) {
+        log('❌ Capacitor not available', 'error');
+        showResult('Capacitor not available in this environment', 'error');
+        return;
+      }
+      
+      log('✅ Capacitor is available');
+      log(`Capacitor version: ${Capacitor.getVersion()}`);
+      log(`Platform: ${Capacitor.getPlatform()}`);
+      log(`Native: ${Capacitor.isNative}`);
+      
+      // Check global plugins
+      if (Capacitor.Plugins) {
+        log('Available plugins in Capacitor.Plugins:');
+        Object.keys(Capacitor.Plugins).forEach(plugin => {
+          log(`  - ${plugin}`);
+        });
+        
+        if (Capacitor.Plugins.BarcodeScanner) {
+          log('✅ BarcodeScanner plugin found in Capacitor.Plugins', 'success');
+        } else {
+          log('❌ BarcodeScanner plugin NOT found in Capacitor.Plugins', 'error');
+        }
+      } else {
+        log('❌ Capacitor.Plugins is not available', 'error');
+      }
+      
+      // Check window object
+      log('Checking window object for plugins...');
+      if (window.BarcodeScanner) {
+        log('✅ BarcodeScanner found on window object', 'success');
+      } else {
+        log('❌ BarcodeScanner NOT found on window object', 'error');
+      }
+      
+      // Check if we can import the module
+      log('Testing ES6 import...');
+      import('@capacitor-mlkit/barcode-scanning')
+        .then(module => {
+          log('✅ ES6 import successful', 'success');
+          log(`Module keys: ${Object.keys(module).join(', ')}`);
+          if (module.BarcodeScanner) {
+            log('✅ BarcodeScanner found in imported module', 'success');
+          } else {
+            log('❌ BarcodeScanner NOT found in imported module', 'error');
+          }
+        })
+        .catch(error => {
+          log(`❌ ES6 import failed: ${error.message}`, 'error');
+        });
+      
+      showResult('Debug information logged above. Check the logs for details.', 'info');
+      
+    } catch (error) {
+      log(`Debug error: ${error.message}`, 'error');
+      showResult(`Debug error: ${error.message}`, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = '🔍 Debug Plugin Availability';
     }
   });
   
