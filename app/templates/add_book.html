@@ -391,18 +391,20 @@
           border-radius: 10px;
         ">
           <!-- Distance guide lines for close-up scanning -->
-          <div style="
+          <div id="distance-guide" style="
             position: absolute;
             top: -20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 10px;
+            background: rgba(0,0,0,0.6);
+            color: rgba(255,255,255,0.8);
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 9px;
             white-space: nowrap;
-          ">📏 Hold 5-10cm from barcode</div>
+            opacity: 0.8;
+            transition: opacity 0.5s ease;
+          ">📏 5-10cm</div>
           
           <!-- Corner guides for better positioning -->
           <div style="
@@ -807,20 +809,19 @@ function startScanner() {
         // Mobile-specific optimizations for close-up scanning
         frameRate: { ideal: 15, max: 30 },
         // Better focus handling for close-up scanning
-        focusMode: ["continuous", "manual"],
+        focusMode: "manual", // Start with manual focus for better close-up scanning
         exposureMode: "continuous",
         whiteBalanceMode: "continuous",
         // Advanced constraints for better close-up focus
         advanced: [
           {
-            focusMode: "continuous"
+            focusMode: "manual"
+          },
+          {
+            focusDistance: 0.15 // Start focused at 15cm for better close-up scanning
           },
           {
             exposureMode: "continuous"
-          },
-          {
-            // Try to enable macro focus if available
-            focusMode: "manual"
           }
         ]
       }
@@ -962,7 +963,7 @@ function startScanner() {
             if (track && track.getCapabilities && track.getCapabilities().focusMode) {
               console.log('Tap to focus triggered for close-up scanning');
               
-              // Try to trigger auto-focus by temporarily changing constraints
+              // Try to trigger manual focus for close-up scanning
               const currentConstraints = track.getConstraints();
               
               track.applyConstraints({
@@ -977,23 +978,23 @@ function startScanner() {
                 ]
               }).then(() => {
                 console.log('Manual focus applied for close-up scanning');
-                showNotification('Focusing for close-up scan...', 'info', 1000);
+                showNotification('🔍 Focused for close-up scanning', 'success', 2000);
                 
-                // Switch back to continuous focus after a moment
-                setTimeout(() => {
-                  track.applyConstraints({
-                    ...currentConstraints,
-                    advanced: [
-                      {
-                        focusMode: 'continuous'
-                      }
-                    ]
-                  }).then(() => {
-                    console.log('Switched back to continuous focus');
-                  }).catch(err => {
-                    console.log('Failed to switch back to continuous focus:', err);
-                  });
-                }, 2000);
+                // Update focus indicator
+                const focusIndicator = document.getElementById('focus-indicator');
+                if (focusIndicator) {
+                  focusIndicator.textContent = '🎯 Focused';
+                  focusIndicator.style.background = 'rgba(40, 167, 69, 0.8)';
+                  
+                  // Reset after 3 seconds
+                  setTimeout(() => {
+                    focusIndicator.textContent = '🔍 Manual Focus';
+                    focusIndicator.style.background = 'rgba(0,0,0,0.7)';
+                  }, 3000);
+                }
+                
+                // Don't switch back - keep manual focus for better close-up scanning
+                // This prevents the OverconstrainedError and maintains better focus
               }).catch(err => {
                 console.log('Manual focus not supported:', err);
                 // Fallback: try to restart the track to trigger focus
@@ -1003,6 +1004,7 @@ function startScanner() {
                     videoStream = newStream;
                     videoElement.srcObject = newStream;
                     console.log('Camera restarted for close-up focus');
+                    showNotification('🔄 Camera restarted for better focus', 'info', 2000);
                   }).catch(err => {
                     console.log('Failed to restart camera:', err);
                   });
@@ -1015,6 +1017,24 @@ function startScanner() {
         // Add visual indicator for tap-to-focus
         videoElement.style.cursor = 'pointer';
         videoElement.title = 'Tap to focus for close-up scanning';
+        
+        // Add focus status indicator
+        const focusIndicator = document.createElement('div');
+        focusIndicator.id = 'focus-indicator';
+        focusIndicator.style.cssText = `
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background: rgba(0,0,0,0.7);
+          color: white;
+          padding: 5px 8px;
+          border-radius: 15px;
+          font-size: 10px;
+          z-index: 20;
+          pointer-events: none;
+        `;
+        focusIndicator.textContent = '🔍 Manual Focus';
+        scannerDiv.appendChild(focusIndicator);
         
         clearTimeout(timeoutId);
         
@@ -1032,6 +1052,14 @@ function startScanner() {
         setTimeout(() => {
           showNotification('💡 Tip: Hold phone 5-10cm from barcode for best results. Tap screen to focus.', 'info', 5000);
         }, 3500);
+        
+        // Fade out distance guide after 3 seconds
+        setTimeout(() => {
+          const distanceGuide = document.getElementById('distance-guide');
+          if (distanceGuide) {
+            distanceGuide.style.opacity = '0.2';
+          }
+        }, 3000);
       })
       .catch((err) => {
         clearTimeout(timeoutId);
