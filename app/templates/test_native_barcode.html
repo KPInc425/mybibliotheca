@@ -96,6 +96,7 @@
     z-index: 1000;
     align-items: center;
     justify-content: center;
+    pointer-events: auto;
   }
   
   .modal-dialog {
@@ -106,6 +107,9 @@
     width: 90%;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     text-align: center;
+    position: relative;
+    z-index: 1001;
+    pointer-events: auto;
   }
   
   .modal-title {
@@ -319,6 +323,26 @@
       log('Running in browser - will use fallback scanner');
       updateStatus('Browser mode - using fallback scanner', 'info');
     }
+    
+    // Add click outside modal to close
+    document.getElementById('permissionModal').addEventListener('click', function(e) {
+      if (e.target === this) {
+        hidePermissionHelp();
+      }
+    });
+    
+    // Add modal button event listeners
+    document.getElementById('confirmOpenSettings').addEventListener('click', function() {
+      log('User confirmed opening device settings');
+      openDeviceSettings();
+      hidePermissionHelp();
+    });
+    
+    document.getElementById('cancelSettings').addEventListener('click', function() {
+      log('User cancelled opening device settings');
+      hidePermissionHelp();
+      showResult('Camera permissions are required to use the barcode scanner.', 'info');
+    });
   });
   
   // Test Native Scanner
@@ -631,20 +655,6 @@ Value: ${barcode.rawValue}`;
       button.disabled = false;
       button.textContent = '🌐 Test Browser Barcode Scanner (Fallback)';
     }
-  });
-  
-  // Confirm Open Settings
-  document.getElementById('confirmOpenSettings').addEventListener('click', function() {
-    log('User confirmed opening device settings');
-    openDeviceSettings();
-    hidePermissionHelp();
-  });
-  
-  // Cancel Settings
-  document.getElementById('cancelSettings').addEventListener('click', function() {
-    log('User cancelled opening device settings');
-    hidePermissionHelp();
-    showResult('Camera permissions are required to use the barcode scanner.', 'info');
   });
 </script>
 
