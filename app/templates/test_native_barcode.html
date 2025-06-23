@@ -101,6 +101,10 @@
     🔍 Debug Plugin Availability
   </button>
   
+  <button id="testPermissions" class="test-button" style="background: #28a745;">
+    📷 Test Camera Permissions
+  </button>
+  
   <button id="testBrowserScanner" class="test-button">
     🌐 Test Browser Barcode Scanner (Fallback)
   </button>
@@ -202,12 +206,21 @@
       log('Barcode scanning is supported');
       
       // Check permissions
+      log('Checking camera permissions...');
       const { granted } = await BarcodeScanner.checkPermissions();
+      log(`Initial permission status: ${granted ? 'granted' : 'denied'}`);
+      
       if (!granted) {
         log('Requesting camera permissions...');
-        const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-        if (!newGranted) {
-          throw new Error('Camera permission denied');
+        try {
+          const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+          log(`Permission request result: ${newGranted ? 'granted' : 'denied'}`);
+          if (!newGranted) {
+            throw new Error('Camera permission denied by user');
+          }
+        } catch (permissionError) {
+          log(`Permission request error: ${permissionError.message}`, 'error');
+          throw new Error(`Camera permission error: ${permissionError.message}`);
         }
       }
       
@@ -313,6 +326,68 @@ Confidence: ${barcode.confidence || 'N/A'}`;
     } finally {
       button.disabled = false;
       button.textContent = '🔍 Debug Plugin Availability';
+    }
+  });
+  
+  // Test Camera Permissions
+  document.getElementById('testPermissions').addEventListener('click', async function() {
+    const button = this;
+    button.disabled = true;
+    button.textContent = '📷 Testing...';
+    
+    try {
+      log('=== TESTING CAMERA PERMISSIONS ===');
+      
+      if (!isCapacitor) {
+        throw new Error('Capacitor not available');
+      }
+      
+      const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+      if (!BarcodeScanner) {
+        throw new Error('BarcodeScanner plugin not found');
+      }
+      
+      log('BarcodeScanner plugin found');
+      
+      // Check if scanning is supported
+      log('Checking if barcode scanning is supported...');
+      const { supported } = await BarcodeScanner.isSupported();
+      log(`Barcode scanning supported: ${supported}`);
+      
+      if (!supported) {
+        throw new Error('Barcode scanning not supported on this device');
+      }
+      
+      // Check current permissions
+      log('Checking current camera permissions...');
+      const { granted } = await BarcodeScanner.checkPermissions();
+      log(`Current permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
+      
+      if (granted) {
+        log('✅ Camera permissions already granted', 'success');
+        showResult('Camera permissions are already granted!', 'success');
+        return;
+      }
+      
+      // Request permissions
+      log('Requesting camera permissions...');
+      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      log(`Permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
+      
+      if (newGranted) {
+        log('✅ Camera permissions granted successfully!', 'success');
+        showResult('Camera permissions granted successfully!', 'success');
+      } else {
+        log('❌ Camera permissions denied', 'error');
+        showResult('Camera permissions were denied. Please grant camera permissions in your device settings.', 'error');
+      }
+      
+    } catch (error) {
+      log(`Permission test error: ${error.message}`, 'error');
+      showResult(`Error: ${error.message}`, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = '📷 Test Camera Permissions';
     }
   });
   
