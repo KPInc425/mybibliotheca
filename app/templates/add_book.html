@@ -469,10 +469,10 @@
   </div>
 </div>
 
-<!-- QuaggaJS (local file) -->
-<script src="{{ url_for('static', filename='quagga.min.js') }}"></script>
+<!-- ZXing (modern barcode scanning library) -->
+<script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 <script>
-let quaggaStarted = false;
+let scanner = null;
 let lastScanTime = 0;
 const SCAN_COOLDOWN = 2000;
 let scanAttempts = 0;
@@ -504,7 +504,7 @@ function isValidISBNCode(code, format) {
 // Check if the detected format is likely to be an ISBN
 function isLikelyISBNFormat(format) {
   // ISBNs are typically EAN-13 or Code 128
-  const isbnFormats = ['ean_13', 'ean', 'code_128', 'code_39'];
+  const isbnFormats = ['EAN_13', 'EAN_8', 'CODE_128', 'CODE_39'];
   return isbnFormats.includes(format);
 }
 
@@ -531,49 +531,6 @@ function showNotification(message, type = 'info', duration = 3000) {
       }
     }, 300);
   }, duration);
-}
-
-// Get optimal camera constraints based on device
-async function getCameraConstraints() {
-  if (isMobile) {
-    const bestCameraId = await getBestCamera();
-    
-    return {
-      width: { min: 320, ideal: 640, max: 1280 },
-      height: { min: 240, ideal: 480, max: 720 },
-      facingMode: "environment",
-      // Use the best camera for barcode scanning
-      deviceId: bestCameraId ? { exact: bestCameraId } : undefined,
-      frameRate: { ideal: 10, max: 15 },
-      // Use standard aspect ratio that matches most mobile cameras
-      aspectRatio: { ideal: 16/9 },
-      // Focus settings for better barcode scanning
-      focusMode: "continuous",
-      exposureMode: "continuous"
-    };
-  } else {
-    return {
-      width: { min: 640, ideal: 1280, max: 1920 },
-      height: { min: 480, ideal: 720, max: 1080 },
-      facingMode: "environment",
-      focusMode: "continuous",
-      exposureMode: "continuous"
-    };
-  }
-}
-
-// Check if camera is available
-async function checkCameraPermission() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: "environment" } 
-    });
-    stream.getTracks().forEach(track => track.stop());
-    return true;
-  } catch (error) {
-    console.error("Camera permission check failed:", error);
-    return false;
-  }
 }
 
 // Get the best camera for barcode scanning
@@ -621,6 +578,28 @@ async function getBestCamera() {
   }
 }
 
+// Get optimal camera constraints based on device
+async function getCameraConstraints() {
+  if (isMobile) {
+    const bestCameraId = await getBestCamera();
+    
+    return {
+      width: { min: 640, ideal: 1280, max: 1920 },
+      height: { min: 480, ideal: 720, max: 1080 },
+      facingMode: "environment",
+      // Use the best camera for barcode scanning
+      deviceId: bestCameraId ? { exact: bestCameraId } : undefined,
+      frameRate: { ideal: 15, max: 30 }
+    };
+  } else {
+    return {
+      width: { min: 640, ideal: 1280, max: 1920 },
+      height: { min: 480, ideal: 720, max: 1080 },
+      facingMode: "environment"
+    };
+  }
+}
+
 function startScanner() {
   const scannerDiv = document.getElementById('scanner');
   const stopBtn = document.getElementById('stopBtn');
@@ -633,9 +612,9 @@ function startScanner() {
   scannerDiv.style.display = 'block';
   stopBtn.style.display = 'inline-block';
 
-  if (quaggaStarted) {
-    Quagga.stop();
-    quaggaStarted = false;
+  if (scanner) {
+    scanner.stop();
+    scanner = null;
   }
 
   // Reset scan attempts
@@ -643,62 +622,100 @@ function startScanner() {
 
   // Add timeout to prevent stuck state
   const timeoutId = setTimeout(() => {
-    if (!quaggaStarted) {
+    if (!scanner) {
       console.error("Scanner initialization timeout");
       showNotification('Scanner initialization timed out. Please try again.', 'error', 4000);
       resetScannerUI();
     }
   }, 15000); // 15 second timeout
 
-  // Check camera permission first on mobile
-  if (isMobile) {
-    checkCameraPermission().then(hasPermission => {
-      if (!hasPermission) {
-        console.error("Camera permission denied");
-        showNotification('Camera access denied. Please allow camera permissions in your browser settings.', 'error', 5000);
-        resetScannerUI();
-        clearTimeout(timeoutId);
-        return;
-      }
-      initializeQuagga();
-    }).catch(error => {
-      console.error("Camera check failed:", error);
-      initializeQuagga(); // Try anyway
-    });
-  } else {
-    initializeQuagga();
-  }
+  initializeZXingScanner();
 
-  function initializeQuagga() {
+  function initializeZXingScanner() {
     getCameraConstraints().then(constraints => {
-      Quagga.init({
-        inputStream: {
-          name: "Live",
-          type: "LiveStream",
-          target: scannerDiv,
-          constraints: constraints
-        },
-        locator: {
-          patchSize: "medium", // Better for mobile stability
-          halfSample: true,    // Better performance on mobile
-        },
-        numOfWorkers: isMobile ? 1 : 2,
-        frequency: 10, // Lower frequency for better stability
-        decoder: {
-          readers: [
-            "ean_reader",
-            "code_128_reader",
-            "code_39_reader"
-          ]
-        },
-        locate: true
-      }, function(err) {
-        clearTimeout(timeoutId); // Clear timeout on completion
-        
-        if (err) {
-          console.error("QuaggaJS init error:", err);
+      // Create ZXing scanner
+      const codeReader = new ZXing.BrowserMultiFormatReader();
+      
+      codeReader.listVideoInputDevices()
+        .then((videoInputDevices) => {
+          console.log("ZXing available devices:", videoInputDevices);
           
-          // Provide specific error messages
+          // Find the best camera
+          const bestCamera = videoInputDevices.find(device => {
+            const label = device.label.toLowerCase();
+            return label.includes('back') || label.includes('rear');
+          }) || videoInputDevices[0];
+          
+          if (!bestCamera) {
+            throw new Error("No camera found");
+          }
+          
+          console.log("Using camera:", bestCamera.label);
+          
+          // Start scanning
+          return codeReader.decodeFromVideoDevice(
+            bestCamera.deviceId,
+            scannerDiv,
+            (result, err) => {
+              if (result) {
+                const now = Date.now();
+                
+                if (now - lastScanTime < SCAN_COOLDOWN) {
+                  return;
+                }
+                
+                const code = result.text;
+                const format = result.format;
+                console.log("Detected code:", code, "Format:", format);
+                
+                scanAttempts++;
+                
+                if (isValidISBNCode(code, format)) {
+                  console.log("Valid ISBN detected:", code);
+                  document.getElementById('isbn').value = code;
+                  stopScanner();
+                  lastScanTime = now;
+                  
+                  // Show success notification
+                  showNotification(`ISBN detected: ${code}`, 'success', 2000);
+                  
+                  // Auto-fetch the book data
+                  setTimeout(() => {
+                    document.querySelector('button[name="fetch"]').click();
+                  }, 500);
+                } else {
+                  console.log("Invalid ISBN format:", code, format);
+                  
+                  // Stop after too many invalid attempts
+                  if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
+                    stopScanner();
+                  }
+                }
+              }
+              
+              if (err && !(err instanceof ZXing.NotFoundException)) {
+                console.log("Scanning error:", err);
+              }
+            }
+          );
+        })
+        .then(() => {
+          scanner = codeReader;
+          clearTimeout(timeoutId);
+          
+          console.log("ZXing scanner initialized successfully");
+          
+          // Reset button state
+          startBtn.disabled = false;
+          startBtn.textContent = '📷 Scan Barcode';
+          
+          // Show success notification
+          showNotification('Scanner ready!', 'success', 2000);
+        })
+        .catch((err) => {
+          clearTimeout(timeoutId);
+          console.error("ZXing scanner init error:", err);
+          
           let errorMessage = "Error starting scanner: ";
           if (err.name === 'NotAllowedError') {
             errorMessage += "Camera access denied. Please allow camera permissions.";
@@ -706,83 +723,13 @@ function startScanner() {
             errorMessage += "No camera found on this device.";
           } else if (err.name === 'NotReadableError') {
             errorMessage += "Camera is already in use by another application.";
-          } else if (err.name === 'NotSupportedError') {
-            errorMessage += "Camera not supported on this device.";
           } else {
             errorMessage += err.message;
           }
           
-          console.error(errorMessage);
           showNotification(errorMessage, 'error', 5000);
           resetScannerUI();
-          return;
-        }
-        
-        console.log("QuaggaJS initialized successfully");
-        
-        // Add tap-to-focus functionality for mobile
-        if (isMobile) {
-          scannerDiv.addEventListener('click', function(e) {
-            // Get the video element
-            const video = scannerDiv.querySelector('video');
-            if (video && video.srcObject) {
-              const track = video.srcObject.getVideoTracks()[0];
-              if (track && track.getCapabilities) {
-                console.log('Tap to focus triggered');
-                
-                // Try to trigger auto-focus by temporarily changing constraints
-                const currentConstraints = track.getConstraints();
-                
-                // Temporarily set focus mode to trigger auto-focus
-                track.applyConstraints({
-                  ...currentConstraints,
-                  advanced: [{
-                    focusMode: 'continuous'
-                  }]
-                }).then(() => {
-                  console.log('Auto-focus triggered');
-                  // Show visual feedback
-                  showNotification('Focusing...', 'info', 1000);
-                }).catch(err => {
-                  console.log('Auto-focus not supported:', err);
-                  // Fallback: try to restart the track to trigger focus
-                  track.stop();
-                  setTimeout(() => {
-                    navigator.mediaDevices.getUserMedia({
-                      video: {
-                        deviceId: { exact: track.getSettings().deviceId },
-                        facingMode: "environment"
-                      }
-                    }).then(stream => {
-                      video.srcObject = stream;
-                      console.log('Camera restarted for focus');
-                    }).catch(err => {
-                      console.log('Failed to restart camera:', err);
-                    });
-                  }, 100);
-                });
-              }
-            }
-          });
-        }
-        
-        Quagga.start();
-        quaggaStarted = true;
-        
-        // Reset button state
-        startBtn.disabled = false;
-        startBtn.textContent = '📷 Scan Barcode';
-        
-        // Show success notification
-        showNotification('Scanner ready!', 'success', 2000);
-        
-        // Add mobile-specific focus hint
-        if (isMobile) {
-          setTimeout(() => {
-            showNotification('Tap anywhere on camera view to focus', 'info', 4000);
-          }, 2500);
-        }
-      });
+        });
     }).catch(error => {
       console.error("Error getting camera constraints:", error);
       showNotification('Error accessing camera', 'error', 4000);
@@ -796,67 +743,19 @@ function startScanner() {
     startBtn.disabled = false;
     startBtn.textContent = '📷 Scan Barcode';
   }
-
-  Quagga.offDetected();
-  
-  Quagga.onDetected(function(result) {
-    const now = Date.now();
-    
-    if (now - lastScanTime < SCAN_COOLDOWN) {
-      return;
-    }
-    
-    if (result && result.codeResult && result.codeResult.code) {
-      const code = result.codeResult.code;
-      const format = result.codeResult.format;
-      console.log("Detected code:", code, "Format:", format);
-      
-      // Skip only the most problematic non-ISBN formats
-      const skipFormats = ['ean_8', 'upc_e', 'i2of5'];
-      if (skipFormats.includes(format)) {
-        console.log("Skipping non-ISBN format:", format, code);
-        return;
-      }
-      
-      scanAttempts++;
-      
-      if (isValidISBNCode(code, format)) {
-        console.log("Valid ISBN detected:", code);
-        document.getElementById('isbn').value = code;
-        stopScanner();
-        lastScanTime = now;
-        
-        // Show success notification
-        showNotification(`ISBN detected: ${code}`, 'success', 2000);
-        
-        // Auto-fetch the book data
-        setTimeout(() => {
-          document.querySelector('button[name="fetch"]').click();
-        }, 500);
-      } else {
-        console.log("Invalid ISBN format:", code, format);
-        
-        // Stop after too many invalid attempts
-        if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
-          stopScanner();
-        }
-      }
-    }
-  });
 }
 
 function stopScanner() {
   const scannerDiv = document.getElementById('scanner');
   const stopBtn = document.getElementById('stopBtn');
   
-  if (quaggaStarted) {
-    Quagga.stop();
-    quaggaStarted = false;
+  if (scanner) {
+    scanner.stop();
+    scanner = null;
   }
   
   scannerDiv.style.display = 'none';
   stopBtn.style.display = 'none';
-  Quagga.offDetected();
 }
 
 // Add mobile-specific optimizations
@@ -894,7 +793,7 @@ window.addEventListener('beforeunload', stopScanner);
 
 // Add keyboard shortcuts
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && quaggaStarted) {
+  if (e.key === 'Escape' && scanner) {
     stopScanner();
   }
 });
