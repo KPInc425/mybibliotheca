@@ -390,6 +390,58 @@
           border: 2px solid var(--gold);
           border-radius: 10px;
         ">
+          <!-- Distance guide lines for close-up scanning -->
+          <div style="
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            white-space: nowrap;
+          ">📏 Hold 5-10cm from barcode</div>
+          
+          <!-- Corner guides for better positioning -->
+          <div style="
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 20px;
+            height: 20px;
+            border-top: 2px solid var(--gold);
+            border-left: 2px solid var(--gold);
+          "></div>
+          <div style="
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-top: 2px solid var(--gold);
+            border-right: 2px solid var(--gold);
+          "></div>
+          <div style="
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            width: 20px;
+            height: 20px;
+            border-bottom: 2px solid var(--gold);
+            border-left: 2px solid var(--gold);
+          "></div>
+          <div style="
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-bottom: 2px solid var(--gold);
+            border-right: 2px solid var(--gold);
+          "></div>
+          
           <!-- Detection progress indicator -->
           <div id="detection-progress" style="
             position: absolute;
@@ -746,18 +798,31 @@ function startScanner() {
       formats: ['ean_13', 'ean_8', 'code_128', 'code_39']
     });
     
-    // Get camera stream with mobile-optimized settings
+    // Get camera stream with mobile-optimized settings for close-up scanning
     const constraints = {
       video: {
         width: { min: 640, ideal: 1280, max: 1920 },
         height: { min: 480, ideal: 720, max: 1080 },
         facingMode: "environment",
-        // Mobile-specific optimizations
+        // Mobile-specific optimizations for close-up scanning
         frameRate: { ideal: 15, max: 30 },
-        // Better focus handling
-        focusMode: "continuous",
+        // Better focus handling for close-up scanning
+        focusMode: ["continuous", "manual"],
         exposureMode: "continuous",
-        whiteBalanceMode: "continuous"
+        whiteBalanceMode: "continuous",
+        // Advanced constraints for better close-up focus
+        advanced: [
+          {
+            focusMode: "continuous"
+          },
+          {
+            exposureMode: "continuous"
+          },
+          {
+            // Try to enable macro focus if available
+            focusMode: "manual"
+          }
+        ]
       }
     };
     
@@ -890,6 +955,67 @@ function startScanner() {
         scanner = barcodeDetector;
         scanFrame();
         
+        // Add tap-to-focus for close-up scanning
+        videoElement.addEventListener('click', function(e) {
+          if (videoStream) {
+            const track = videoStream.getVideoTracks()[0];
+            if (track && track.getCapabilities && track.getCapabilities().focusMode) {
+              console.log('Tap to focus triggered for close-up scanning');
+              
+              // Try to trigger auto-focus by temporarily changing constraints
+              const currentConstraints = track.getConstraints();
+              
+              track.applyConstraints({
+                ...currentConstraints,
+                advanced: [
+                  {
+                    focusMode: 'manual'
+                  },
+                  {
+                    focusDistance: 0.1 // Try to focus at 10cm distance
+                  }
+                ]
+              }).then(() => {
+                console.log('Manual focus applied for close-up scanning');
+                showNotification('Focusing for close-up scan...', 'info', 1000);
+                
+                // Switch back to continuous focus after a moment
+                setTimeout(() => {
+                  track.applyConstraints({
+                    ...currentConstraints,
+                    advanced: [
+                      {
+                        focusMode: 'continuous'
+                      }
+                    ]
+                  }).then(() => {
+                    console.log('Switched back to continuous focus');
+                  }).catch(err => {
+                    console.log('Failed to switch back to continuous focus:', err);
+                  });
+                }, 2000);
+              }).catch(err => {
+                console.log('Manual focus not supported:', err);
+                // Fallback: try to restart the track to trigger focus
+                track.stop();
+                setTimeout(() => {
+                  navigator.mediaDevices.getUserMedia(constraints).then(newStream => {
+                    videoStream = newStream;
+                    videoElement.srcObject = newStream;
+                    console.log('Camera restarted for close-up focus');
+                  }).catch(err => {
+                    console.log('Failed to restart camera:', err);
+                  });
+                }, 100);
+              });
+            }
+          }
+        });
+        
+        // Add visual indicator for tap-to-focus
+        videoElement.style.cursor = 'pointer';
+        videoElement.title = 'Tap to focus for close-up scanning';
+        
         clearTimeout(timeoutId);
         
         console.log("BarcodeDetector scanner initialized successfully");
@@ -901,6 +1027,11 @@ function startScanner() {
         
         // Show success notification
         showNotification('Scanner ready! Point camera at barcode', 'success', 3000);
+        
+        // Show close-up scanning instructions
+        setTimeout(() => {
+          showNotification('💡 Tip: Hold phone 5-10cm from barcode for best results. Tap screen to focus.', 'info', 5000);
+        }, 3500);
       })
       .catch((err) => {
         clearTimeout(timeoutId);
