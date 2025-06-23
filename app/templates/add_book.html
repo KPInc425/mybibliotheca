@@ -352,23 +352,8 @@
       <h4 style="color: var(--primary-brown); margin-bottom: 1rem;">📱 Barcode Scanner</h4>
       
       <div class="scanner-buttons">
-        <button type="button" class="btn-scan" onclick="startScanner()">
+        <button type="button" class="btn-scan" onclick="toggleScanner()" id="scannerBtn">
           📷 Scan Barcode
-        </button>
-        <button type="button" class="btn-stop" onclick="stopScanner()" style="display: none;" id="stopBtn">
-          ⏹️ Stop Scanner
-        </button>
-        <button type="button" class="btn-refresh" onclick="refreshScanner()" style="
-          background: linear-gradient(135deg, #6c757d, #5a6268);
-          border: none;
-          color: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 10px;
-          font-weight: 600;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
-        ">
-          🔄 Refresh Scanner
         </button>
       </div>
       
@@ -665,17 +650,29 @@ async function getCameraConstraints() {
   }
 }
 
+function toggleScanner() {
+  const scannerBtn = document.getElementById('scannerBtn');
+  
+  if (scanner) {
+    // Scanner is running, stop it
+    stopScanner();
+    scannerBtn.textContent = '📷 Scan Barcode';
+    scannerBtn.className = 'btn-scan';
+  } else {
+    // Scanner is not running, start it
+    startScanner();
+  }
+}
+
 function startScanner() {
   const scannerDiv = document.getElementById('scanner');
-  const stopBtn = document.getElementById('stopBtn');
-  const startBtn = document.querySelector('.btn-scan');
+  const scannerBtn = document.getElementById('scannerBtn');
   
   // Show loading state
-  startBtn.disabled = true;
-  startBtn.textContent = '🔄 Starting...';
+  scannerBtn.disabled = true;
+  scannerBtn.textContent = '🔄 Starting...';
   
   scannerDiv.style.display = 'block';
-  stopBtn.style.display = 'inline-block';
 
   if (scanner) {
     // Stop animation frame
@@ -831,9 +828,10 @@ function startScanner() {
         
         console.log("BarcodeDetector scanner initialized successfully");
         
-        // Reset button state
-        startBtn.disabled = false;
-        startBtn.textContent = '📷 Scan Barcode';
+        // Update button state
+        scannerBtn.disabled = false;
+        scannerBtn.textContent = '⏹️ Stop Scanner';
+        scannerBtn.className = 'btn-stop';
         
         // Show success notification
         showNotification('Scanner ready! Point camera at barcode', 'success', 3000);
@@ -862,15 +860,15 @@ function startScanner() {
 
   function resetScannerUI() {
     scannerDiv.style.display = 'none';
-    stopBtn.style.display = 'none';
-    startBtn.disabled = false;
-    startBtn.textContent = '📷 Scan Barcode';
+    scannerBtn.disabled = false;
+    scannerBtn.textContent = '📷 Scan Barcode';
+    scannerBtn.className = 'btn-scan';
   }
 }
 
 function stopScanner() {
   const scannerDiv = document.getElementById('scanner');
-  const stopBtn = document.getElementById('stopBtn');
+  const scannerBtn = document.getElementById('scannerBtn');
   const videoElement = document.getElementById('scanner-video');
   
   // Stop animation frame
@@ -897,56 +895,9 @@ function stopScanner() {
   }
   
   scannerDiv.style.display = 'none';
-  stopBtn.style.display = 'none';
-}
-
-function refreshScanner() {
-  console.log("Refreshing scanner...");
-  
-  // Stop animation frame
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId);
-    animationFrameId = null;
-  }
-  
-  // Stop video stream
-  if (videoStream) {
-    videoStream.getTracks().forEach(track => track.stop());
-    videoStream = null;
-  }
-  
-  // Clean up scanner
-  if (scanner) {
-    scanner = null;
-  }
-  
-  // Clean up video element
-  const videoElement = document.getElementById('scanner-video');
-  if (videoElement) {
-    videoElement.srcObject = null;
-    videoElement.load();
-  }
-  
-  // Clear any cached state
-  if (typeof Quagga !== 'undefined') {
-    delete window.Quagga;
-  }
-  
-  if (typeof ZXing !== 'undefined') {
-    delete window.ZXing;
-  }
-  
-  if (typeof Dynamsoft !== 'undefined') {
-    delete window.Dynamsoft;
-  }
-  
-  // Show notification
-  showNotification('Refreshing scanner...', 'info', 2000);
-  
-  // Force a small delay then restart
-  setTimeout(() => {
-    startScanner();
-  }, 1000);
+  scannerBtn.disabled = false;
+  scannerBtn.textContent = '📷 Scan Barcode';
+  scannerBtn.className = 'btn-scan';
 }
 
 // Add mobile-specific optimizations
