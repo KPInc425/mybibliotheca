@@ -83,6 +83,84 @@
   .back-link:hover {
     text-decoration: underline;
   }
+  
+  /* Modal Dialog Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .modal-dialog {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    text-align: center;
+  }
+  
+  .modal-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  
+  .modal-content {
+    margin-bottom: 20px;
+    line-height: 1.5;
+    color: #666;
+  }
+  
+  .modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  
+  .modal-button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+    max-width: 150px;
+  }
+  
+  .modal-button.primary {
+    background: #17a2b8;
+    color: white;
+  }
+  
+  .modal-button.secondary {
+    background: #6c757d;
+    color: white;
+  }
+  
+  .modal-button:hover {
+    opacity: 0.9;
+  }
+  
+  .modal-path {
+    font-size: 12px;
+    color: #999;
+    margin-top: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #17a2b8;
+  }
 </style>
 
 <div class="test-container">
@@ -111,26 +189,32 @@
   
   <div id="result" class="result info" style="display: none;"></div>
   
-  <div id="permissionHelp" class="result info" style="display: none;">
-    <h4>📱 Camera Permissions Required</h4>
-    <p>The barcode scanner needs camera access to work.</p>
-    <p>Would you like to open your device settings to enable camera permissions?</p>
-    <div style="margin-top: 15px;">
-      <button id="confirmOpenSettings" class="test-button" style="background: #17a2b8; margin-right: 10px; display: inline-block; width: auto;">
-        ✅ Yes, Open Settings
-      </button>
-      <button id="cancelSettings" class="test-button" style="background: #6c757d; display: inline-block; width: auto;">
-        ❌ Cancel
-      </button>
-    </div>
-    <p style="margin-top: 15px; font-size: 12px; color: #666;">
-      <strong>Manual path:</strong> Settings → Apps → MyBibliotheca → Permissions → Enable Camera
-    </p>
-  </div>
-  
   <div id="logs" style="margin-top: 20px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
   
   <a href="{{ url_for('main.index') }}" class="back-link">⬅️ Back to Library</a>
+</div>
+
+<!-- Permission Modal Dialog -->
+<div id="permissionModal" class="modal-overlay">
+  <div class="modal-dialog">
+    <div class="modal-title">📱 Camera Permissions Required</div>
+    <div class="modal-content">
+      <p>The barcode scanner needs camera access to work.</p>
+      <p>Would you like to open your device settings to enable camera permissions?</p>
+    </div>
+    <div class="modal-buttons">
+      <button id="confirmOpenSettings" class="modal-button primary">
+        ✅ Yes, Open Settings
+      </button>
+      <button id="cancelSettings" class="modal-button secondary">
+        ❌ Cancel
+      </button>
+    </div>
+    <div class="modal-path">
+      <strong>Manual path:</strong><br>
+      Settings → Apps → MyBibliotheca → Permissions → Enable Camera
+    </div>
+  </div>
 </div>
 
 <script>
@@ -163,29 +247,41 @@
   }
   
   function showPermissionHelp() {
-    const helpDiv = document.getElementById('permissionHelp');
-    helpDiv.style.display = 'block';
+    const modal = document.getElementById('permissionModal');
+    modal.style.display = 'flex';
   }
   
   function hidePermissionHelp() {
-    const helpDiv = document.getElementById('permissionHelp');
-    helpDiv.style.display = 'none';
+    const modal = document.getElementById('permissionModal');
+    modal.style.display = 'none';
   }
   
   function openDeviceSettings() {
     try {
-      if (isCapacitor && Capacitor.Plugins.App) {
-        // Use Capacitor App plugin to open settings
-        Capacitor.Plugins.App.openSettings();
-        log('Opening device settings via Capacitor App plugin');
+      log('Attempting to open device settings...');
+      
+      if (navigator.userAgent.includes('Android')) {
+        // Use Android-specific deep link to open app settings
+        const packageName = 'com.ilgaming.mybibliotheca';
+        const settingsUrl = `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`;
+        
+        log(`Opening Android settings with URL: ${settingsUrl}`);
+        window.location.href = settingsUrl;
+        
+        // Fallback: if deep link fails, try Capacitor App plugin
+        setTimeout(() => {
+          if (isCapacitor && Capacitor.Plugins.App) {
+            log('Trying Capacitor App plugin as fallback...');
+            Capacitor.Plugins.App.openSettings();
+          }
+        }, 2000);
+        
       } else {
-        // Fallback for browser or if App plugin not available
-        log('Attempting to open settings via browser...');
-        if (navigator.userAgent.includes('Android')) {
-          // Try to open Android settings
-          window.location.href = 'android-app://com.android.settings/.applications.InstalledAppDetails?pkg=com.ilgaming.mybibliotheca';
+        // For non-Android devices, use Capacitor App plugin
+        if (isCapacitor && Capacitor.Plugins.App) {
+          log('Using Capacitor App plugin for non-Android device...');
+          Capacitor.Plugins.App.openSettings();
         } else {
-          // Generic fallback
           alert('Please go to your device settings → Apps → MyBibliotheca → Permissions → Enable Camera');
         }
       }
