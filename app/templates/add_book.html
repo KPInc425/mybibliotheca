@@ -527,18 +527,25 @@ function getCameraConstraints() {
   
   if (isMobile) {
     return {
-      width: { min: 320, ideal: 640, max: 1280 },
-      height: { min: 240, ideal: 480, max: 720 },
+      width: { min: 640, ideal: 1280, max: 1920 },
+      height: { min: 480, ideal: 720, max: 1080 },
       facingMode: "environment",
-      // Mobile-specific constraints
+      // Mobile-specific constraints for better focus
       deviceId: undefined, // Let browser choose best camera
-      frameRate: { ideal: 10, max: 30 }
+      frameRate: { ideal: 15, max: 30 },
+      // Focus and exposure settings for better barcode scanning
+      focusMode: "continuous",
+      exposureMode: "continuous",
+      whiteBalanceMode: "continuous"
     };
   } else {
     return {
-      width: { min: 400, ideal: 800, max: 1280 },
-      height: { min: 300, ideal: 600, max: 720 },
-      facingMode: "environment"
+      width: { min: 640, ideal: 1280, max: 1920 },
+      height: { min: 480, ideal: 720, max: 1080 },
+      facingMode: "environment",
+      // Desktop focus settings
+      focusMode: "continuous",
+      exposureMode: "continuous"
     };
   }
 }
@@ -616,11 +623,11 @@ function startScanner() {
         constraints: getCameraConstraints()
       },
       locator: {
-        patchSize: "medium",
-        halfSample: true
+        patchSize: "large", // Better for mobile focus
+        halfSample: false,  // Full resolution for better detection
       },
       numOfWorkers: isMobile ? 1 : 2, // Reduce workers on mobile
-      frequency: 10,
+      frequency: 15, // Higher frequency for better detection
       decoder: {
         readers: [
           "ean_reader",
@@ -666,6 +673,22 @@ function startScanner() {
             console.log("Canvas optimized for frequent readback");
           }
         });
+        
+        // Also optimize any canvases that might be created later
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeName === 'CANVAS') {
+                const ctx = node.getContext('2d', { willReadFrequently: true });
+                if (ctx) {
+                  console.log("Late canvas optimized for frequent readback");
+                }
+              }
+            });
+          });
+        });
+        
+        observer.observe(scannerDiv, { childList: true, subtree: true });
       }, 100);
       
       Quagga.start();
@@ -677,6 +700,13 @@ function startScanner() {
       
       // Show success notification
       showNotification('Scanner ready!', 'success', 2000);
+      
+      // Add mobile-specific tips
+      if (isMobile) {
+        setTimeout(() => {
+          showNotification('Tip: Hold phone steady, 4-8 inches from barcode', 'info', 4000);
+        }, 2500);
+      }
     });
   }
 
