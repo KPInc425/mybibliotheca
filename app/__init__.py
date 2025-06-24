@@ -92,7 +92,8 @@ def run_security_privacy_migration(inspector, db_engine):
             ('last_login', 'DATETIME'),
             ('share_current_reading', 'BOOLEAN DEFAULT 1'),
             ('share_reading_activity', 'BOOLEAN DEFAULT 1'),
-            ('share_library', 'BOOLEAN DEFAULT 1')
+            ('share_library', 'BOOLEAN DEFAULT 1'),
+            ('debug_enabled', 'BOOLEAN DEFAULT 0')
         ]
         
         missing_fields = [field for field, _ in security_privacy_fields if field not in columns]
