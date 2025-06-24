@@ -388,7 +388,7 @@
           pointer-events: none;
           box-shadow: 0 0 20px rgba(218, 165, 32, 0.6);
           animation: pulse 2s infinite;
-        "></div>
+          "></div>
       </div>
       
       <!-- Scanner Status -->
@@ -396,9 +396,9 @@
         margin-top: 1rem;
         padding: 0.75rem;
         border-radius: 10px;
-        display: none;
+            display: none;
         font-weight: 600;
-      "></div>
+          "></div>
       
       <!-- Debug Panel (for native app debugging) -->
       {% if debug_enabled %}
@@ -537,8 +537,8 @@ function debugLog(message, data = null) {
     let logText = `[${timestamp}] ${message}`;
     if (data) {
       logText += `: ${JSON.stringify(data, null, 2)}`;
-    }
-    
+}
+
     logEntry.textContent = logText;
     debugContent.appendChild(logEntry);
     
@@ -613,7 +613,7 @@ async function startSmartScanner() {
     if (isCapacitor && Capacitor.Plugins.BarcodeScanner) {
       debugLog('Native scanner available, using MLKit');
       logScannerStatus('Native scanner detected - using MLKit barcode scanner', 'info');
-      
+
       // Try native scanner first
       try {
         await startNativeScanner();
@@ -683,8 +683,8 @@ async function startNativeScanner() {
       } catch (permError) {
         logScannerStatus(`Permission request error: ${permError.message}`, 'error');
       }
-    }
-    
+  }
+  
     // Try to start scanning even if permissions appear denied
     logScannerStatus('Starting native barcode scan...', 'info');
     const { barcodes } = await BarcodeScanner.scan();
@@ -739,7 +739,7 @@ async function startNativeScanner() {
         if (countdown > 0) {
           logScannerStatus(`Auto-fetching book data in ${countdown} seconds...`, 'info');
           countdown--;
-        } else {
+    } else {
           clearInterval(countdownInterval);
           cancelButton.remove();
           const fetchButton = document.querySelector('button[name="fetch"]');
@@ -748,10 +748,10 @@ async function startNativeScanner() {
             fetchButton.click();
           } else {
             logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
-          }
+    }
         }
       }, 1000);
-    } else {
+  } else {
       logScannerStatus('No barcode detected', 'info');
     }
     
@@ -1010,13 +1010,13 @@ function startScanner() {
   const statusDiv = document.getElementById('scannerStatus');
   
   try {
-    scannerBtn.disabled = true;
-    scannerBtn.textContent = '🔄 Starting...';
-    
-    scannerDiv.style.display = 'block';
-    
+  scannerBtn.disabled = true;
+  scannerBtn.textContent = '🔄 Starting...';
+  
+  scannerDiv.style.display = 'block';
+
     // Clear any existing scanner
-    if (scanner) {
+  if (scanner) {
       stopScanner();
     }
     
@@ -1032,16 +1032,16 @@ function startScanner() {
     
     // Set a timeout for scanner initialization
     const initTimeout = setTimeout(() => {
-      if (!scanner) {
-        console.error("Scanner initialization timeout");
+    if (!scanner) {
+      console.error("Scanner initialization timeout");
         logScannerStatus('Scanner initialization timed out. Please try again.', 'error');
-        resetScannerUI();
-      }
+      resetScannerUI();
+    }
     }, 10000); // 10 second timeout
-    
+
     // Try to initialize BarcodeDetector scanner
-    initializeBarcodeDetectorScanner();
-    
+  initializeBarcodeDetectorScanner();
+
     // Clear timeout if scanner is initialized
     if (scanner) {
       clearTimeout(initTimeout);
@@ -1050,7 +1050,7 @@ function startScanner() {
   } catch (error) {
     console.error("Error starting scanner:", error);
     logScannerStatus(`Error starting scanner: ${error.message}`, 'error');
-    resetScannerUI();
+      resetScannerUI();
   }
 }
 
@@ -1065,17 +1065,17 @@ function initializeBarcodeDetectorScanner() {
   // Initialize BarcodeDetector
   scanner = new BarcodeDetector({
     formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']
-  });
-  
+    });
+    
   // Get camera stream with optimal constraints
   getCameraConstraints()
     .then(constraints => {
       return navigator.mediaDevices.getUserMedia(constraints);
     })
-    .then(stream => {
-      videoStream = stream;
-      videoElement.srcObject = stream;
-      
+      .then(stream => {
+        videoStream = stream;
+        videoElement.srcObject = stream;
+        
       // Set up mobile optimizations
       setupMobileFocusDetection();
       
@@ -1134,12 +1134,12 @@ function scanLoop() {
   // Check if video is ready
   if (videoElement.readyState === videoElement.HAVE_ENOUGH_DATA) {
     scanner.detect(videoElement)
-      .then(barcodes => {
-        if (barcodes.length > 0) {
-          const barcode = barcodes[0];
-          const code = barcode.rawValue;
-          const format = barcode.format;
-          
+            .then(barcodes => {
+              if (barcodes.length > 0) {
+                const barcode = barcodes[0];
+                const code = barcode.rawValue;
+                const format = barcode.format;
+                
           console.log("Detected barcode:", code, "Format:", format);
           
           // Validate ISBN format and structure
@@ -1148,7 +1148,7 @@ function scanLoop() {
             if (now - lastScanTime > SCAN_COOLDOWN) {
               lastScanTime = now;
               scanAttempts = 0;
-              
+                  
               // Fill in the ISBN field
               const isbnField = document.getElementById('isbn');
               if (isbnField) {
@@ -1213,26 +1213,26 @@ function scanLoop() {
             }
           } else {
             console.log("Invalid format:", format);
-            showNotification(`Invalid format: ${format}`, 'warning', 2000);
-            
+                  showNotification(`Invalid format: ${format}`, 'warning', 2000);
+                  
             scanAttempts++;
-            if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
-              stopScanner();
-              showNotification('Too many invalid scans. Please try again.', 'error', 3000);
-            }
-          }
-        }
-      })
-      .catch(error => {
+                  if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
+                    stopScanner();
+                    showNotification('Too many invalid scans. Please try again.', 'error', 3000);
+                  }
+                }
+              }
+            })
+            .catch(error => {
         console.error("Barcode detection error:", error);
         scanAttempts++;
         if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
           stopScanner();
           showNotification('Too many detection errors. Please try again.', 'error', 3000);
+              }
+            });
         }
-      });
-  }
-  
+        
   // Continue scanning loop
   animationFrameId = requestAnimationFrame(scanLoop);
 }
