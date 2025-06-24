@@ -297,32 +297,23 @@
       }
 
       if (Capacitor.getPlatform() === 'android') {
-        log('Opening Android app settings...');
+        log('Opening Android app settings via native plugin...');
         try {
-          // Use proper import syntax with module
-          const { NativeSettings, AndroidSettings } = await import('capacitor-native-settings');
-          await NativeSettings.openAndroid({ 
-            option: AndroidSettings.ApplicationDetails 
-          });
-          log('Android app settings opened successfully');
-        } catch (importError) {
-          log(`Plugin import failed: ${importError.message}`, 'error');
+          // Use our custom native plugin
+          if (Capacitor.Plugins.AppSettings) {
+            const result = await Capacitor.Plugins.AppSettings.openAppSettings();
+            log('App settings opened successfully via native plugin');
+          } else {
+            throw new Error('AppSettings plugin not available');
+          }
+        } catch (pluginError) {
+          log(`Native plugin failed: ${pluginError.message}`, 'error');
           // Fallback to manual instructions
           showManualInstructions();
         }
       } else if (Capacitor.getPlatform() === 'ios') {
-        log('Opening iOS app settings...');
-        try {
-          const { NativeSettings, IOSSettings } = await import('capacitor-native-settings');
-          await NativeSettings.openIOS({ 
-            option: IOSSettings.App 
-          });
-          log('iOS app settings opened successfully');
-        } catch (importError) {
-          log(`Plugin import failed: ${importError.message}`, 'error');
-          // Fallback to manual instructions
-          showManualInstructions();
-        }
+        log('iOS platform detected, showing manual instructions');
+        showManualInstructions();
       } else {
         log('Unknown platform, showing manual instructions');
         showManualInstructions();
