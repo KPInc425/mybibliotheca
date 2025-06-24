@@ -287,13 +287,22 @@
   
   async function openAppSettings() {
     try {
+      // Wait for Capacitor to be available
+      if (typeof Capacitor === 'undefined') {
+        log('Capacitor not available yet, waiting...', 'warning');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (typeof Capacitor === 'undefined') {
+          throw new Error('Capacitor not available');
+        }
+      }
+
       if (Capacitor.getPlatform() === 'android') {
         log('Opening Android app settings...');
         try {
-          // Try to import and use the NativeSettings plugin
+          // Use proper import syntax with module
           const { NativeSettings, AndroidSettings } = await import('capacitor-native-settings');
-          await NativeSettings.openAndroid({
-            option: AndroidSettings.ApplicationDetails,
+          await NativeSettings.openAndroid({ 
+            option: AndroidSettings.ApplicationDetails 
           });
           log('Android app settings opened successfully');
         } catch (importError) {
@@ -305,8 +314,8 @@
         log('Opening iOS app settings...');
         try {
           const { NativeSettings, IOSSettings } = await import('capacitor-native-settings');
-          await NativeSettings.openIOS({
-            option: IOSSettings.App,
+          await NativeSettings.openIOS({ 
+            option: IOSSettings.App 
           });
           log('iOS app settings opened successfully');
         } catch (importError) {
