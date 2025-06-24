@@ -43,13 +43,29 @@ def reading_history():
 
 @bp.route('/fetch_book/<isbn>', methods=['GET'])
 def fetch_book(isbn):
-    book_data = fetch_book_data(isbn) or {}
-    google_cover = get_google_books_cover(isbn)
-    if google_cover:
-        book_data['cover'] = google_cover
+    # Try Google Books API first for comprehensive metadata
+    google_data = get_google_books_cover(isbn, fetch_title_author=True)
+    
+    if google_data and google_data.get('title') and google_data.get('author'):
+        # Use Google Books data as primary source
+        book_data = google_data
+        current_app.logger.info(f'[fetch_book] Using Google Books data for ISBN {isbn}')
+    else:
+        # Fallback to OpenLibrary data
+        book_data = fetch_book_data(isbn) or {}
+        current_app.logger.info(f'[fetch_book] Using OpenLibrary data for ISBN {isbn}')
+    
+    # Ensure we have a cover URL
+    if not book_data.get('cover'):
+        google_cover = get_google_books_cover(isbn)
+        if google_cover:
+            book_data['cover'] = google_cover
+    
     # If neither source provides a cover, set a default (absolute URL for native support)
     if not book_data.get('cover'):
         book_data['cover'] = url_for('static', filename='bookshelf.png', _external=True)
+    
+    current_app.logger.info(f'[fetch_book] Final book data for ISBN {isbn}: {book_data}')
     return jsonify(book_data), 200 if book_data else 404
 
 @bp.route('/')

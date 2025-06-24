@@ -510,12 +510,18 @@ function handleSuccessfulScan(code) {
   
   // Auto-fetch the book data
   setTimeout(() => {
+    console.log('[handleSuccessfulScan] About to call autofetchBookData');
     if (window.autofetchBookData) {
+      console.log('[handleSuccessfulScan] Calling autofetchBookData');
       window.autofetchBookData();
     } else {
+      console.log('[handleSuccessfulScan] autofetchBookData not available, trying fetch button');
       const fetchButton = document.querySelector('button[name="fetch"]');
       if (fetchButton) {
+        console.log('[handleSuccessfulScan] Clicking fetch button');
         fetchButton.click();
+      } else {
+        console.log('[handleSuccessfulScan] Fetch button not found');
       }
     }
   }, 500);

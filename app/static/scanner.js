@@ -291,6 +291,12 @@ async function startBrowserScanner() {
     throw new Error('Scanner UI elements not found');
   }
 
+  // Check if scanner is already running or stopping
+  if (scannerState === 'scanning' || scannerState === 'stopping' || zxingActive) {
+    debugLog('Scanner already running or stopping, ignoring start request');
+    return;
+  }
+
   // Show loading state
   scannerBtn.disabled = true;
   scannerBtn.textContent = '🔄 Starting...';
@@ -359,7 +365,15 @@ async function startBrowserScanner() {
 
   // Start decoding
   zxingCodeReader.decodeFromVideoElement(videoElement, (result, err) => {
-    if (!zxingActive) return; // Only process results if active
+    // Check if scanner is still active before processing anything
+    if (!zxingActive || scannerState === 'stopping' || scannerState === 'idle') {
+      // Only log this occasionally to reduce spam
+      if (Math.random() < 0.01) { // Only log 1% of the time
+        debugLog('[ZXing-js] Scanner not active, ignoring result');
+      }
+      return;
+    }
+    
     if (result) {
       const code = result.text;
       let format = result.barcodeFormat;
@@ -387,30 +401,126 @@ async function startBrowserScanner() {
         showNotification(`ISBN detected: ${code}`, 'success', 2000);
         stopZXingScanner();
         // Auto-fetch the book data after a short delay
-        setTimeout(() => {
-          autofetchBookData();
+        setTimeout(() => { 
+          debugLog('[ZXing-js] Calling handleSuccessfulScan');
+          if (window.handleSuccessfulScan) {
+            window.handleSuccessfulScan(code);
+          } else {
+            debugLog('[ZXing-js] handleSuccessfulScan not available, calling autofetchBookData');
+            if (window.autofetchBookData) {
+              window.autofetchBookData();
+            } else {
+              debugLog('[ZXing-js] autofetchBookData not available');
+            }
+          }
         }, 500);
       } else {
         debugLog('Non-ISBN barcode detected', {code, format});
         showNotification('Non-ISBN barcode detected. Please scan a valid book barcode.', 'warning', 2000);
       }
-    } else if (err) {
+    } else if (err && err.name !== 'NotFoundException') {
+      // Only log errors that aren't "no barcode found" errors
       debugLog('ZXing-js scan error', err);
     }
-    // Ignore errors (err) for now
   });
 }
 
 function stopZXingScanner() {
+  debugLog('[stopZXingScanner] Starting stop process');
+  
+  // Prevent multiple simultaneous stops
+  if (scannerState === 'stopping') {
+    debugLog('[stopZXingScanner] Already stopping, but forcing completion');
+    // Force complete the stop process instead of ignoring
+  }
+  
+  scannerState = 'stopping';
   zxingActive = false;
-  scannerState = 'idle';
+  
+  // Set a timeout to force stop if stuck
+  const forceStopTimeout = setTimeout(() => {
+    if (scannerState === 'stopping') {
+      debugLog('[stopZXingScanner] Force stopping scanner after timeout');
+      scannerState = 'idle';
+      zxingActive = false;
+      zxingCodeReader = null;
+      zxingStream = null;
+      
+      const scannerBtn = document.getElementById('scannerBtn');
+      if (scannerBtn) {
+        scannerBtn.disabled = false;
+        scannerBtn.textContent = '📷 Scan Barcode';
+        scannerBtn.className = 'btn-scan';
+      }
+      
+      const scannerDiv = document.getElementById('scanner');
+      if (scannerDiv) {
+        scannerDiv.style.display = 'none';
+      }
+      
+      showNotification('Scanner force stopped.', 'warning', 1500);
+    }
+  }, 3000); // 3 second timeout
+  
+  debugLog('[stopZXingScanner] Stopping ZXing-js scanner');
   if (zxingCodeReader) {
-    zxingCodeReader.reset();
+    try {
+      // Stop the decode loop first
+      zxingCodeReader.reset();
+      // Force stop any ongoing decode operations
+      if (zxingCodeReader._stopAsyncDecode) {
+        zxingCodeReader._stopAsyncDecode();
+      }
+      // Additional cleanup for ZXing-js
+      if (zxingCodeReader._videoElement) {
+        zxingCodeReader._videoElement = null;
+      }
+      if (zxingCodeReader._timeoutHandler) {
+        clearTimeout(zxingCodeReader._timeoutHandler);
+        zxingCodeReader._timeoutHandler = null;
+      }
+    } catch (err) {
+      debugLog('[stopZXingScanner] Error resetting ZXing reader:', err);
+    }
     zxingCodeReader = null;
   }
+  
+  debugLog('[stopZXingScanner] Stopping video stream');
   if (zxingStream) {
-    zxingStream.getTracks().forEach(track => track.stop());
+    try {
+      zxingStream.getTracks().forEach(track => {
+        track.stop();
+        debugLog('[stopZXingScanner] Stopped track:', track.kind);
+      });
+    } catch (err) {
+      debugLog('[stopZXingScanner] Error stopping tracks:', err);
+    }
     zxingStream = null;
+  }
+  
+  // Completely destroy and recreate the video element to force ZXing-js to stop
+  const scannerDiv = document.getElementById('scanner');
+  const videoElement = document.getElementById('scanner-video');
+  if (videoElement && scannerDiv) {
+    debugLog('[stopZXingScanner] Destroying video element to force ZXing-js stop');
+    videoElement.srcObject = null;
+    videoElement.src = '';
+    videoElement.load();
+    videoElement.remove();
+    
+    // Create a new video element
+    const newVideoElement = document.createElement('video');
+    newVideoElement.id = 'scanner-video';
+    newVideoElement.style.width = '100%';
+    newVideoElement.style.height = '100%';
+    newVideoElement.style.objectFit = 'cover';
+    newVideoElement.autoplay = true;
+    newVideoElement.muted = true;
+    newVideoElement.playsInline = true;
+    
+    // Add the new video element to the scanner div
+    scannerDiv.appendChild(newVideoElement);
+    debugLog('[stopZXingScanner] Created new video element');
   }
   
   // Reset button to scan state
@@ -421,11 +531,19 @@ function stopZXingScanner() {
     scannerBtn.className = 'btn-scan';
   }
   
-  const scannerDiv = document.getElementById('scanner');
   if (scannerDiv) {
     scannerDiv.style.display = 'none';
   }
+  
+  // Clear the timeout since we're stopping successfully
+  clearTimeout(forceStopTimeout);
+  
+  // Reset state immediately
+  scannerState = 'idle';
+  debugLog('[stopZXingScanner] Scanner state reset to idle');
+  
   showNotification('Scanner stopped.', 'info', 1500);
+  debugLog('[stopZXingScanner] Stop process complete');
 }
 
 /**
@@ -589,9 +707,11 @@ function startScanner() {
                   showNotification(`ISBN detected: ${code}`, 'success', 2000);
                   
                   // Auto-fetch the book data
-                  setTimeout(() => {
-                    autofetchBookData();
-                  }, 500);
+                  if (window.handleSuccessfulScan) {
+                    window.handleSuccessfulScan(code);
+                  } else {
+                    setTimeout(() => { if (window.autofetchBookData) window.autofetchBookData(); }, 500);
+                  }
                 } else {
                   console.log("Invalid ISBN format:", code, format);
                   showNotification(`Invalid format: ${format}`, 'warning', 2000);
@@ -599,7 +719,7 @@ function startScanner() {
                   // Stop after too many invalid attempts
                   if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
                     stopScanner();
-                    showNotification('Too many invalid scans. Please try again.', 'error', 3000);
+                    showNotification('Too many invalid scans. Please try manual entry.', 'error', 3000);
                   }
                 }
               } else {
@@ -746,9 +866,11 @@ function startScanner() {
                       
                       showNotification(`ISBN detected: ${code}`, 'success', 2000);
                       
-                      setTimeout(() => {
-                        autofetchBookData();
-                      }, 500);
+                      if (window.handleSuccessfulScan) {
+                        window.handleSuccessfulScan(code);
+                      } else {
+                        setTimeout(() => { if (window.autofetchBookData) window.autofetchBookData(); }, 500);
+                      }
                     } else {
                       console.log("Invalid ISBN format:", code, format);
                       showNotification(`Invalid format: ${format}`, 'warning', 2000);
@@ -1276,6 +1398,22 @@ function startManualCameraMode() {
  */
 function stopScanner() {
   console.log("Stopping scanner...");
+  debugLog('[stopScanner] Starting main stop process');
+  
+  // Prevent multiple simultaneous stops
+  if (scannerState === 'stopping') {
+    debugLog('[stopScanner] Already stopping, ignoring duplicate call');
+    return;
+  }
+  
+  scannerState = 'stopping';
+  
+  // Stop ZXing-js scanner if active
+  if (zxingActive) {
+    debugLog('[stopScanner] ZXing-js scanner is active, stopping it');
+    stopZXingScanner();
+    return; // stopZXingScanner will handle the rest
+  }
   
   // Stop animation frame
   if (animationFrameId) {
@@ -1302,6 +1440,7 @@ function stopScanner() {
   resetToIdle();
   
   console.log("Scanner stopped");
+  debugLog('[stopScanner] Main stop process complete');
 }
 
 /**
@@ -1338,12 +1477,18 @@ function resetToIdle() {
  */
 function handleScannerButtonClick() {
   console.log("[DEBUG] Scanner button clicked, current state:", scannerState);
+  debugLog('[handleScannerButtonClick] Button clicked, state:', scannerState);
   
   if (scannerState === 'idle') {
     scannerState = 'starting';
+    debugLog('[handleScannerButtonClick] Starting scanner');
     startSmartScanner();
   } else if (scannerState === 'scanning' || scannerState === 'starting') {
+    debugLog('[handleScannerButtonClick] Stopping scanner');
     stopScanner();
+  } else if (scannerState === 'stopping') {
+    debugLog('[handleScannerButtonClick] Scanner is stopping, ignoring click');
+    // Ignore clicks while stopping to prevent conflicts
   }
 }
 
@@ -1465,9 +1610,11 @@ function startBarcodeDetectorScanning() {
             showNotification(`ISBN detected: ${code}`, 'success', 2000);
             
             // Auto-fetch the book data
-            setTimeout(() => {
-              autofetchBookData();
-            }, 500);
+            if (window.handleSuccessfulScan) {
+              window.handleSuccessfulScan(code);
+            } else {
+              setTimeout(() => { if (window.autofetchBookData) window.autofetchBookData(); }, 500);
+            }
           } else {
             console.log("Invalid ISBN format:", code, format);
             
@@ -1555,55 +1702,95 @@ function startBarcodeDetectorScanning() {
 // AJAX autofetch logic for Fetch Book Data button
 function autofetchBookData() {
   debugLog('[autofetchBookData] Called');
+  console.log('[autofetchBookData] Function called');
+  
   const isbn = document.getElementById('isbn').value.trim();
   debugLog('[autofetchBookData] ISBN to fetch:', isbn);
+  console.log('[autofetchBookData] ISBN value:', isbn);
+  
   if (!isbn) {
     showNotification('Please enter an ISBN first', 'warning', 2000);
     debugLog('[autofetchBookData] No ISBN entered, aborting');
+    console.log('[autofetchBookData] No ISBN entered, aborting');
     return;
   }
+  
   const fetchBtn = document.getElementById('fetchBtn');
+  debugLog('[autofetchBookData] Fetch button found:', !!fetchBtn);
+  console.log('[autofetchBookData] Fetch button found:', !!fetchBtn);
+  
   if (fetchBtn) {
     fetchBtn.disabled = true;
     fetchBtn.textContent = 'Fetching...';
   }
+  
+  debugLog('[autofetchBookData] Making fetch request to:', `/fetch_book/${isbn}`);
+  console.log('[autofetchBookData] Making fetch request to:', `/fetch_book/${isbn}`);
+  
   fetch(`/fetch_book/${isbn}`)
     .then(response => {
       debugLog('[autofetchBookData] Fetch response status:', response.status);
+      console.log('[autofetchBookData] Fetch response status:', response.status);
       if (!response.ok) return {};
       return response.json();
     })
     .then(data => {
       debugLog('[autofetchBookData] Fetch result:', data);
+      console.log('[autofetchBookData] Fetch result:', data);
+      console.log('[autofetchBookData] Available fields:', Object.keys(data));
+      
       if (data && data.title) {
-        // Fill in the form fields
-        if (data.title) document.getElementById('title').value = data.title;
-        if (data.author) document.getElementById('author').value = data.author;
-        if (data.publisher) document.getElementById('publisher').value = data.publisher;
-        if (data.published_date) document.getElementById('publication_date').value = data.published_date;
-        if (data.page_count) document.getElementById('pages').value = data.page_count;
-        if (data.language) document.getElementById('language').value = data.language;
-        if (data.format) document.getElementById('format').value = data.format;
-        if (data.description) document.getElementById('description').value = data.description;
+        // Fill in the form fields with correct field IDs
+        const fieldsToFill = {
+          'title': data.title,
+          'author': data.author,
+          'publisher': data.publisher,
+          'publication_date': data.published_date,
+          'pages': data.page_count,
+          'language': data.language,
+          'format': data.format,
+          'description': data.description
+        };
+        
+        console.log('[autofetchBookData] Fields to fill:', fieldsToFill);
+        
+        // Fill each field and log the result
+        Object.entries(fieldsToFill).forEach(([fieldId, value]) => {
+          if (value) {
+            const element = document.getElementById(fieldId);
+            if (element) {
+              element.value = value;
+              console.log(`[autofetchBookData] Filled ${fieldId}:`, value);
+            } else {
+              console.log(`[autofetchBookData] Field ${fieldId} not found in form`);
+            }
+          }
+        });
+        
         // Update cover preview image
         const coverImg = document.getElementById('coverPreviewImg');
         if (coverImg) {
           if (data.cover) {
             coverImg.src = data.cover;
+            console.log('[autofetchBookData] Updated cover image:', data.cover);
           } else {
             coverImg.src = '/static/bookshelf.png';
+            console.log('[autofetchBookData] Using default cover image');
           }
         }
         showNotification('Book data fetched successfully!', 'success', 2000);
         debugLog('[autofetchBookData] Book data filled in form');
+        console.log('[autofetchBookData] Book data filled in form');
       } else {
         showNotification('No book data found for the provided ISBN.', 'warning', 2000);
         debugLog('[autofetchBookData] No book data found');
+        console.log('[autofetchBookData] No book data found');
       }
     })
     .catch(error => {
       showNotification('Error fetching book data. Please try again.', 'error', 2000);
       debugLog('[autofetchBookData] AJAX autofetch error', error);
+      console.error('[autofetchBookData] AJAX autofetch error', error);
     })
     .finally(() => {
       if (fetchBtn) {
@@ -1611,12 +1798,18 @@ function autofetchBookData() {
         fetchBtn.textContent = '🔍 Fetch Book Data';
       }
       debugLog('[autofetchBookData] Fetch complete');
+      console.log('[autofetchBookData] Fetch complete');
     });
 }
 
 window.autofetchBookData = autofetchBookData;
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize scanner state
+  scannerState = 'idle';
+  zxingActive = false;
+  debugLog('[DOMContentLoaded] Scanner state initialized to idle');
+  
   const fetchBtn = document.getElementById('fetchBtn');
   if (fetchBtn) {
     fetchBtn.addEventListener('click', autofetchBookData);
