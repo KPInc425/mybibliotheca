@@ -352,7 +352,7 @@
       <h4 style="color: var(--primary-brown); margin-bottom: 1rem;">📱 Barcode Scanner</h4>
       
       <div class="scanner-buttons">
-        <button type="button" class="btn-scan" onclick="startSmartScanner()" id="scannerBtn">
+        <button type="button" class="btn-scan" onclick="handleScannerButtonClick()" id="scannerBtn">
           📷 Scan Barcode
         </button>
       </div>
@@ -521,6 +521,25 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 let isCapacitor = typeof Capacitor !== 'undefined';
 let isNative = isCapacitor && Capacitor.isNative;
 
+// Scanner state management
+let scannerState = 'idle'; // 'idle', 'starting', 'scanning', 'stopping'
+
+// Single event handler for scanner button
+function handleScannerButtonClick() {
+  debugLog('Scanner button clicked, current state:', scannerState);
+  
+  switch (scannerState) {
+    case 'idle':
+      startSmartScanner();
+      break;
+    case 'scanning':
+      stopScanner();
+      break;
+    default:
+      debugLog('Ignoring click in state:', scannerState);
+  }
+}
+
 // Visual Debug Function for Native Apps
 function debugLog(message, data = null) {
   const debugPanel = document.getElementById('debugPanel');
@@ -603,7 +622,14 @@ async function startSmartScanner() {
   
   debugLog('Elements found', { scannerBtn: !!scannerBtn, statusDiv: !!statusDiv });
   
+  // Prevent multiple starts
+  if (scannerState !== 'idle') {
+    debugLog('Scanner already active, ignoring start request');
+    return;
+  }
+  
   try {
+    scannerState = 'starting';
     debugLog('Starting smart scanner...');
     scannerBtn.disabled = true;
     scannerBtn.textContent = '🔄 Starting...';
@@ -636,10 +662,7 @@ async function startSmartScanner() {
     debugLog('Scanner error', error.message);
     logScannerStatus(`Scanner error: ${error.message}`, 'error');
     showNotification(`Scanner error: ${error.message}`, 'error', 4000);
-  } finally {
-    debugLog('Scanner finished, resetting button');
-    scannerBtn.disabled = false;
-    scannerBtn.textContent = '📷 Scan Barcode';
+    resetToIdle();
   }
 }
 
@@ -761,6 +784,16 @@ async function startNativeScanner() {
   }
 }
 
+// Reset scanner to idle state
+function resetToIdle() {
+  const scannerBtn = document.getElementById('scannerBtn');
+  scannerState = 'idle';
+  scannerBtn.disabled = false;
+  scannerBtn.textContent = '📷 Scan Barcode';
+  scannerBtn.className = 'btn-scan';
+  debugLog('Scanner reset to idle state');
+}
+
 // Manual Camera Mode for browsers without BarcodeDetector
 async function startManualCameraMode() {
   const scannerDiv = document.getElementById('scanner');
@@ -768,6 +801,7 @@ async function startManualCameraMode() {
   const scannerBtn = document.getElementById('scannerBtn');
   
   try {
+    scannerState = 'scanning';
     logScannerStatus('Starting manual camera mode...', 'info');
     
     scannerDiv.style.display = 'block';
@@ -795,7 +829,6 @@ async function startManualCameraMode() {
     scannerBtn.disabled = false;
     scannerBtn.textContent = '⏹️ Stop Scanning';
     scannerBtn.className = 'btn-stop';
-    scannerBtn.onclick = stopManualCamera;
     
     // Add tap-to-focus for mobile
     if (isMobile) {
@@ -824,45 +857,9 @@ async function startManualCameraMode() {
     
   } catch (error) {
     logScannerStatus(`Manual camera error: ${error.message}`, 'error');
+    resetToIdle();
     throw error;
   }
-}
-
-// Stop manual camera mode
-function stopManualCamera() {
-  const scannerDiv = document.getElementById('scanner');
-  const scannerBtn = document.getElementById('scannerBtn');
-  const videoElement = document.getElementById('scanner-video');
-  
-  // Stop video stream
-  if (videoStream) {
-    videoStream.getTracks().forEach(track => track.stop());
-    videoStream = null;
-  }
-  
-  // Clean up video element
-  if (videoElement) {
-    videoElement.srcObject = null;
-    videoElement.load();
-  }
-  
-  // Reset UI
-  scannerDiv.style.display = 'none';
-  scannerBtn.disabled = false;
-  scannerBtn.textContent = '📷 Scan Barcode';
-  scannerBtn.className = 'btn-scan';
-  
-  // Clear all event handlers and set the correct one
-  scannerBtn.onclick = null;
-  scannerBtn.removeEventListener('click', startSmartScanner);
-  scannerBtn.removeEventListener('click', stopManualCamera);
-  
-  // Set the correct handler after a brief delay
-  setTimeout(() => {
-    scannerBtn.onclick = startSmartScanner;
-  }, 200);
-  
-  logScannerStatus('Manual camera mode stopped', 'info');
 }
 
 let scanner = null;
@@ -1220,6 +1217,16 @@ function stopScanner() {
   const scannerBtn = document.getElementById('scannerBtn');
   const videoElement = document.getElementById('scanner-video');
   
+  debugLog('Stopping scanner, current state:', scannerState);
+  
+  // Prevent multiple stops
+  if (scannerState !== 'scanning') {
+    debugLog('Scanner not active, ignoring stop request');
+    return;
+  }
+  
+  scannerState = 'stopping';
+  
   // Stop animation frame
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
@@ -1243,10 +1250,42 @@ function stopScanner() {
     videoElement.load();
   }
   
+  // Hide scanner
   scannerDiv.style.display = 'none';
-  scannerBtn.disabled = false;
-  scannerBtn.textContent = '📷 Scan Barcode';
-  scannerBtn.className = 'btn-scan';
+  
+  // Reset to idle state
+  resetToIdle();
+  
+  logScannerStatus('Scanner stopped', 'info');
+}
+
+// Reset scanner UI function
+function resetScannerUI() {
+  const scannerBtn = document.getElementById('scannerBtn');
+  const scannerDiv = document.getElementById('scanner');
+  
+  if (scannerBtn) {
+    scannerBtn.disabled = false;
+    scannerBtn.textContent = '📷 Scan Barcode';
+    scannerBtn.className = 'btn-scan';
+    
+    // Only reset handlers if we're not in an active scanning state
+    if (!videoStream && !scanner) {
+      // Clear all event handlers and set the correct one
+      scannerBtn.onclick = null;
+      scannerBtn.removeEventListener('click', startSmartScanner);
+      scannerBtn.removeEventListener('click', stopManualCamera);
+      
+      // Set the correct handler after a brief delay
+      setTimeout(() => {
+        scannerBtn.onclick = startSmartScanner;
+      }, 100);
+    }
+  }
+  
+  if (scannerDiv) {
+    scannerDiv.style.display = 'none';
+  }
 }
 
 // Add mobile-specific optimizations
@@ -1371,10 +1410,10 @@ document.addEventListener('DOMContentLoaded', function() {
   if (scannerBtn) {
     debugLog('Scanner button found, adding click handler');
     scannerBtn.addEventListener('click', function(e) {
-      // Only start scanner if button is in scan state and doesn't have onclick handler
-      if (scannerBtn.textContent === '📷 Scan Barcode' && !scannerBtn.onclick) {
-        debugLog('Scanner button clicked via event listener');
-        startSmartScanner();
+      // Only trigger if button doesn't have onclick handler (fallback)
+      if (!scannerBtn.onclick) {
+        debugLog('Scanner button clicked via backup event listener');
+        handleScannerButtonClick();
       }
     });
   } else {
