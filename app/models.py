@@ -236,4 +236,40 @@ class ReadingLog(db.Model):
     )
     
     def __repr__(self):
-        return f'<ReadingLog {self.user_id}:{self.book_id} on {self.date}>'
+        return f'<ReadingLog {self.book_id} {self.user_id} {self.date}>'
+
+class SystemSettings(db.Model):
+    """System-wide settings controlled by administrators"""
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.Text, nullable=True)
+    description = db.Column(db.String(255), nullable=True)
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    
+    def __repr__(self):
+        return f'<SystemSettings {self.key}={self.value}>'
+    
+    @classmethod
+    def get_setting(cls, key, default=None):
+        """Get a system setting value"""
+        setting = cls.query.filter_by(key=key).first()
+        return setting.value if setting else default
+    
+    @classmethod
+    def set_setting(cls, key, value, description=None, user_id=None):
+        """Set a system setting value"""
+        setting = cls.query.filter_by(key=key).first()
+        if setting:
+            setting.value = value
+            setting.updated_by = user_id
+        else:
+            setting = cls(key=key, value=value, description=description, updated_by=user_id)
+            db.session.add(setting)
+        db.session.commit()
+        return setting
+    
+    @classmethod
+    def is_debug_enabled(cls):
+        """Check if debug mode is enabled"""
+        return cls.get_setting('debug_mode', 'false').lower() == 'true'

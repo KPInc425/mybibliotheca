@@ -401,6 +401,7 @@
       "></div>
       
       <!-- Debug Panel (for native app debugging) -->
+      {% if debug_enabled %}
       <div id="debugPanel" style="
         margin-top: 1rem;
         padding: 0.75rem;
@@ -427,6 +428,7 @@
         </div>
         <div id="debugContent"></div>
       </div>
+      {% endif %}
     </div>
 
     <!-- ISBN and Fetch Section -->
@@ -625,10 +627,10 @@ async function startSmartScanner() {
       }
     }
     
-    // Fallback to browser scanner
-    debugLog('Using browser scanner');
+    // If not in Capacitor or native scanner failed, use browser scanner directly
+    debugLog('Using browser scanner directly');
     logScannerStatus('Using browser-based barcode scanner', 'info');
-    await startBrowserScanner();
+    startScanner(); // Use the existing browser scanner implementation
     
   } catch (error) {
     debugLog('Scanner error', error.message);
@@ -701,15 +703,54 @@ async function startNativeScanner() {
       
       // Auto-fetch book data after successful scan
       logScannerStatus('Auto-fetching book data...', 'info');
-      setTimeout(() => {
-        const fetchButton = document.querySelector('button[name="fetch"]');
-        if (fetchButton) {
-          fetchButton.click();
-          logScannerStatus('Book data fetch initiated', 'success');
-        } else {
-          logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
+      
+      // Show countdown before auto-fetch with cancel option
+      let countdown = 3;
+      let autoFetchCancelled = false;
+      
+      // Add cancel button to status
+      const statusDiv = document.getElementById('scannerStatus');
+      const cancelButton = document.createElement('button');
+      cancelButton.textContent = 'Cancel Auto-fetch';
+      cancelButton.style.cssText = `
+        margin-left: 10px;
+        padding: 4px 8px;
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+      `;
+      cancelButton.onclick = () => {
+        autoFetchCancelled = true;
+        clearInterval(countdownInterval);
+        logScannerStatus('Auto-fetch cancelled. Click "Fetch Book Data" manually when ready.', 'warning');
+        cancelButton.remove();
+      };
+      statusDiv.appendChild(cancelButton);
+      
+      const countdownInterval = setInterval(() => {
+        if (autoFetchCancelled) {
+          clearInterval(countdownInterval);
+          return;
         }
-      }, 500);
+        
+        if (countdown > 0) {
+          logScannerStatus(`Auto-fetching book data in ${countdown} seconds...`, 'info');
+          countdown--;
+        } else {
+          clearInterval(countdownInterval);
+          cancelButton.remove();
+          const fetchButton = document.querySelector('button[name="fetch"]');
+          if (fetchButton) {
+            logScannerStatus('Book data fetch initiated', 'success');
+            fetchButton.click();
+          } else {
+            logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
+          }
+        }
+      }, 1000);
     } else {
       logScannerStatus('No barcode detected', 'info');
     }
@@ -720,39 +761,142 @@ async function startNativeScanner() {
   }
 }
 
-// Browser Scanner Function
-async function startBrowserScanner() {
-  const statusDiv = document.getElementById('scannerStatus');
+// Manual Camera Mode for browsers without BarcodeDetector
+async function startManualCameraMode() {
+  const scannerDiv = document.getElementById('scanner');
+  const videoElement = document.getElementById('scanner-video');
+  const scannerBtn = document.getElementById('scannerBtn');
   
   try {
-    logScannerStatus('Initializing browser scanner...', 'info');
+    logScannerStatus('Starting manual camera mode...', 'info');
     
-    // Check if BarcodeDetector is supported
-    if (!('BarcodeDetector' in window)) {
-      throw new Error('BarcodeDetector not supported in this browser');
+    scannerDiv.style.display = 'block';
+    scannerBtn.disabled = true;
+    scannerBtn.textContent = '🔄 Starting...';
+    
+    // Get camera stream
+    const constraints = await getCameraConstraints();
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    
+    videoStream = stream;
+    videoElement.srcObject = stream;
+    
+    // Wait for video to be ready
+    await new Promise((resolve) => {
+      videoElement.onloadedmetadata = () => {
+        videoElement.play();
+        resolve();
+      };
+    });
+    
+    logScannerStatus('Camera ready! Point camera at barcode and manually enter ISBN below', 'success');
+    
+    // Add manual input instructions
+    const manualInstructions = document.createElement('div');
+    manualInstructions.id = 'manual-instructions';
+    manualInstructions.style.cssText = `
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 10px 15px;
+      border-radius: 20px;
+      font-size: 12px;
+      text-align: center;
+      z-index: 15;
+      max-width: 90%;
+      line-height: 1.4;
+    `;
+    manualInstructions.innerHTML = `
+      📱 <strong>Manual Mode</strong><br>
+      Point camera at barcode<br>
+      Enter ISBN manually below
+    `;
+    scannerDiv.appendChild(manualInstructions);
+    
+    // Update button
+    scannerBtn.disabled = false;
+    scannerBtn.textContent = '⏹️ Stop Camera';
+    scannerBtn.className = 'btn-stop';
+    scannerBtn.onclick = stopManualCamera;
+    
+    // Add tap-to-focus for mobile
+    if (isMobile) {
+      videoElement.addEventListener('click', function() {
+        if (videoStream) {
+          const track = videoStream.getVideoTracks()[0];
+          if (track && track.getCapabilities) {
+            const capabilities = track.getCapabilities();
+            if (capabilities.zoom) {
+              let maxZoom = capabilities.zoom.max || 2;
+              let zoomValue = Math.min(1.5, maxZoom);
+              track.applyConstraints({ zoom: zoomValue }).then(() => {
+                showNotification('🔍 Digital zoom applied', 'info', 1200);
+              }).catch(() => {
+                showNotification('⚠️ Zoom not supported', 'warning', 1200);
+              });
+            }
+          }
+        }
+      });
+      videoElement.style.cursor = 'pointer';
+      videoElement.title = 'Tap to zoom for better view';
     }
     
-    logScannerStatus('Browser scanner supported', 'success');
-    
-    // Use the existing browser scanner implementation
-    startScanner();
+    logScannerStatus('Manual camera mode active - use camera to view barcode clearly', 'info');
     
   } catch (error) {
-    logScannerStatus(`Browser scanner error: ${error.message}`, 'error');
+    logScannerStatus(`Manual camera error: ${error.message}`, 'error');
     throw error;
   }
 }
 
+// Stop manual camera mode
+function stopManualCamera() {
+  const scannerDiv = document.getElementById('scanner');
+  const scannerBtn = document.getElementById('scannerBtn');
+  const videoElement = document.getElementById('scanner-video');
+  const manualInstructions = document.getElementById('manual-instructions');
+  
+  // Stop video stream
+  if (videoStream) {
+    videoStream.getTracks().forEach(track => track.stop());
+    videoStream = null;
+  }
+  
+  // Clean up video element
+  if (videoElement) {
+    videoElement.srcObject = null;
+    videoElement.load();
+  }
+  
+  // Remove manual instructions
+  if (manualInstructions) {
+    manualInstructions.remove();
+  }
+  
+  // Reset UI
+  scannerDiv.style.display = 'none';
+  scannerBtn.disabled = false;
+  scannerBtn.textContent = '📷 Scan Barcode';
+  scannerBtn.className = 'btn-scan';
+  scannerBtn.onclick = startSmartScanner;
+  
+  logScannerStatus('Manual camera mode stopped', 'info');
+}
+
 let scanner = null;
 let lastScanTime = 0;
-const SCAN_COOLDOWN = 2000;
+const SCAN_COOLDOWN = 1000;
 let scanAttempts = 0;
 const MAX_SCAN_ATTEMPTS = 10;
 let videoStream = null;
 let animationFrameId = null;
 let lastDetectedCode = null;
 let detectionCount = 0;
-const REQUIRED_DETECTIONS = 3; // Require multiple consistent detections
+const REQUIRED_DETECTIONS = 1; // Reduced from 3 to 1 for faster scanning
 
 // Check if BarcodeDetector is supported
 if (!('BarcodeDetector' in window)) {
@@ -878,6 +1022,13 @@ function startScanner() {
     
     // Reset scanner variable
     scanner = null;
+    
+    // Check if BarcodeDetector is supported
+    if (!('BarcodeDetector' in window)) {
+      logScannerStatus('BarcodeDetector not supported - using manual camera mode', 'warning');
+      startManualCameraMode();
+      return;
+    }
     
     // Set a timeout for scanner initialization
     const initTimeout = setTimeout(() => {
@@ -1009,15 +1160,54 @@ function scanLoop() {
               
               // Auto-fetch book data after successful scan
               logScannerStatus('Auto-fetching book data...', 'info');
-              setTimeout(() => {
-                const fetchButton = document.querySelector('button[name="fetch"]');
-                if (fetchButton) {
-                  fetchButton.click();
-                  logScannerStatus('Book data fetch initiated', 'success');
-                } else {
-                  logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
+              
+              // Show countdown before auto-fetch with cancel option
+              let countdown = 3;
+              let autoFetchCancelled = false;
+              
+              // Add cancel button to status
+              const statusDiv = document.getElementById('scannerStatus');
+              const cancelButton = document.createElement('button');
+              cancelButton.textContent = 'Cancel Auto-fetch';
+              cancelButton.style.cssText = `
+                margin-left: 10px;
+                padding: 4px 8px;
+                background: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 0.8rem;
+                cursor: pointer;
+              `;
+              cancelButton.onclick = () => {
+                autoFetchCancelled = true;
+                clearInterval(countdownInterval);
+                logScannerStatus('Auto-fetch cancelled. Click "Fetch Book Data" manually when ready.', 'warning');
+                cancelButton.remove();
+              };
+              statusDiv.appendChild(cancelButton);
+              
+              const countdownInterval = setInterval(() => {
+                if (autoFetchCancelled) {
+                  clearInterval(countdownInterval);
+                  return;
                 }
-              }, 500);
+                
+                if (countdown > 0) {
+                  logScannerStatus(`Auto-fetching book data in ${countdown} seconds...`, 'info');
+                  countdown--;
+                } else {
+                  clearInterval(countdownInterval);
+                  cancelButton.remove();
+                  const fetchButton = document.querySelector('button[name="fetch"]');
+                  if (fetchButton) {
+                    logScannerStatus('Book data fetch initiated', 'success');
+                    fetchButton.click();
+                  } else {
+                    logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
+                  }
+                }
+              }, 1000);
             } else {
               console.log("Scan cooldown active");
             }

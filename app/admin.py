@@ -6,7 +6,7 @@ Provides admin-only decorators, middleware, and management functions
 from functools import wraps
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, abort
 from flask_login import login_required, current_user
-from .models import User, Book, ReadingLog, db
+from .models import User, Book, ReadingLog, db, SystemSettings
 from .forms import UserProfileForm, AdminPasswordResetForm
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
@@ -217,12 +217,26 @@ def delete_user(user_id):
     flash(f'User {username} and all associated data have been deleted.', 'success')
     return redirect(url_for('admin.users'))
 
-@admin.route('/settings')
+@admin.route('/settings', methods=['GET', 'POST'])
 @login_required 
 @admin_required
 def settings():
     """Admin settings page"""
-    return render_template('admin/settings.html', title='Admin Settings')
+    if request.method == 'POST':
+        # Handle debug mode toggle
+        debug_mode = request.form.get('debug_mode') == 'on'
+        SystemSettings.set_setting(
+            'debug_mode', 
+            str(debug_mode).lower(), 
+            'Enable debug logging in the barcode scanner interface',
+            current_user.id
+        )
+        flash('Settings updated successfully.', 'success')
+        return redirect(url_for('admin.settings'))
+    
+    # Get current settings for display
+    debug_enabled = SystemSettings.is_debug_enabled()
+    return render_template('admin/settings.html', title='Admin Settings', debug_enabled=debug_enabled)
 
 @admin.route('/api/stats')
 @login_required
