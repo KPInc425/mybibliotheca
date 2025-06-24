@@ -187,6 +187,10 @@
     🔐 Request Camera Permissions Now
   </button>
   
+  <button id="refreshPermissions" class="test-button" style="background: #ffc107; color: #000;">
+    🔄 Refresh Permission Status
+  </button>
+  
   <button id="testPermissions" class="test-button" style="background: #28a745;">
     📷 Test Camera Permissions
   </button>
@@ -435,26 +439,52 @@
         return;
       }
       
-      // Check current permissions
-      const { granted } = await BarcodeScanner.checkPermissions();
-      log(`Current camera permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
+      // Check current permissions with retry logic
+      let permissionGranted = false;
+      let retryCount = 0;
+      const maxRetries = 3;
       
-      if (granted) {
-        log('✅ Camera permissions already granted - no need to request', 'success');
-        return;
+      while (retryCount < maxRetries && !permissionGranted) {
+        try {
+          const { granted } = await BarcodeScanner.checkPermissions();
+          log(`Permission check attempt ${retryCount + 1}: ${granted ? 'GRANTED' : 'DENIED'}`);
+          
+          if (granted) {
+            permissionGranted = true;
+            log('✅ Camera permissions confirmed as granted', 'success');
+            updateStatus('Camera permissions granted!', 'success');
+            return;
+          }
+          
+          retryCount++;
+          if (retryCount < maxRetries) {
+            log(`Permission not granted, waiting 1 second before retry...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (error) {
+          log(`Permission check error on attempt ${retryCount + 1}: ${error.message}`, 'error');
+          retryCount++;
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
       }
       
-      // Request permissions automatically
-      log('Requesting camera permissions automatically...');
-      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-      log(`Early permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
-      
-      if (newGranted) {
-        log('✅ Camera permissions granted successfully during early request!', 'success');
-        updateStatus('Camera permissions granted!', 'success');
-      } else {
-        log('❌ Camera permissions denied during early request', 'error');
-        updateStatus('Camera permissions needed for barcode scanning', 'warning');
+      if (!permissionGranted) {
+        log('Permission not granted after retries, requesting permissions...');
+        
+        // Request permissions automatically
+        log('Requesting camera permissions automatically...');
+        const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+        log(`Early permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
+        
+        if (newGranted) {
+          log('✅ Camera permissions granted successfully during early request!', 'success');
+          updateStatus('Camera permissions granted!', 'success');
+        } else {
+          log('❌ Camera permissions denied during early request', 'error');
+          updateStatus('Camera permissions needed for barcode scanning', 'warning');
+        }
       }
       
     } catch (error) {
@@ -735,6 +765,59 @@ Confidence: ${barcode.confidence || 'N/A'}`;
     }
   });
   
+  // Refresh Permission Status
+  document.getElementById('refreshPermissions').addEventListener('click', async function() {
+    const button = this;
+    button.disabled = true;
+    button.textContent = '🔄 Refreshing...';
+    
+    try {
+      log('=== REFRESHING PERMISSION STATUS ===');
+      
+      if (!isCapacitor) {
+        throw new Error('Capacitor not available');
+      }
+      
+      const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+      if (!BarcodeScanner) {
+        throw new Error('BarcodeScanner plugin not found');
+      }
+      
+      log('BarcodeScanner plugin found, checking current permissions...');
+      
+      // Check if scanning is supported
+      const { supported } = await BarcodeScanner.isSupported();
+      log(`Barcode scanning supported: ${supported}`);
+      
+      if (!supported) {
+        throw new Error('Barcode scanning not supported on this device');
+      }
+      
+      // Check current permissions with detailed logging
+      log('Checking current camera permissions...');
+      const { granted } = await BarcodeScanner.checkPermissions();
+      log(`Current permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
+      
+      if (granted) {
+        log('✅ Camera permissions are currently granted!', 'success');
+        showResult('Camera permissions are currently granted! You can use the barcode scanner.', 'success');
+        updateStatus('Camera permissions granted!', 'success');
+      } else {
+        log('❌ Camera permissions are currently denied', 'error');
+        showResult('Camera permissions are currently denied. Please grant camera permissions in your device settings.', 'error');
+        updateStatus('Camera permissions needed', 'warning');
+        showPermissionHelp();
+      }
+      
+    } catch (error) {
+      log(`Permission refresh error: ${error.message}`, 'error');
+      showResult(`Error: ${error.message}`, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = '🔄 Refresh Permission Status';
+    }
+  });
+  
   // Test Browser Scanner (Fallback)
   document.getElementById('testBrowserScanner').addEventListener('click', async function() {
     const button = this;
@@ -795,27 +878,17 @@ Value: ${barcode.rawValue}`;
             log(`Browser scanner detected: ${barcode.rawValue} (${barcode.format})`, 'success');
             showResult(result, 'success');
             updateStatus(`Detected: ${barcode.rawValue}`, 'success');
-            
-            // Stop scanning
-            clearInterval(scanInterval);
-            stream.getTracks().forEach(track => track.stop());
-            video.remove();
+          } else {
+            log('No barcode detected');
+            showResult('No barcode detected', 'info');
+            updateStatus('No barcode detected', 'info');
           }
         } catch (error) {
-          log(`Browser scan error: ${error.message}`, 'error');
+          log(`Browser scanner error: ${error.message}`, 'error');
+          showResult(`Error: ${error.message}`, 'error');
+          updateStatus('Browser scanner failed', 'error');
         }
-      }, 1000);
-      
-      // Stop scanning after 30 seconds
-      setTimeout(() => {
-        clearInterval(scanInterval);
-        stream.getTracks().forEach(track => track.stop());
-        video.remove();
-        if (resultDiv.innerHTML === '') {
-          showResult('No barcode detected within 30 seconds', 'info');
-          updateStatus('Scan timeout', 'info');
-        }
-      }, 30000);
+      });
       
     } catch (error) {
       log(`Browser scanner error: ${error.message}`, 'error');
