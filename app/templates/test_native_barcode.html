@@ -183,6 +183,10 @@
     🔍 Debug Plugin Availability
   </button>
   
+  <button id="requestPermissions" class="test-button" style="background: #17a2b8;">
+    🔐 Request Camera Permissions Now
+  </button>
+  
   <button id="testPermissions" class="test-button" style="background: #28a745;">
     📷 Test Camera Permissions
   </button>
@@ -369,6 +373,9 @@
       }
       
       updateStatus('Native scanner ready', 'success');
+      
+      // Request camera permissions early
+      requestCameraPermissionsEarly();
     } else {
       log('Running in browser - will use fallback scanner');
       updateStatus('Browser mode - using fallback scanner', 'info');
@@ -400,6 +407,60 @@
       hidePermissionHelp();
     });
   });
+  
+  // Early permission request function
+  async function requestCameraPermissionsEarly() {
+    try {
+      log('=== REQUESTING CAMERA PERMISSIONS EARLY ===');
+      
+      if (!isCapacitor) {
+        log('Not in Capacitor environment, skipping early permission request');
+        return;
+      }
+      
+      const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+      if (!BarcodeScanner) {
+        log('BarcodeScanner plugin not available for early permission request');
+        return;
+      }
+      
+      log('BarcodeScanner plugin found, checking current permissions...');
+      
+      // Check if scanning is supported
+      const { supported } = await BarcodeScanner.isSupported();
+      log(`Barcode scanning supported: ${supported}`);
+      
+      if (!supported) {
+        log('Barcode scanning not supported on this device');
+        return;
+      }
+      
+      // Check current permissions
+      const { granted } = await BarcodeScanner.checkPermissions();
+      log(`Current camera permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
+      
+      if (granted) {
+        log('✅ Camera permissions already granted - no need to request', 'success');
+        return;
+      }
+      
+      // Request permissions automatically
+      log('Requesting camera permissions automatically...');
+      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      log(`Early permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
+      
+      if (newGranted) {
+        log('✅ Camera permissions granted successfully during early request!', 'success');
+        updateStatus('Camera permissions granted!', 'success');
+      } else {
+        log('❌ Camera permissions denied during early request', 'error');
+        updateStatus('Camera permissions needed for barcode scanning', 'warning');
+      }
+      
+    } catch (error) {
+      log(`Early permission request error: ${error.message}`, 'error');
+    }
+  }
   
   // Test Native Scanner
   document.getElementById('testNativeScanner').addEventListener('click', async function() {
@@ -618,6 +679,59 @@ Confidence: ${barcode.confidence || 'N/A'}`;
     } finally {
       button.disabled = false;
       button.textContent = '📷 Test Camera Permissions';
+    }
+  });
+  
+  // Request Camera Permissions
+  document.getElementById('requestPermissions').addEventListener('click', async function() {
+    const button = this;
+    button.disabled = true;
+    button.textContent = '🔐 Requesting...';
+    
+    try {
+      log('=== MANUALLY REQUESTING CAMERA PERMISSIONS ===');
+      
+      if (!isCapacitor) {
+        throw new Error('Capacitor not available');
+      }
+      
+      const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+      if (!BarcodeScanner) {
+        throw new Error('BarcodeScanner plugin not found');
+      }
+      
+      log('BarcodeScanner plugin found, requesting permissions...');
+      
+      // Check if scanning is supported
+      const { supported } = await BarcodeScanner.isSupported();
+      log(`Barcode scanning supported: ${supported}`);
+      
+      if (!supported) {
+        throw new Error('Barcode scanning not supported on this device');
+      }
+      
+      // Request permissions directly
+      log('Requesting camera permissions...');
+      const { granted } = await BarcodeScanner.requestPermissions();
+      log(`Permission request result: ${granted ? 'GRANTED' : 'DENIED'}`);
+      
+      if (granted) {
+        log('✅ Camera permissions granted successfully!', 'success');
+        showResult('Camera permissions granted successfully! You can now use the barcode scanner.', 'success');
+        updateStatus('Camera permissions granted!', 'success');
+      } else {
+        log('❌ Camera permissions denied', 'error');
+        showResult('Camera permissions were denied. Please grant camera permissions in your device settings.', 'error');
+        updateStatus('Camera permissions needed', 'warning');
+        showPermissionHelp();
+      }
+      
+    } catch (error) {
+      log(`Permission request error: ${error.message}`, 'error');
+      showResult(`Error: ${error.message}`, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = '🔐 Request Camera Permissions Now';
     }
   });
   
