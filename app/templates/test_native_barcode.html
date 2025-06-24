@@ -297,23 +297,38 @@
       }
 
       if (Capacitor.getPlatform() === 'android') {
-        log('Opening Android app settings via native plugin...');
+        log('Opening Android app settings via NativeSettings plugin...');
         try {
-          // Use our custom native plugin
-          if (Capacitor.Plugins.AppSettings) {
-            const result = await Capacitor.Plugins.AppSettings.openAppSettings();
-            log('App settings opened successfully via native plugin');
+          // Use the available NativeSettings plugin
+          if (Capacitor.Plugins.NativeSettings) {
+            await Capacitor.Plugins.NativeSettings.openAndroid({
+              option: 'APPLICATION_DETAILS'
+            });
+            log('App settings opened successfully via NativeSettings plugin');
           } else {
-            throw new Error('AppSettings plugin not available');
+            throw new Error('NativeSettings plugin not available');
           }
         } catch (pluginError) {
-          log(`Native plugin failed: ${pluginError.message}`, 'error');
+          log(`NativeSettings plugin failed: ${pluginError.message}`, 'error');
           // Fallback to manual instructions
           showManualInstructions();
         }
       } else if (Capacitor.getPlatform() === 'ios') {
-        log('iOS platform detected, showing manual instructions');
-        showManualInstructions();
+        log('Opening iOS app settings via NativeSettings plugin...');
+        try {
+          if (Capacitor.Plugins.NativeSettings) {
+            await Capacitor.Plugins.NativeSettings.openIOS({
+              option: 'APP'
+            });
+            log('iOS app settings opened successfully via NativeSettings plugin');
+          } else {
+            throw new Error('NativeSettings plugin not available');
+          }
+        } catch (pluginError) {
+          log(`NativeSettings plugin failed: ${pluginError.message}`, 'error');
+          // Fallback to manual instructions
+          showManualInstructions();
+        }
       } else {
         log('Unknown platform, showing manual instructions');
         showManualInstructions();
