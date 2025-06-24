@@ -827,10 +827,7 @@ function initializeBarcodeDetectorScanner() {
                 // Show success notification
                 showNotification(`ISBN detected: ${code}`, 'success', 2000);
                 
-                // Auto-fetch the book data
-                setTimeout(() => {
-                  document.querySelector('button[name="fetch"]').click();
-                }, 500);
+                // Note: User can manually click "Fetch Book Data" button to get book details
               } else {
                 console.log("Invalid ISBN format:", code, format);
                 showNotification(`Invalid format: ${format}`, 'warning', 2000);
@@ -1400,15 +1397,7 @@ async function startNativeScanner() {
         logScannerStatus('ISBN field updated with scanned barcode', 'success');
       }
       
-      // Auto-fetch book data if enabled
-      const autoFetchCheckbox = document.getElementById('auto_fetch');
-      if (autoFetchCheckbox && autoFetchCheckbox.checked) {
-        logScannerStatus('Auto-fetching book data...', 'info');
-        setTimeout(() => {
-          fetchBookData();
-        }, 500);
-      }
-      
+      // Note: User can manually click "Fetch Book Data" button to get book details
     } else {
       logScannerStatus('No barcode detected', 'info');
     }
