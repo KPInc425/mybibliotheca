@@ -1708,6 +1708,20 @@ function autofetchBookData() {
   debugLog('[autofetchBookData] Called');
   console.log('[autofetchBookData] Function called');
   
+  // Show status in UI for mobile debugging
+  const statusDiv = document.getElementById('scannerStatus');
+  if (statusDiv) {
+    statusDiv.innerHTML = `
+      <div style="text-align: center; padding: 15px;">
+        <h4 style="color: #0056b3; margin-bottom: 10px;">🔍 Fetching Book Data</h4>
+        <p style="margin-bottom: 15px;">
+          Starting autofetch process...
+        </p>
+      </div>
+    `;
+    statusDiv.style.display = 'block';
+  }
+  
   const isbn = document.getElementById('isbn').value.trim();
   debugLog('[autofetchBookData] ISBN to fetch:', isbn);
   console.log('[autofetchBookData] ISBN value:', isbn);
@@ -1728,6 +1742,18 @@ function autofetchBookData() {
     fetchBtn.textContent = 'Fetching...';
   }
   
+  // Update status for mobile debugging
+  if (statusDiv) {
+    statusDiv.innerHTML = `
+      <div style="text-align: center; padding: 15px;">
+        <h4 style="color: #0056b3; margin-bottom: 10px;">🔍 Fetching Book Data</h4>
+        <p style="margin-bottom: 15px;">
+          Making request for ISBN: ${isbn}
+        </p>
+      </div>
+    `;
+  }
+  
   debugLog('[autofetchBookData] Making fetch request to:', `/fetch_book/${isbn}`);
   console.log('[autofetchBookData] Making fetch request to:', `/fetch_book/${isbn}`);
   
@@ -1735,6 +1761,19 @@ function autofetchBookData() {
     .then(response => {
       debugLog('[autofetchBookData] Fetch response status:', response.status);
       console.log('[autofetchBookData] Fetch response status:', response.status);
+      
+      // Update status for mobile debugging
+      if (statusDiv) {
+        statusDiv.innerHTML = `
+          <div style="text-align: center; padding: 15px;">
+            <h4 style="color: #0056b3; margin-bottom: 10px;">🔍 Fetching Book Data</h4>
+            <p style="margin-bottom: 15px;">
+              Response status: ${response.status}
+            </p>
+          </div>
+        `;
+      }
+      
       if (!response.ok) return {};
       return response.json();
     })
@@ -1742,6 +1781,24 @@ function autofetchBookData() {
       debugLog('[autofetchBookData] Fetch result:', data);
       console.log('[autofetchBookData] Fetch result:', data);
       console.log('[autofetchBookData] Available fields:', Object.keys(data));
+      console.log('[autofetchBookData] Data type:', typeof data);
+      console.log('[autofetchBookData] Has title:', !!data?.title);
+      console.log('[autofetchBookData] Title value:', data?.title);
+      console.log('[autofetchBookData] Response structure:', JSON.stringify(data, null, 2));
+      
+      // Update status for mobile debugging
+      if (statusDiv) {
+        statusDiv.innerHTML = `
+          <div style="text-align: center; padding: 15px;">
+            <h4 style="color: #0056b3; margin-bottom: 10px;">🔍 Fetching Book Data</h4>
+            <p style="margin-bottom: 15px;">
+              Received data with ${Object.keys(data || {}).length} fields<br>
+              Has title: ${!!data?.title}<br>
+              Title: ${data?.title || 'None'}
+            </p>
+          </div>
+        `;
+      }
       
       if (data && data.title) {
         // Fill in the form fields with correct field IDs
@@ -1782,19 +1839,70 @@ function autofetchBookData() {
             console.log('[autofetchBookData] Using default cover image');
           }
         }
+        
+        // Update status for success
+        if (statusDiv) {
+          statusDiv.innerHTML = `
+            <div style="text-align: center; padding: 15px;">
+              <h4 style="color: #28a745; margin-bottom: 10px;">✅ Book Data Fetched</h4>
+              <p style="margin-bottom: 15px;">
+                Successfully filled in book data<br>
+                Title: ${data.title}<br>
+                Author: ${data.author || 'Unknown'}
+              </p>
+            </div>
+          `;
+          statusDiv.style.background = '#d4edda';
+          statusDiv.style.border = '2px solid #28a745';
+        }
+        
         showNotification('Book data fetched successfully!', 'success', 2000);
         debugLog('[autofetchBookData] Book data filled in form');
         console.log('[autofetchBookData] Book data filled in form');
       } else {
+        console.log('[autofetchBookData] No book data found - data:', data);
+        console.log('[autofetchBookData] Data is falsy:', !data);
+        console.log('[autofetchBookData] No title field:', !data?.title);
+        
+        // Update status for failure
+        if (statusDiv) {
+          statusDiv.innerHTML = `
+            <div style="text-align: center; padding: 15px;">
+              <h4 style="color: #dc3545; margin-bottom: 10px;">❌ No Book Data Found</h4>
+              <p style="margin-bottom: 15px;">
+                No book data found for ISBN: ${isbn}<br>
+                Data received: ${JSON.stringify(data || {})}
+              </p>
+            </div>
+          `;
+          statusDiv.style.background = '#f8d7da';
+          statusDiv.style.border = '2px solid #dc3545';
+        }
+        
         showNotification('No book data found for the provided ISBN.', 'warning', 2000);
         debugLog('[autofetchBookData] No book data found');
         console.log('[autofetchBookData] No book data found');
       }
     })
     .catch(error => {
+      console.error('[autofetchBookData] AJAX autofetch error', error);
+      
+      // Update status for error
+      if (statusDiv) {
+        statusDiv.innerHTML = `
+          <div style="text-align: center; padding: 15px;">
+            <h4 style="color: #dc3545; margin-bottom: 10px;">❌ Fetch Error</h4>
+            <p style="margin-bottom: 15px;">
+              Error fetching book data: ${error.message}
+            </p>
+          </div>
+        `;
+        statusDiv.style.background = '#f8d7da';
+        statusDiv.style.border = '2px solid #dc3545';
+      }
+      
       showNotification('Error fetching book data. Please try again.', 'error', 2000);
       debugLog('[autofetchBookData] AJAX autofetch error', error);
-      console.error('[autofetchBookData] AJAX autofetch error', error);
     })
     .finally(() => {
       if (fetchBtn) {

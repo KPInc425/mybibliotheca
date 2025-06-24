@@ -43,8 +43,12 @@ def reading_history():
 
 @bp.route('/fetch_book/<isbn>', methods=['GET'])
 def fetch_book(isbn):
+    current_app.logger.info(f'[fetch_book] Request received for ISBN: {isbn}')
+    
     # Try Google Books API first for comprehensive metadata
+    current_app.logger.info(f'[fetch_book] Trying Google Books API for ISBN: {isbn}')
     google_data = get_google_books_cover(isbn, fetch_title_author=True)
+    current_app.logger.info(f'[fetch_book] Google Books response: {google_data}')
     
     if google_data and google_data.get('title') and google_data.get('author'):
         # Use Google Books data as primary source
@@ -52,20 +56,29 @@ def fetch_book(isbn):
         current_app.logger.info(f'[fetch_book] Using Google Books data for ISBN {isbn}')
     else:
         # Fallback to OpenLibrary data
+        current_app.logger.info(f'[fetch_book] Trying OpenLibrary API for ISBN: {isbn}')
         book_data = fetch_book_data(isbn) or {}
+        current_app.logger.info(f'[fetch_book] OpenLibrary response: {book_data}')
         current_app.logger.info(f'[fetch_book] Using OpenLibrary data for ISBN {isbn}')
     
     # Ensure we have a cover URL
     if not book_data.get('cover'):
+        current_app.logger.info(f'[fetch_book] No cover in book_data, trying Google Books cover for ISBN: {isbn}')
         google_cover = get_google_books_cover(isbn)
         if google_cover:
             book_data['cover'] = google_cover
+            current_app.logger.info(f'[fetch_book] Added Google Books cover: {google_cover}')
     
     # If neither source provides a cover, set a default (absolute URL for native support)
     if not book_data.get('cover'):
         book_data['cover'] = url_for('static', filename='bookshelf.png', _external=True)
+        current_app.logger.info(f'[fetch_book] Using default cover for ISBN: {isbn}')
     
     current_app.logger.info(f'[fetch_book] Final book data for ISBN {isbn}: {book_data}')
+    current_app.logger.info(f'[fetch_book] Has title: {bool(book_data.get("title"))}')
+    current_app.logger.info(f'[fetch_book] Has author: {bool(book_data.get("author"))}')
+    current_app.logger.info(f'[fetch_book] Response status: {200 if book_data else 404}')
+    
     return jsonify(book_data), 200 if book_data else 404
 
 @bp.route('/')
