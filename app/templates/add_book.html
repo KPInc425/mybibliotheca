@@ -739,7 +739,7 @@ async function startNativeScanner() {
         if (countdown > 0) {
           logScannerStatus(`Auto-fetching book data in ${countdown} seconds...`, 'info');
           countdown--;
-    } else {
+        } else {
           clearInterval(countdownInterval);
           cancelButton.remove();
           const fetchButton = document.querySelector('button[name="fetch"]');
@@ -748,10 +748,10 @@ async function startNativeScanner() {
             fetchButton.click();
           } else {
             logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
-    }
+          }
         }
       }, 1000);
-  } else {
+    } else {
       logScannerStatus('No barcode detected', 'info');
     }
     
@@ -791,34 +791,9 @@ async function startManualCameraMode() {
     
     logScannerStatus('Camera ready! Point camera at barcode and manually enter ISBN below', 'success');
     
-    // Add manual input instructions
-    const manualInstructions = document.createElement('div');
-    manualInstructions.id = 'manual-instructions';
-    manualInstructions.style.cssText = `
-      position: absolute;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 10px 15px;
-      border-radius: 20px;
-      font-size: 12px;
-      text-align: center;
-      z-index: 15;
-      max-width: 90%;
-      line-height: 1.4;
-    `;
-    manualInstructions.innerHTML = `
-      📱 <strong>Manual Mode</strong><br>
-      Point camera at barcode<br>
-      Enter ISBN manually below
-    `;
-    scannerDiv.appendChild(manualInstructions);
-    
     // Update button
     scannerBtn.disabled = false;
-    scannerBtn.textContent = '⏹️ Stop Camera';
+    scannerBtn.textContent = '⏹️ Stop Scanning';
     scannerBtn.className = 'btn-stop';
     scannerBtn.onclick = stopManualCamera;
     
@@ -858,7 +833,6 @@ function stopManualCamera() {
   const scannerDiv = document.getElementById('scanner');
   const scannerBtn = document.getElementById('scannerBtn');
   const videoElement = document.getElementById('scanner-video');
-  const manualInstructions = document.getElementById('manual-instructions');
   
   // Stop video stream
   if (videoStream) {
@@ -872,17 +846,21 @@ function stopManualCamera() {
     videoElement.load();
   }
   
-  // Remove manual instructions
-  if (manualInstructions) {
-    manualInstructions.remove();
-  }
-  
   // Reset UI
   scannerDiv.style.display = 'none';
   scannerBtn.disabled = false;
   scannerBtn.textContent = '📷 Scan Barcode';
   scannerBtn.className = 'btn-scan';
-  scannerBtn.onclick = startSmartScanner;
+  
+  // Clear all event handlers and set the correct one
+  scannerBtn.onclick = null;
+  scannerBtn.removeEventListener('click', startSmartScanner);
+  scannerBtn.removeEventListener('click', stopManualCamera);
+  
+  // Set the correct handler after a brief delay
+  setTimeout(() => {
+    scannerBtn.onclick = startSmartScanner;
+  }, 200);
   
   logScannerStatus('Manual camera mode stopped', 'info');
 }
@@ -1393,8 +1371,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (scannerBtn) {
     debugLog('Scanner button found, adding click handler');
     scannerBtn.addEventListener('click', function(e) {
-      debugLog('Scanner button clicked via event listener');
-      startSmartScanner();
+      // Only start scanner if button is in scan state and doesn't have onclick handler
+      if (scannerBtn.textContent === '📷 Scan Barcode' && !scannerBtn.onclick) {
+        debugLog('Scanner button clicked via event listener');
+        startSmartScanner();
+      }
     });
   } else {
     debugLog('Scanner button not found!', 'ERROR');

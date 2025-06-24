@@ -224,18 +224,26 @@ def settings():
     """Admin settings page"""
     if request.method == 'POST':
         # Handle debug mode toggle
-        debug_mode = request.form.get('debug_mode') == 'on'
-        SystemSettings.set_setting(
-            'debug_mode', 
-            str(debug_mode).lower(), 
-            'Enable debug logging in the barcode scanner interface',
-            current_user.id
-        )
-        flash('Settings updated successfully.', 'success')
+        try:
+            debug_mode = request.form.get('debug_mode') == 'on'
+            SystemSettings.set_setting(
+                'debug_mode', 
+                str(debug_mode).lower(), 
+                'Enable debug logging in the barcode scanner interface',
+                current_user.id
+            )
+            flash('Settings updated successfully.', 'success')
+        except Exception as e:
+            flash(f'Error updating settings: {str(e)}', 'error')
         return redirect(url_for('admin.settings'))
     
     # Get current settings for display
-    debug_enabled = SystemSettings.is_debug_enabled()
+    try:
+        debug_enabled = SystemSettings.is_debug_enabled()
+    except Exception as e:
+        debug_enabled = False
+        flash(f'Warning: Could not load debug setting: {str(e)}', 'warning')
+    
     return render_template('admin/settings.html', title='Admin Settings', debug_enabled=debug_enabled)
 
 @admin.route('/api/stats')
