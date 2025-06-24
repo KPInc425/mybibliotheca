@@ -352,7 +352,7 @@
       <h4 style="color: var(--primary-brown); margin-bottom: 1rem;">📱 Barcode Scanner</h4>
       
       <div class="scanner-buttons">
-        <button type="button" class="btn-scan" onclick="toggleScanner()" id="scannerBtn">
+        <button type="button" class="btn-scan" onclick="startSmartScanner()" id="scannerBtn">
           📷 Scan Barcode
         </button>
       </div>
@@ -361,104 +361,44 @@
       <div id="scanner" style="
         width: 100%;
         max-width: 400px;
-        height: 225px;
-        display: none;
+        height: 300px;
         margin: 1rem auto;
-        overflow: hidden;
         position: relative;
-        background-color: #000;
+        display: none;
+        background: #000;
         border-radius: 15px;
-        cursor: pointer;
+        overflow: hidden;
       ">
-        <!-- Video element required by ZXing -->
         <video id="scanner-video" style="
           width: 100%;
           height: 100%;
           object-fit: cover;
           border-radius: 15px;
-        "></video>
+        " autoplay playsinline muted></video>
         
         <div id="scanner-overlay" style="
           position: absolute;
           top: 50%;
           left: 50%;
           transform: translate(-50%, -50%);
-          width: 80%;
-          height: 60%;
-          z-index: 10;
+          width: 200px;
+          height: 200px;
+          border: 3px solid var(--gold);
+          border-radius: 15px;
           pointer-events: none;
-          border: 2px solid var(--gold);
-          border-radius: 10px;
-        ">
-          <!-- Distance guide lines for close-up scanning -->
-          <div id="distance-guide" style="
-            position: absolute;
-            top: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.6);
-            color: rgba(255,255,255,0.8);
-            padding: 2px 6px;
-            border-radius: 8px;
-            font-size: 9px;
-            white-space: nowrap;
-            opacity: 0.8;
-            transition: opacity 0.5s ease;
-          ">📏 5-10cm</div>
-          
-          <!-- Corner guides for better positioning -->
-          <div style="
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            width: 20px;
-            height: 20px;
-            border-top: 2px solid var(--gold);
-            border-left: 2px solid var(--gold);
-          "></div>
-          <div style="
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 20px;
-            height: 20px;
-            border-top: 2px solid var(--gold);
-            border-right: 2px solid var(--gold);
-          "></div>
-          <div style="
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            width: 20px;
-            height: 20px;
-            border-bottom: 2px solid var(--gold);
-            border-left: 2px solid var(--gold);
-          "></div>
-          <div style="
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            width: 20px;
-            height: 20px;
-            border-bottom: 2px solid var(--gold);
-            border-right: 2px solid var(--gold);
-          "></div>
-          
-          <!-- Detection progress indicator -->
-          <div id="detection-progress" style="
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-            display: none;
-          "></div>
-        </div>
+          box-shadow: 0 0 20px rgba(218, 165, 32, 0.6);
+          animation: pulse 2s infinite;
+        "></div>
       </div>
+      
+      <!-- Scanner Status -->
+      <div id="scannerStatus" style="
+        margin-top: 1rem;
+        padding: 0.75rem;
+        border-radius: 10px;
+        display: none;
+        font-weight: 600;
+      "></div>
     </div>
 
     <!-- ISBN and Fetch Section -->
@@ -729,450 +669,442 @@ async function getCameraConstraints() {
   }
 }
 
-function toggleScanner() {
-  const scannerBtn = document.getElementById('scannerBtn');
-  
-  if (scanner) {
-    // Scanner is running, stop it
-    stopScanner();
-    scannerBtn.textContent = '📷 Scan Barcode';
-    scannerBtn.className = 'btn-scan';
-  } else {
-    // Scanner is not running, start it
-    startScanner();
-  }
-}
-
 function startScanner() {
   const scannerDiv = document.getElementById('scanner');
   const scannerBtn = document.getElementById('scannerBtn');
+  const statusDiv = document.getElementById('scannerStatus');
   
-  // Show loading state
-  scannerBtn.disabled = true;
-  scannerBtn.textContent = '🔄 Starting...';
-  
-  scannerDiv.style.display = 'block';
-
-  if (scanner) {
-    // Stop animation frame
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-      animationFrameId = null;
+  try {
+    scannerBtn.disabled = true;
+    scannerBtn.textContent = '🔄 Starting...';
+    
+    scannerDiv.style.display = 'block';
+    
+    // Clear any existing scanner
+    if (scanner) {
+      stopScanner();
     }
     
-    // Stop video stream
-    if (videoStream) {
-      videoStream.getTracks().forEach(track => track.stop());
-      videoStream = null;
-    }
-    
+    // Reset scanner variable
     scanner = null;
+    
+    // Set a timeout for scanner initialization
+    const initTimeout = setTimeout(() => {
+      if (!scanner) {
+        console.error("Scanner initialization timeout");
+        logScannerStatus('Scanner initialization timed out. Please try again.', 'error');
+        resetScannerUI();
+      }
+    }, 10000); // 10 second timeout
+    
+    // Try to initialize BarcodeDetector scanner
+    initializeBarcodeDetectorScanner();
+    
+    // Clear timeout if scanner is initialized
+    if (scanner) {
+      clearTimeout(initTimeout);
+    }
+    
+  } catch (error) {
+    console.error("Error starting scanner:", error);
+    logScannerStatus(`Error starting scanner: ${error.message}`, 'error');
+    resetScannerUI();
   }
+}
 
-  // Reset scan attempts
-  scanAttempts = 0;
-
-  // Add timeout to prevent stuck state
-  const timeoutId = setTimeout(() => {
-    if (!scanner) {
-      console.error("Scanner initialization timeout");
-      showNotification('Scanner initialization timed out. Please try again.', 'error', 4000);
-      resetScannerUI();
-    }
-  }, 15000); // 15 second timeout
-
-  initializeBarcodeDetectorScanner();
-
-  function initializeBarcodeDetectorScanner() {
-    console.log("Initializing BarcodeDetector scanner...");
-    
-    // Get the video element
-    const videoElement = document.getElementById('scanner-video');
-    if (!videoElement) {
-      console.error("Video element not found!");
-      showNotification('Scanner error: Video element not found', 'error', 4000);
-      resetScannerUI();
-      return;
-    }
-    
-    // Check if BarcodeDetector is supported
-    if (!('BarcodeDetector' in window)) {
-      console.error("BarcodeDetector not supported in this browser");
-      showNotification('Barcode scanning not supported in this browser. Please use Chrome, Edge, or Safari.', 'error', 5000);
-      resetScannerUI();
-      return;
-    }
-    
-    // Create BarcodeDetector instance with ISBN formats
-    const barcodeDetector = new BarcodeDetector({
-      formats: ['ean_13', 'ean_8', 'code_128', 'code_39']
-    });
-    
-    // Get camera stream with simplified constraints to avoid conflicts
-    getCameraConstraints().then(constraints => {
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then(stream => {
-        videoStream = stream;
-        videoElement.srcObject = stream;
-        
-        // Wait for video to be ready
-        return new Promise((resolve) => {
-          videoElement.onloadedmetadata = () => {
-            videoElement.play();
-            resolve();
-          };
-        });
-      })
-      .then(() => {
-        console.log("Camera stream started successfully");
-        
-          // Start continuous scanning with improved error handling
-        function scanFrame() {
-          if (!scanner) return; // Stop if scanner was stopped
-            
-            // Check if video element is ready for detection
-            if (videoElement.readyState < 2) { // HAVE_CURRENT_DATA
-              animationFrameId = requestAnimationFrame(scanFrame);
-              return;
-            }
+function initializeBarcodeDetectorScanner() {
+  console.log("Initializing BarcodeDetector scanner...");
+  
+  // Get the video element
+  const videoElement = document.getElementById('scanner-video');
+  if (!videoElement) {
+    console.error("Video element not found!");
+    showNotification('Scanner error: Video element not found', 'error', 4000);
+    resetScannerUI();
+    return;
+  }
+  
+  // Check if BarcodeDetector is supported
+  if (!('BarcodeDetector' in window)) {
+    console.error("BarcodeDetector not supported in this browser");
+    showNotification('Barcode scanning not supported in this browser. Please use Chrome, Edge, or Safari.', 'error', 5000);
+    resetScannerUI();
+    return;
+  }
+  
+  // Create BarcodeDetector instance with ISBN formats
+  const barcodeDetector = new BarcodeDetector({
+    formats: ['ean_13', 'ean_8', 'code_128', 'code_39']
+  });
+  
+  // Get camera stream with simplified constraints to avoid conflicts
+  getCameraConstraints().then(constraints => {
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream => {
+      videoStream = stream;
+      videoElement.srcObject = stream;
+      
+      // Wait for video to be ready
+      return new Promise((resolve) => {
+        videoElement.onloadedmetadata = () => {
+          videoElement.play();
+          resolve();
+        };
+      });
+    })
+    .then(() => {
+      console.log("Camera stream started successfully");
+      
+        // Start continuous scanning with improved error handling
+      function scanFrame() {
+        if (!scanner) return; // Stop if scanner was stopped
           
-          barcodeDetector.detect(videoElement)
-            .then(barcodes => {
-              if (barcodes.length > 0) {
-                const barcode = barcodes[0];
-                const now = Date.now();
+          // Check if video element is ready for detection
+          if (videoElement.readyState < 2) { // HAVE_CURRENT_DATA
+            animationFrameId = requestAnimationFrame(scanFrame);
+            return;
+          }
+        
+        barcodeDetector.detect(videoElement)
+          .then(barcodes => {
+            if (barcodes.length > 0) {
+              const barcode = barcodes[0];
+              const now = Date.now();
+              
+              if (now - lastScanTime < SCAN_COOLDOWN) {
+                animationFrameId = requestAnimationFrame(scanFrame);
+                return;
+              }
+              
+              const code = barcode.rawValue;
+              const format = barcode.format;
+              
+              // Check if this is the same code as last detection
+              if (code === lastDetectedCode) {
+                detectionCount++;
+                console.log(`BarcodeDetector detected code: ${code} (detection ${detectionCount}/${REQUIRED_DETECTIONS})`);
                 
-                if (now - lastScanTime < SCAN_COOLDOWN) {
-                  animationFrameId = requestAnimationFrame(scanFrame);
-                  return;
+                // Show progress indicator
+                const progressEl = document.getElementById('detection-progress');
+                if (progressEl) {
+                  progressEl.style.display = 'block';
+                  progressEl.textContent = `Detecting: ${detectionCount}/${REQUIRED_DETECTIONS}`;
+                  progressEl.style.background = detectionCount >= REQUIRED_DETECTIONS ? 'rgba(40, 167, 69, 0.9)' : 'rgba(0,0,0,0.8)';
                 }
+              } else {
+                // New code detected, reset counter
+                lastDetectedCode = code;
+                detectionCount = 1;
+                console.log(`BarcodeDetector detected new code: ${code} (detection 1/${REQUIRED_DETECTIONS})`);
                 
-                const code = barcode.rawValue;
-                const format = barcode.format;
-                
-                // Check if this is the same code as last detection
-                if (code === lastDetectedCode) {
-                  detectionCount++;
-                  console.log(`BarcodeDetector detected code: ${code} (detection ${detectionCount}/${REQUIRED_DETECTIONS})`);
-                  
-                  // Show progress indicator
-                  const progressEl = document.getElementById('detection-progress');
-                  if (progressEl) {
-                    progressEl.style.display = 'block';
-                    progressEl.textContent = `Detecting: ${detectionCount}/${REQUIRED_DETECTIONS}`;
-                    progressEl.style.background = detectionCount >= REQUIRED_DETECTIONS ? 'rgba(40, 167, 69, 0.9)' : 'rgba(0,0,0,0.8)';
-                  }
-                } else {
-                  // New code detected, reset counter
-                  lastDetectedCode = code;
-                  detectionCount = 1;
-                  console.log(`BarcodeDetector detected new code: ${code} (detection 1/${REQUIRED_DETECTIONS})`);
-                  
-                  // Show progress indicator
-                  const progressEl = document.getElementById('detection-progress');
-                  if (progressEl) {
-                    progressEl.style.display = 'block';
-                    progressEl.textContent = `Detecting: 1/${REQUIRED_DETECTIONS}`;
-                    progressEl.style.background = 'rgba(0,0,0,0.8)';
-                  }
+                // Show progress indicator
+                const progressEl = document.getElementById('detection-progress');
+                if (progressEl) {
+                  progressEl.style.display = 'block';
+                  progressEl.textContent = `Detecting: 1/${REQUIRED_DETECTIONS}`;
+                  progressEl.style.background = 'rgba(0,0,0,0.8)';
                 }
+              }
+              
+              // Only proceed if we have enough consistent detections
+              if (detectionCount < REQUIRED_DETECTIONS) {
+                animationFrameId = requestAnimationFrame(scanFrame);
+                return;
+              }
+              
+              // Reset for next scan
+              lastDetectedCode = null;
+              detectionCount = 0;
+              
+              scanAttempts++;
+              
+              if (isValidISBNCode(code, format)) {
+                console.log("Valid ISBN detected:", code);
+                document.getElementById('isbn').value = code;
+                stopScanner();
+                lastScanTime = now;
                 
-                // Only proceed if we have enough consistent detections
-                if (detectionCount < REQUIRED_DETECTIONS) {
-                  animationFrameId = requestAnimationFrame(scanFrame);
-                  return;
+                // Show success notification
+                showNotification(`ISBN detected: ${code}`, 'success', 2000);
+                
+                // Auto-fetch the book data
+                setTimeout(() => {
+                  document.querySelector('button[name="fetch"]').click();
+                }, 500);
+              } else {
+                console.log("Invalid ISBN format:", code, format);
+                showNotification(`Invalid format: ${format}`, 'warning', 2000);
+                
+                // Stop after too many invalid attempts
+                if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
+                  stopScanner();
+                  showNotification('Too many invalid scans. Please try again.', 'error', 3000);
                 }
-                
-                // Reset for next scan
+              }
+            } else {
+              // No barcode detected, reset detection counter
+              if (lastDetectedCode) {
+                console.log("No barcode detected, resetting detection counter");
                 lastDetectedCode = null;
                 detectionCount = 0;
                 
-                scanAttempts++;
-                
-                if (isValidISBNCode(code, format)) {
-                  console.log("Valid ISBN detected:", code);
-                  document.getElementById('isbn').value = code;
-                  stopScanner();
-                  lastScanTime = now;
-                  
-                  // Show success notification
-                  showNotification(`ISBN detected: ${code}`, 'success', 2000);
-                  
-                  // Auto-fetch the book data
-                  setTimeout(() => {
-                    document.querySelector('button[name="fetch"]').click();
-                  }, 500);
-                } else {
-                  console.log("Invalid ISBN format:", code, format);
-                  showNotification(`Invalid format: ${format}`, 'warning', 2000);
-                  
-                  // Stop after too many invalid attempts
-                  if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
-                    stopScanner();
-                    showNotification('Too many invalid scans. Please try again.', 'error', 3000);
-                  }
-                }
-              } else {
-                // No barcode detected, reset detection counter
-                if (lastDetectedCode) {
-                  console.log("No barcode detected, resetting detection counter");
-                  lastDetectedCode = null;
-                  detectionCount = 0;
-                  
-                  // Hide progress indicator
-                  const progressEl = document.getElementById('detection-progress');
-                  if (progressEl) {
-                    progressEl.style.display = 'none';
-                  }
+                // Hide progress indicator
+                const progressEl = document.getElementById('detection-progress');
+                if (progressEl) {
+                  progressEl.style.display = 'none';
                 }
               }
-              
-              // Continue scanning
-              if (scanner) {
-                animationFrameId = requestAnimationFrame(scanFrame);
-              }
-            })
-            .catch(error => {
-              console.log("Scanning error:", error);
-                // Only log errors, don't stop scanning unless it's a critical error
-                if (error.name === 'InvalidStateError') {
-                  // Video element not ready, wait a bit before retrying
-                  setTimeout(() => {
-              if (scanner) {
-                animationFrameId = requestAnimationFrame(scanFrame);
-                    }
-                  }, 100);
-                } else {
-                  // Continue scanning for other errors
-                  if (scanner) {
-                    animationFrameId = requestAnimationFrame(scanFrame);
-                  }
-              }
-            });
-        }
-        
-        // Start scanning
-        scanner = barcodeDetector;
-        scanFrame();
-        
-          // Set up mobile focus detection
-          setupMobileFocusDetection();
-          
-          // Improved tap-to-focus for mobile devices
-        videoElement.addEventListener('click', function(e) {
-          if (videoStream) {
-            const track = videoStream.getVideoTracks()[0];
-              if (track && track.getCapabilities) {
-                const capabilities = track.getCapabilities();
-                if (capabilities.zoom) {
-                  let maxZoom = capabilities.zoom.max || 2;
-                  let zoomValue = Math.min(2, maxZoom);
-                  track.applyConstraints({ zoom: zoomValue }).then(() => {
-                    showNotification('🔍 Digital zoom applied', 'info', 1200);
-                    console.log('Zoom set to', zoomValue);
-                  }).catch(() => {
-                    showNotification('⚠️ Zoom not supported', 'warning', 1200);
-                  });
-                } else {
-                  showNotification('⚠️ Zoom not supported', 'warning', 1200);
-                }
             }
-          }
-        });
-        
-        // Add visual indicator for tap-to-focus
-        videoElement.style.cursor = 'pointer';
-        videoElement.title = 'Tap to focus for close-up scanning';
-        
-        // Add focus status indicator
-        const focusIndicator = document.createElement('div');
-        focusIndicator.id = 'focus-indicator';
-        focusIndicator.style.cssText = `
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background: rgba(0,0,0,0.7);
-          color: white;
-          padding: 5px 8px;
-          border-radius: 15px;
-          font-size: 10px;
-          z-index: 20;
-          pointer-events: none;
-          transition: all 0.3s ease;
-        `;
-        focusIndicator.textContent = '🔍 Tap to focus';
-        focusIndicator.title = 'Tap the video to trigger auto-focus';
-        scannerDiv.appendChild(focusIndicator);
-        
-        clearTimeout(timeoutId);
-        
-        console.log("BarcodeDetector scanner initialized successfully");
-        
-        // Update button state
-        scannerBtn.disabled = false;
-        scannerBtn.textContent = '⏹️ Stop Scanner';
-        scannerBtn.className = 'btn-stop';
-        
-        // Show success notification
-        showNotification('Scanner ready! Point camera at barcode', 'success', 3000);
-        
-        // Show close-up scanning instructions
-        setTimeout(() => {
-            showNotification('💡 For best results: Ensure good lighting, hold barcode 5–10cm from camera, tap to focus, and try moving barcode slowly closer/farther.', 'info', 6000);
-        }, 3500);
-        
-        // Fade out distance guide after 3 seconds
-        setTimeout(() => {
-          const distanceGuide = document.getElementById('distance-guide');
-          if (distanceGuide) {
-            distanceGuide.style.opacity = '0.2';
-          }
-        }, 3000);
-      })
-      .catch((err) => {
-        clearTimeout(timeoutId);
-        console.error("BarcodeDetector scanner init error:", err);
-        
-        let errorMessage = "Error starting scanner: ";
-        if (err.name === 'NotAllowedError') {
-          errorMessage += "Camera access denied. Please allow camera permissions.";
-            showNotification(errorMessage, 'error', 5000);
-            resetScannerUI();
-        } else if (err.name === 'NotFoundError') {
-          errorMessage += "No camera found on this device.";
-            showNotification(errorMessage, 'error', 5000);
-            resetScannerUI();
-        } else if (err.name === 'NotReadableError') {
-          errorMessage += "Camera is already in use by another application.";
-            showNotification(errorMessage, 'error', 5000);
-            resetScannerUI();
-        } else if (err.name === 'OverconstrainedError') {
-            console.log("Camera constraints not supported, trying minimal constraints...");
-            showNotification('Trying alternative camera settings...', 'info', 2000);
             
-            // Try with minimal constraints as fallback
-            navigator.mediaDevices.getUserMedia({
-              video: { facingMode: "environment" }
-            }).then(stream => {
-              videoStream = stream;
-              videoElement.srcObject = stream;
-              return new Promise((resolve) => {
-                videoElement.onloadedmetadata = () => {
-                  videoElement.play();
-                  resolve();
-                };
-              });
-            }).then(() => {
-              console.log("Camera started with minimal constraints");
-              
-              // Start scanning with minimal setup
-              scanner = barcodeDetector;
-              
-              // Set up mobile focus detection for minimal mode
-              setupMobileFocusDetection();
-              
-              function scanFrameMinimal() {
-                if (!scanner) return;
-                
-                if (videoElement.readyState < 2) {
-                  animationFrameId = requestAnimationFrame(scanFrameMinimal);
-                  return;
+            // Continue scanning
+            if (scanner) {
+              animationFrameId = requestAnimationFrame(scanFrame);
+            }
+          })
+          .catch(error => {
+            console.log("Scanning error:", error);
+              // Only log errors, don't stop scanning unless it's a critical error
+              if (error.name === 'InvalidStateError') {
+                // Video element not ready, wait a bit before retrying
+                setTimeout(() => {
+              if (scanner) {
+                animationFrameId = requestAnimationFrame(scanFrame);
+                  }
+                }, 100);
+              } else {
+                // Continue scanning for other errors
+                if (scanner) {
+                  animationFrameId = requestAnimationFrame(scanFrame);
                 }
-                
-                barcodeDetector.detect(videoElement)
-                  .then(barcodes => {
-                    if (barcodes.length > 0) {
-                      const barcode = barcodes[0];
-                      const now = Date.now();
-                      
-                      if (now - lastScanTime < SCAN_COOLDOWN) {
-                        animationFrameId = requestAnimationFrame(scanFrameMinimal);
-                        return;
-                      }
-                      
-                      const code = barcode.rawValue;
-                      const format = barcode.format;
-                      
-                      if (code === lastDetectedCode) {
-                        detectionCount++;
-        } else {
-                        lastDetectedCode = code;
-                        detectionCount = 1;
-                      }
-                      
-                      if (detectionCount < REQUIRED_DETECTIONS) {
-                        animationFrameId = requestAnimationFrame(scanFrameMinimal);
-                        return;
-                      }
-                      
-                      lastDetectedCode = null;
-                      detectionCount = 0;
-                      scanAttempts++;
-                      
-                      if (isValidISBNCode(code, format)) {
-                        console.log("Valid ISBN detected:", code);
-                        document.getElementById('isbn').value = code;
-                        stopScanner();
-                        lastScanTime = now;
-                        showNotification(`ISBN detected: ${code}`, 'success', 2000);
-                        setTimeout(() => {
-                          document.querySelector('button[name="fetch"]').click();
-                        }, 500);
-                      } else {
-                        console.log("Invalid ISBN format:", code, format);
-                        showNotification(`Invalid format: ${format}`, 'warning', 2000);
-                        if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
-                          stopScanner();
-                          showNotification('Too many invalid scans. Please try again.', 'error', 3000);
+              }
+          });
+      }
+      
+      // Start scanning
+      scanner = barcodeDetector;
+      scanFrame();
+      
+        // Set up mobile focus detection
+        setupMobileFocusDetection();
+        
+        // Improved tap-to-focus for mobile devices
+      videoElement.addEventListener('click', function(e) {
+        if (videoStream) {
+          const track = videoStream.getVideoTracks()[0];
+            if (track && track.getCapabilities) {
+              const capabilities = track.getCapabilities();
+              if (capabilities.zoom) {
+                let maxZoom = capabilities.zoom.max || 2;
+                let zoomValue = Math.min(2, maxZoom);
+                track.applyConstraints({ zoom: zoomValue }).then(() => {
+                  showNotification('🔍 Digital zoom applied', 'info', 1200);
+                  console.log('Zoom set to', zoomValue);
+                }).catch(() => {
+                  showNotification('⚠️ Zoom not supported', 'warning', 1200);
+                });
+              } else {
+                showNotification('⚠️ Zoom not supported', 'warning', 1200);
+              }
+          }
         }
-                      }
-                    } else {
-                      if (lastDetectedCode) {
-                        lastDetectedCode = null;
-                        detectionCount = 0;
-                      }
+      });
+      
+      // Add visual indicator for tap-to-focus
+      videoElement.style.cursor = 'pointer';
+      videoElement.title = 'Tap to focus for close-up scanning';
+      
+      // Add focus status indicator
+      const focusIndicator = document.createElement('div');
+      focusIndicator.id = 'focus-indicator';
+      focusIndicator.style.cssText = `
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 5px 8px;
+        border-radius: 15px;
+        font-size: 10px;
+        z-index: 20;
+        pointer-events: none;
+        transition: all 0.3s ease;
+      `;
+      focusIndicator.textContent = '🔍 Tap to focus';
+      focusIndicator.title = 'Tap the video to trigger auto-focus';
+      scannerDiv.appendChild(focusIndicator);
+      
+      console.log("BarcodeDetector scanner initialized successfully");
+      
+      // Update button state
+      scannerBtn.disabled = false;
+      scannerBtn.textContent = '⏹️ Stop Scanner';
+      scannerBtn.className = 'btn-stop';
+      
+      // Show success notification
+      showNotification('Scanner ready! Point camera at barcode', 'success', 3000);
+      
+      // Show close-up scanning instructions
+      setTimeout(() => {
+          showNotification('💡 For best results: Ensure good lighting, hold barcode 5–10cm from camera, tap to focus, and try moving barcode slowly closer/farther.', 'info', 6000);
+      }, 3500);
+      
+      // Fade out distance guide after 3 seconds
+      setTimeout(() => {
+        const distanceGuide = document.getElementById('distance-guide');
+        if (distanceGuide) {
+          distanceGuide.style.opacity = '0.2';
+        }
+      }, 3000);
+    })
+    .catch((err) => {
+      console.error("BarcodeDetector scanner init error:", err);
+      
+      let errorMessage = "Error starting scanner: ";
+      if (err.name === 'NotAllowedError') {
+        errorMessage += "Camera access denied. Please allow camera permissions.";
+          showNotification(errorMessage, 'error', 5000);
+          resetScannerUI();
+      } else if (err.name === 'NotFoundError') {
+        errorMessage += "No camera found on this device.";
+          showNotification(errorMessage, 'error', 5000);
+          resetScannerUI();
+      } else if (err.name === 'NotReadableError') {
+        errorMessage += "Camera is already in use by another application.";
+          showNotification(errorMessage, 'error', 5000);
+          resetScannerUI();
+      } else if (err.name === 'OverconstrainedError') {
+          console.log("Camera constraints not supported, trying minimal constraints...");
+          showNotification('Trying alternative camera settings...', 'info', 2000);
+          
+          // Try with minimal constraints as fallback
+          navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment" }
+          }).then(stream => {
+            videoStream = stream;
+            videoElement.srcObject = stream;
+            return new Promise((resolve) => {
+              videoElement.onloadedmetadata = () => {
+                videoElement.play();
+                resolve();
+              };
+            });
+          }).then(() => {
+            console.log("Camera started with minimal constraints");
+            
+            // Start scanning with minimal setup
+            scanner = barcodeDetector;
+            
+            // Set up mobile focus detection for minimal mode
+            setupMobileFocusDetection();
+            
+            function scanFrameMinimal() {
+              if (!scanner) return;
+              
+              if (videoElement.readyState < 2) {
+                animationFrameId = requestAnimationFrame(scanFrameMinimal);
+                return;
+              }
+              
+              barcodeDetector.detect(videoElement)
+                .then(barcodes => {
+                  if (barcodes.length > 0) {
+                    const barcode = barcodes[0];
+                    const now = Date.now();
+                    
+                    if (now - lastScanTime < SCAN_COOLDOWN) {
+                      animationFrameId = requestAnimationFrame(scanFrameMinimal);
+                      return;
                     }
                     
-                    if (scanner) {
-                      animationFrameId = requestAnimationFrame(scanFrameMinimal);
+                    const code = barcode.rawValue;
+                    const format = barcode.format;
+                    
+                    if (code === lastDetectedCode) {
+                      detectionCount++;
+        } else {
+                      lastDetectedCode = code;
+                      detectionCount = 1;
                     }
-                  })
-                  .catch(error => {
-                    console.log("Scanning error:", error);
-                    if (scanner) {
+                    
+                    if (detectionCount < REQUIRED_DETECTIONS) {
                       animationFrameId = requestAnimationFrame(scanFrameMinimal);
+                      return;
                     }
-                  });
-              }
-              
-              scanFrameMinimal();
-              
-              // Update UI for minimal mode
-              scannerBtn.disabled = false;
-              scannerBtn.textContent = '⏹️ Stop Scanner';
-              scannerBtn.className = 'btn-stop';
-              showNotification('Scanner ready (basic mode)!', 'success', 3000);
-              
-            }).catch(fallbackErr => {
-              console.error("Fallback camera init also failed:", fallbackErr);
-              showNotification("Camera not available on this device", 'error', 5000);
-              resetScannerUI();
-            });
-          } else {
-            errorMessage += err.message;
+                    
+                    lastDetectedCode = null;
+                    detectionCount = 0;
+                    scanAttempts++;
+                    
+                    if (isValidISBNCode(code, format)) {
+                      console.log("Valid ISBN detected:", code);
+                      document.getElementById('isbn').value = code;
+                      stopScanner();
+                      lastScanTime = now;
+                      showNotification(`ISBN detected: ${code}`, 'success', 2000);
+                      setTimeout(() => {
+                        document.querySelector('button[name="fetch"]').click();
+                      }, 500);
+                    } else {
+                      console.log("Invalid ISBN format:", code, format);
+                      showNotification(`Invalid format: ${format}`, 'warning', 2000);
+                      if (scanAttempts >= MAX_SCAN_ATTEMPTS) {
+                        stopScanner();
+                        showNotification('Too many invalid scans. Please try again.', 'error', 3000);
+        }
+                  } else {
+                    if (lastDetectedCode) {
+                      lastDetectedCode = null;
+                      detectionCount = 0;
+                    }
+                  }
+                  
+                  if (scanner) {
+                    animationFrameId = requestAnimationFrame(scanFrameMinimal);
+                  }
+                })
+                .catch(error => {
+                  console.log("Scanning error:", error);
+                  if (scanner) {
+                    animationFrameId = requestAnimationFrame(scanFrameMinimal);
+                  }
+                });
+            }
+            
+            scanFrameMinimal();
+            
+            // Update UI for minimal mode
+            scannerBtn.disabled = false;
+            scannerBtn.textContent = '⏹️ Stop Scanner';
+            scannerBtn.className = 'btn-stop';
+            showNotification('Scanner ready (basic mode)!', 'success', 3000);
+            
+          }).catch(fallbackErr => {
+            console.error("Fallback camera init also failed:", fallbackErr);
+            showNotification("Camera not available on this device", 'error', 5000);
+            resetScannerUI();
+          });
+        } else {
+          errorMessage += err.message;
         showNotification(errorMessage, 'error', 5000);
         resetScannerUI();
-          }
-        });
+        }
       });
-  }
+  });
+}
 
-  function resetScannerUI() {
-    scannerDiv.style.display = 'none';
-    scannerBtn.disabled = false;
-    scannerBtn.textContent = '📷 Scan Barcode';
-    scannerBtn.className = 'btn-scan';
-  }
+function resetScannerUI() {
+  const scannerDiv = document.getElementById('scanner');
+  const scannerBtn = document.getElementById('scannerBtn');
+  const statusDiv = document.getElementById('scannerStatus');
+  
+  scannerDiv.style.display = 'none';
+  scannerBtn.disabled = false;
+  scannerBtn.textContent = '📷 Scan Barcode';
+  scannerBtn.className = 'btn-scan';
+  
+  // Clear status
+  statusDiv.style.display = 'none';
+  statusDiv.textContent = '';
 }
 
 function stopScanner() {
@@ -1366,6 +1298,179 @@ if (window.Capacitor || window.cordova) {
   // e.g., Capacitor Camera, Cordova plugins, etc.
   // This would require additional implementation and permissions
   console.log('Native camera API detected: consider using native plugin for best focus control.');
+}
+
+// Smart Scanner Implementation
+let isCapacitor = typeof Capacitor !== 'undefined';
+let isNative = isCapacitor && Capacitor.isNative;
+
+// Smart Scanner Function - Automatically chooses best available scanner
+async function startSmartScanner() {
+  const scannerBtn = document.getElementById('scannerBtn');
+  const statusDiv = document.getElementById('scannerStatus');
+  
+  try {
+    scannerBtn.disabled = true;
+    scannerBtn.textContent = '🔄 Starting...';
+    
+    // Check if we're in a Capacitor environment with native scanner available
+    if (isCapacitor && Capacitor.Plugins.BarcodeScanner) {
+      logScannerStatus('Native scanner detected - using MLKit barcode scanner', 'info');
+      
+      // Try native scanner first
+      try {
+        await startNativeScanner();
+        return; // Success, exit early
+      } catch (nativeError) {
+        logScannerStatus(`Native scanner failed: ${nativeError.message}`, 'warning');
+        logScannerStatus('Falling back to browser scanner...', 'info');
+        showNotification('Native scanner unavailable, using browser scanner', 'info', 2000);
+        // Continue to browser scanner fallback
+      }
+    }
+    
+    // Fallback to browser scanner
+    logScannerStatus('Using browser-based barcode scanner', 'info');
+    await startBrowserScanner();
+    
+  } catch (error) {
+    logScannerStatus(`Scanner error: ${error.message}`, 'error');
+    showNotification(`Scanner error: ${error.message}`, 'error', 4000);
+  } finally {
+    scannerBtn.disabled = false;
+    scannerBtn.textContent = '📷 Scan Barcode';
+  }
+}
+
+// Native Scanner Function
+async function startNativeScanner() {
+  const statusDiv = document.getElementById('scannerStatus');
+  
+  try {
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    if (!BarcodeScanner) {
+      throw new Error('BarcodeScanner plugin not found');
+    }
+    
+    logScannerStatus('Checking native scanner support...', 'info');
+    
+    // Check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    if (!supported) {
+      throw new Error('Barcode scanning not supported on this device');
+    }
+    
+    logScannerStatus('Native scanner supported', 'success');
+    
+    // Check permissions but don't fail if denied
+    logScannerStatus('Checking camera permissions...', 'info');
+    let permissionGranted = false;
+    try {
+      const { granted } = await BarcodeScanner.checkPermissions();
+      logScannerStatus(`Permission status: ${granted ? 'granted' : 'denied'}`, granted ? 'success' : 'warning');
+      permissionGranted = granted;
+    } catch (permError) {
+      logScannerStatus(`Permission check error: ${permError.message}`, 'warning');
+    }
+    
+    if (!permissionGranted) {
+      logScannerStatus('Requesting camera permissions...', 'info');
+      try {
+        const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+        logScannerStatus(`Permission request result: ${newGranted ? 'granted' : 'denied'}`, newGranted ? 'success' : 'error');
+        permissionGranted = newGranted;
+      } catch (permError) {
+        logScannerStatus(`Permission request error: ${permError.message}`, 'error');
+      }
+    }
+    
+    // Try to start scanning even if permissions appear denied
+    logScannerStatus('Starting native barcode scan...', 'info');
+    const { barcodes } = await BarcodeScanner.scan();
+    
+    if (barcodes && barcodes.length > 0) {
+      const barcode = barcodes[0];
+      logScannerStatus(`✅ Barcode detected: ${barcode.rawValue}`, 'success');
+      
+      // Fill in the ISBN field
+      const isbnField = document.getElementById('isbn');
+      if (isbnField) {
+        isbnField.value = barcode.rawValue;
+        isbnField.dispatchEvent(new Event('input', { bubbles: true }));
+        logScannerStatus('ISBN field updated with scanned barcode', 'success');
+      }
+      
+      // Auto-fetch book data if enabled
+      const autoFetchCheckbox = document.getElementById('auto_fetch');
+      if (autoFetchCheckbox && autoFetchCheckbox.checked) {
+        logScannerStatus('Auto-fetching book data...', 'info');
+        setTimeout(() => {
+          fetchBookData();
+        }, 500);
+      }
+      
+    } else {
+      logScannerStatus('No barcode detected', 'info');
+    }
+    
+  } catch (error) {
+    logScannerStatus(`Native scanner error: ${error.message}`, 'error');
+    throw error; // Re-throw to trigger fallback
+  }
+}
+
+// Browser Scanner Function
+async function startBrowserScanner() {
+  const statusDiv = document.getElementById('scannerStatus');
+  
+  try {
+    logScannerStatus('Initializing browser scanner...', 'info');
+    
+    // Check if BarcodeDetector is supported
+    if (!('BarcodeDetector' in window)) {
+      throw new Error('BarcodeDetector not supported in this browser');
+    }
+    
+    logScannerStatus('Browser scanner supported', 'success');
+    
+    // Use the existing browser scanner implementation
+    startScanner();
+    
+  } catch (error) {
+    logScannerStatus(`Browser scanner error: ${error.message}`, 'error');
+    throw error;
+  }
+}
+
+function logScannerStatus(message, type = 'info') {
+  const statusDiv = document.getElementById('scannerStatus');
+  statusDiv.style.display = 'block';
+  statusDiv.textContent = message;
+  
+  // Set color based on type
+  switch (type) {
+    case 'success':
+      statusDiv.style.background = '#d4edda';
+      statusDiv.style.color = '#155724';
+      statusDiv.style.border = '1px solid #c3e6cb';
+      break;
+    case 'error':
+      statusDiv.style.background = '#f8d7da';
+      statusDiv.style.color = '#721c24';
+      statusDiv.style.border = '1px solid #f5c6cb';
+      break;
+    case 'warning':
+      statusDiv.style.background = '#fff3cd';
+      statusDiv.style.color = '#856404';
+      statusDiv.style.border = '1px solid #ffeaa7';
+      break;
+    default:
+      statusDiv.style.background = '#d1ecf1';
+      statusDiv.style.color = '#0c5460';
+      statusDiv.style.border = '1px solid #bee5eb';
+  }
+  
+  console.log(`[Smart Scanner] ${message}`);
 }
 </script>
 {% endblock %}

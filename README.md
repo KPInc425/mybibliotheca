@@ -25,6 +25,7 @@
 - 📱 **Responsive UI**: Clean, mobile-friendly interface built with Bootstrap.
 - 🔐 **Multi-User Support**: Secure authentication with user data isolation
 - 👤 **Admin Management**: Administrative tools and user management
+- 📱 **Smart Barcode Scanner**: Intelligent scanner that automatically chooses between native MLKit (Android) and browser-based scanning with seamless fallback
 
 ---
 
@@ -153,6 +154,7 @@ Existing single-user installations are **automatically migrated** to multi-user:
 - **[AUTHENTICATION.md](AUTHENTICATION.md)** - Complete authentication guide
 - **[ADMIN_TOOLS.md](ADMIN_TOOLS.md)** - Admin tools and user management
 - **[TESTING.md](TESTING.md)** - Comprehensive testing documentation and procedures
+- **[NATIVE_BARCODE_SCANNER.md](NATIVE_BARCODE_SCANNER.md)** - Native Android barcode scanner implementation guide
 
 ---
 
