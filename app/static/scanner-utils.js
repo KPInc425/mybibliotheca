@@ -510,9 +510,13 @@ function handleSuccessfulScan(code) {
   
   // Auto-fetch the book data
   setTimeout(() => {
-    const fetchButton = document.querySelector('button[name="fetch"]');
-    if (fetchButton) {
-      fetchButton.click();
+    if (window.autofetchBookData) {
+      window.autofetchBookData();
+    } else {
+      const fetchButton = document.querySelector('button[name="fetch"]');
+      if (fetchButton) {
+        fetchButton.click();
+      }
     }
   }, 500);
 }

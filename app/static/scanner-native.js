@@ -65,18 +65,13 @@ async function startNativeScanner() {
       
       // Auto-fetch book data after successful scan
       logScannerStatus('Auto-fetching book data...', 'info');
-      
-      // Skip auto-fetch if debug mode is enabled to preserve debug logs
       if (window.debugEnabled) {
         logScannerStatus('Debug mode enabled - auto-fetch skipped. Click "Fetch Book Data" manually when ready.', 'info');
+      } else if (window.autofetchBookData) {
+        logScannerStatus('Calling autofetchBookData directly', 'success');
+        window.autofetchBookData();
       } else {
-        const fetchButton = document.querySelector('button[name="fetch"]');
-        if (fetchButton) {
-          logScannerStatus('Book data fetch initiated', 'success');
-          fetchButton.click();
-        } else {
-          logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
-        }
+        logScannerStatus('autofetchBookData not found - please click "Fetch Book Data" manually', 'warning');
       }
     } else {
       logScannerStatus('No barcode detected', 'info');

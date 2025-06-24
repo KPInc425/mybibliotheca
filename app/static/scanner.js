@@ -1554,9 +1554,12 @@ function startBarcodeDetectorScanning() {
 
 // AJAX autofetch logic for Fetch Book Data button
 function autofetchBookData() {
+  debugLog('[autofetchBookData] Called');
   const isbn = document.getElementById('isbn').value.trim();
+  debugLog('[autofetchBookData] ISBN to fetch:', isbn);
   if (!isbn) {
     showNotification('Please enter an ISBN first', 'warning', 2000);
+    debugLog('[autofetchBookData] No ISBN entered, aborting');
     return;
   }
   const fetchBtn = document.getElementById('fetchBtn');
@@ -1566,10 +1569,12 @@ function autofetchBookData() {
   }
   fetch(`/fetch_book/${isbn}`)
     .then(response => {
+      debugLog('[autofetchBookData] Fetch response status:', response.status);
       if (!response.ok) return {};
       return response.json();
     })
     .then(data => {
+      debugLog('[autofetchBookData] Fetch result:', data);
       if (data && data.title) {
         // Fill in the form fields
         if (data.title) document.getElementById('title').value = data.title;
@@ -1590,21 +1595,26 @@ function autofetchBookData() {
           }
         }
         showNotification('Book data fetched successfully!', 'success', 2000);
+        debugLog('[autofetchBookData] Book data filled in form');
       } else {
         showNotification('No book data found for the provided ISBN.', 'warning', 2000);
+        debugLog('[autofetchBookData] No book data found');
       }
     })
     .catch(error => {
       showNotification('Error fetching book data. Please try again.', 'error', 2000);
-      debugLog('AJAX autofetch error', error);
+      debugLog('[autofetchBookData] AJAX autofetch error', error);
     })
     .finally(() => {
       if (fetchBtn) {
         fetchBtn.disabled = false;
         fetchBtn.textContent = '🔍 Fetch Book Data';
       }
+      debugLog('[autofetchBookData] Fetch complete');
     });
 }
+
+window.autofetchBookData = autofetchBookData;
 
 document.addEventListener('DOMContentLoaded', function() {
   const fetchBtn = document.getElementById('fetchBtn');
