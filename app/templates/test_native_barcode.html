@@ -204,24 +204,25 @@
     <div class="modal-title">📱 Camera Permissions Required</div>
     <div class="modal-content">
       <p>The barcode scanner needs camera access to work.</p>
-      <p>I'll try to open your device settings. If it doesn't work, you can manually navigate to:</p>
-      <p><strong>Settings → Apps → MyBibliotheca → Permissions → Enable Camera</strong></p>
+      <p>I'll try to open your device settings automatically. If that doesn't work, follow the manual steps below.</p>
     </div>
     <div class="modal-buttons">
       <button id="confirmOpenSettings" class="modal-button primary">
-        ✅ Try to Open Settings
+        🔧 Try to Open Settings
       </button>
       <button id="cancelSettings" class="modal-button secondary">
         ❌ Cancel
       </button>
     </div>
     <div class="modal-path">
-      <strong>Manual navigation:</strong><br>
-      1. Open your device Settings<br>
-      2. Tap "Apps" or "Applications"<br>
-      3. Find "MyBibliotheca" in the list<br>
-      4. Tap "Permissions"<br>
-      5. Enable "Camera" permission
+      <strong>📋 Manual Steps (if automatic doesn't work):</strong><br>
+      1. <strong>Open Settings</strong> on your device<br>
+      2. <strong>Find "Apps"</strong> or "Applications"<br>
+      3. <strong>Search for "MyBibliotheca"</strong> in the app list<br>
+      4. <strong>Tap on "MyBibliotheca"</strong><br>
+      5. <strong>Tap "Permissions"</strong><br>
+      6. <strong>Enable "Camera"</strong> permission<br>
+      7. <strong>Return to this app</strong> and try again
     </div>
     <button id="closeModal" class="modal-button secondary" style="margin-top: 15px; width: 100%;">
       ✖️ Close Modal
@@ -272,19 +273,9 @@
     try {
       log('Attempting to open device settings...');
       
-      if (isCapacitor && Capacitor.Plugins.App) {
-        // Use Capacitor App plugin to open settings
-        log('Using Capacitor App plugin...');
-        try {
-          Capacitor.Plugins.App.openSettings();
-          log('App.openSettings() called successfully');
-        } catch (error) {
-          log(`App.openSettings() failed: ${error.message}`, 'error');
-          tryAndroidDeepLink();
-        }
-      } else if (navigator.userAgent.includes('Android')) {
-        // Try Android deep link directly
-        tryAndroidDeepLink();
+      if (navigator.userAgent.includes('Android')) {
+        // Try to use Android intent to open settings
+        tryAndroidIntent();
       } else {
         showManualInstructions();
       }
@@ -294,52 +285,69 @@
     }
   }
   
-  function tryAndroidDeepLink() {
+  function tryAndroidIntent() {
     if (navigator.userAgent.includes('Android')) {
-      // Try multiple Android deep link formats
       const packageName = 'com.ilgaming.mybibliotheca';
       
-      // Try different Android settings formats
-      const deepLinks = [
-        `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`,
-        `android-app://com.android.settings/.applications.ManageApplications`,
-        `android-app://com.android.settings/.applications.ApplicationPkgNameResolver?pkg=${packageName}`,
-        `android-app://com.android.settings/.applications.AppOpsDetails?pkg=${packageName}`
-      ];
+      // Detect Android version
+      const androidVersion = getAndroidVersion();
+      log(`Detected Android version: ${androidVersion}`);
       
-      log(`Trying Android deep links...`);
+      // Use different intents based on Android version
+      let intents = [];
       
-      // Try the first deep link
-      try {
-        window.location.href = deepLinks[0];
-        log(`Android deep link 1 attempted: ${deepLinks[0]}`);
-        
-        // If that doesn't work, try the others after delays
-        setTimeout(() => {
-          try {
-            window.location.href = deepLinks[1];
-            log(`Android deep link 2 attempted: ${deepLinks[1]}`);
-          } catch (error) {
-            log(`Android deep link 2 failed: ${error.message}`, 'error');
-          }
-        }, 3000);
-        
-        setTimeout(() => {
-          try {
-            window.location.href = deepLinks[2];
-            log(`Android deep link 3 attempted: ${deepLinks[2]}`);
-          } catch (error) {
-            log(`Android deep link 3 failed: ${error.message}`, 'error');
-          }
-        }, 6000);
-        
-      } catch (error) {
-        log(`Android deep link failed: ${error.message}`, 'error');
-        showManualInstructions();
+      if (androidVersion >= 11) {
+        // Android 11+ (API 30+) - Use newer intent format
+        log('Using Android 11+ intent format');
+        intents = [
+          `intent://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}#Intent;scheme=android-app;package=com.android.settings;end`,
+          `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`,
+          `intent://com.android.settings/.applications.ManageApplications#Intent;scheme=android-app;package=com.android.settings;end`
+        ];
+      } else if (androidVersion >= 8) {
+        // Android 8-10 (API 26-29) - Use standard intent format
+        log('Using Android 8-10 intent format');
+        intents = [
+          `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`,
+          `intent://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}#Intent;scheme=android-app;package=com.android.settings;end`,
+          `android-app://com.android.settings/.applications.ManageApplications`
+        ];
+      } else {
+        // Android 7 and below - Use older format
+        log('Using Android 7 and below intent format');
+        intents = [
+          `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`,
+          `android-app://com.android.settings/.applications.ManageApplications`,
+          `intent://com.android.settings/.applications.ManageApplications#Intent;scheme=android-app;package=com.android.settings;end`
+        ];
       }
+      
+      log(`Trying ${intents.length} Android intents for version ${androidVersion}...`);
+      
+      // Try the intents with delays
+      intents.forEach((intent, index) => {
+        setTimeout(() => {
+          try {
+            window.location.href = intent;
+            log(`Android intent ${index + 1} attempted: ${intent}`);
+          } catch (error) {
+            log(`Android intent ${index + 1} failed: ${error.message}`, 'error');
+          }
+        }, index * 2000); // 2 second delays between attempts
+      });
+      
     } else {
       showManualInstructions();
     }
+  }
+  
+  function getAndroidVersion() {
+    const userAgent = navigator.userAgent;
+    const match = userAgent.match(/Android\s([0-9.]*)/);
+    if (match && match[1]) {
+      return parseFloat(match[1]);
+    }
+    return 0; // Unknown version
   }
   
   function showManualInstructions() {
