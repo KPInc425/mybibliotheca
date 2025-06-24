@@ -399,6 +399,34 @@
         display: none;
         font-weight: 600;
       "></div>
+      
+      <!-- Debug Panel (for native app debugging) -->
+      <div id="debugPanel" style="
+        margin-top: 1rem;
+        padding: 0.75rem;
+        border-radius: 10px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        font-family: monospace;
+        font-size: 0.9rem;
+        display: none;
+        max-height: 200px;
+        overflow-y: auto;
+      ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <strong>🔍 Debug Log</strong>
+          <button onclick="clearDebugLog()" style="
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+          ">Clear</button>
+        </div>
+        <div id="debugContent"></div>
+      </div>
     </div>
 
     <!-- ISBN and Fetch Section -->
@@ -1263,6 +1291,20 @@ document.addEventListener('DOMContentLoaded', setupMobileOptimizations);
 
 // Add mobile-specific event listeners
 document.addEventListener('DOMContentLoaded', function() {
+  debugLog('DOMContentLoaded - setting up scanner button');
+  
+  // Add backup click handler for scanner button
+  const scannerBtn = document.getElementById('scannerBtn');
+  if (scannerBtn) {
+    debugLog('Scanner button found, adding click handler');
+    scannerBtn.addEventListener('click', function(e) {
+      debugLog('Scanner button clicked via event listener');
+      startSmartScanner();
+    });
+  } else {
+    debugLog('Scanner button not found!', 'ERROR');
+  }
+  
   if (isMobile) {
     // Prevent double-tap zoom on scanner
     const scannerDiv = document.getElementById('scanner');
@@ -1313,15 +1355,22 @@ let isNative = isCapacitor && Capacitor.isNative;
 
 // Smart Scanner Function - Automatically chooses best available scanner
 async function startSmartScanner() {
+  debugLog('startSmartScanner called');
+  
   const scannerBtn = document.getElementById('scannerBtn');
   const statusDiv = document.getElementById('scannerStatus');
   
+  debugLog('Elements found', { scannerBtn: !!scannerBtn, statusDiv: !!statusDiv });
+  
   try {
+    debugLog('Starting smart scanner...');
     scannerBtn.disabled = true;
     scannerBtn.textContent = '🔄 Starting...';
     
     // Check if we're in a Capacitor environment with native scanner available
+    debugLog('Checking Capacitor environment', { isCapacitor, isNative });
     if (isCapacitor && Capacitor.Plugins.BarcodeScanner) {
+      debugLog('Native scanner available, using MLKit');
       logScannerStatus('Native scanner detected - using MLKit barcode scanner', 'info');
       
       // Try native scanner first
@@ -1329,6 +1378,7 @@ async function startSmartScanner() {
         await startNativeScanner();
         return; // Success, exit early
       } catch (nativeError) {
+        debugLog('Native scanner failed', nativeError.message);
         logScannerStatus(`Native scanner failed: ${nativeError.message}`, 'warning');
         logScannerStatus('Falling back to browser scanner...', 'info');
         showNotification('Native scanner unavailable, using browser scanner', 'info', 2000);
@@ -1337,13 +1387,16 @@ async function startSmartScanner() {
     }
     
     // Fallback to browser scanner
+    debugLog('Using browser scanner');
     logScannerStatus('Using browser-based barcode scanner', 'info');
     await startBrowserScanner();
     
   } catch (error) {
+    debugLog('Scanner error', error.message);
     logScannerStatus(`Scanner error: ${error.message}`, 'error');
     showNotification(`Scanner error: ${error.message}`, 'error', 4000);
   } finally {
+    debugLog('Scanner finished, resetting button');
     scannerBtn.disabled = false;
     scannerBtn.textContent = '📷 Scan Barcode';
   }
@@ -1480,6 +1533,48 @@ function logScannerStatus(message, type = 'info') {
   }
   
   console.log(`[Smart Scanner] ${message}`);
+}
+
+// Visual Debug Function for Native Apps
+function debugLog(message, data = null) {
+  const debugPanel = document.getElementById('debugPanel');
+  const debugContent = document.getElementById('debugContent');
+  
+  if (debugPanel && debugContent) {
+    debugPanel.style.display = 'block';
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = document.createElement('div');
+    logEntry.style.marginBottom = '0.5rem';
+    logEntry.style.borderBottom = '1px solid #dee2e6';
+    logEntry.style.paddingBottom = '0.5rem';
+    
+    let logText = `[${timestamp}] ${message}`;
+    if (data) {
+      logText += `: ${JSON.stringify(data, null, 2)}`;
+    }
+    
+    logEntry.textContent = logText;
+    debugContent.appendChild(logEntry);
+    
+    // Keep only last 10 entries
+    while (debugContent.children.length > 10) {
+      debugContent.removeChild(debugContent.firstChild);
+    }
+    
+    // Auto-scroll to bottom
+    debugPanel.scrollTop = debugPanel.scrollHeight;
+  }
+  
+  // Also log to console for browser debugging
+  console.log(`[DEBUG] ${message}`, data);
+}
+
+// Clear debug log function
+function clearDebugLog() {
+  const debugContent = document.getElementById('debugContent');
+  if (debugContent) {
+    debugContent.innerHTML = '';
+  }
 }
 </script>
 {% endblock %}
