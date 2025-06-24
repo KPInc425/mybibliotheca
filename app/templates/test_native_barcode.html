@@ -299,10 +299,10 @@
       if (Capacitor.getPlatform() === 'android') {
         log('Opening Android app settings via NativeSettings plugin...');
         try {
-          // Use the available NativeSettings plugin
+          // Use the available NativeSettings plugin with correct option values
           if (Capacitor.Plugins.NativeSettings) {
             await Capacitor.Plugins.NativeSettings.openAndroid({
-              option: 'APPLICATION_DETAILS'
+              option: 'application_details'
             });
             log('App settings opened successfully via NativeSettings plugin');
           } else {
@@ -318,7 +318,7 @@
         try {
           if (Capacitor.Plugins.NativeSettings) {
             await Capacitor.Plugins.NativeSettings.openIOS({
-              option: 'APP'
+              option: 'app'
             });
             log('iOS app settings opened successfully via NativeSettings plugin');
           } else {
