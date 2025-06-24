@@ -146,3 +146,16 @@ class ReadingStreakForm(FlaskForm):
         }
     )
     submit = SubmitField('Update Streak Settings', render_kw={'class': 'btn btn-primary'})
+
+class AddBookForm(FlaskForm):
+    isbn = StringField('ISBN', validators=[DataRequired()])
+    title = StringField('Title', validators=[DataRequired()])
+    author = StringField('Author', validators=[DataRequired()])
+    publisher = StringField('Publisher', validators=[Optional()])
+    publication_date = StringField('Publication Date', validators=[Optional()])
+    pages = IntegerField('Pages', validators=[Optional(), NumberRange(min=1)])
+    language = StringField('Language', validators=[Optional()])
+    format = StringField('Format', validators=[Optional()])
+    description = TextAreaField('Description', validators=[Optional()])
+    notes = TextAreaField('Notes', validators=[Optional()])
+    submit = SubmitField('Add Book')

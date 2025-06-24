@@ -12,6 +12,7 @@ from io import BytesIO
 import csv
 import json
 import re
+from .forms import AddBookForm
 
 bp = Blueprint('main', __name__)
 
@@ -140,6 +141,7 @@ def index():
 @bp.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_book():
+    form = AddBookForm()
     book_data = None
     
     # Get debug setting from current user
@@ -151,7 +153,7 @@ def add_book():
             isbn = request.form['isbn'].strip()
             if not isbn:
                 flash('Error: ISBN is required to fetch book data.', 'danger')
-                return render_template('add_book.html', book_data=None, debug_enabled=debug_enabled)
+                return render_template('add_book.html', form=form, book_data=None, debug_enabled=debug_enabled)
 
             book_data = fetch_book_data(isbn)
             if not book_data:
@@ -163,20 +165,20 @@ def add_book():
                     book_data['cover'] = google_cover
 
             # Re-render the form with fetched data
-            return render_template('add_book.html', book_data=book_data, debug_enabled=debug_enabled)
+            return render_template('add_book.html', form=form, book_data=book_data, debug_enabled=debug_enabled)
 
         elif 'add' in request.form:
             # Validate required fields
             title = request.form['title'].strip()
             if not title:
                 flash('Error: Title is required to add a book.', 'danger')
-                return render_template('add_book.html', book_data=None, debug_enabled=debug_enabled)
+                return render_template('add_book.html', form=form, book_data=None, debug_enabled=debug_enabled)
 
             isbn = request.form['isbn']
             # Check for duplicate ISBN
             if Book.query.filter_by(isbn=isbn, user_id=current_user.id).first():
                 flash('A book with this ISBN already exists.', 'danger')
-                return render_template('add_book.html', book_data=None, debug_enabled=debug_enabled)
+                return render_template('add_book.html', form=form, book_data=None, debug_enabled=debug_enabled)
 
             author = request.form['author']
             start_date_str = request.form.get('start_date') or None
@@ -240,7 +242,7 @@ def add_book():
             flash(f'Book "{title}" added successfully.', 'success')
             return redirect(url_for('main.index'))
 
-    return render_template('add_book.html', book_data=book_data, debug_enabled=debug_enabled)
+    return render_template('add_book.html', form=form, book_data=book_data, debug_enabled=debug_enabled)
 
 @bp.route('/book/<uid>', methods=['GET', 'POST'])
 @login_required
