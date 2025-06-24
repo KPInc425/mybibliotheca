@@ -827,7 +827,17 @@ function initializeBarcodeDetectorScanner() {
                 // Show success notification
                 showNotification(`ISBN detected: ${code}`, 'success', 2000);
                 
-                // Note: User can manually click "Fetch Book Data" button to get book details
+                // Auto-fetch book data after successful scan
+                logScannerStatus('Auto-fetching book data...', 'info');
+                setTimeout(() => {
+                  const fetchButton = document.querySelector('button[name="fetch"]');
+                  if (fetchButton) {
+                    fetchButton.click();
+                    logScannerStatus('Book data fetch initiated', 'success');
+                  } else {
+                    logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
+                  }
+                }, 500);
               } else {
                 console.log("Invalid ISBN format:", code, format);
                 showNotification(`Invalid format: ${format}`, 'warning', 2000);
@@ -1397,7 +1407,17 @@ async function startNativeScanner() {
         logScannerStatus('ISBN field updated with scanned barcode', 'success');
       }
       
-      // Note: User can manually click "Fetch Book Data" button to get book details
+      // Auto-fetch book data after successful scan
+      logScannerStatus('Auto-fetching book data...', 'info');
+      setTimeout(() => {
+        const fetchButton = document.querySelector('button[name="fetch"]');
+        if (fetchButton) {
+          fetchButton.click();
+          logScannerStatus('Book data fetch initiated', 'success');
+        } else {
+          logScannerStatus('Fetch button not found - please click "Fetch Book Data" manually', 'warning');
+        }
+      }, 500);
     } else {
       logScannerStatus('No barcode detected', 'info');
     }
