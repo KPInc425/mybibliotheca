@@ -273,9 +273,9 @@
     try {
       log('Attempting to open device settings...');
       
-      if (navigator.userAgent.includes('Android')) {
-        // Try to use Android intent to open settings
-        tryAndroidIntent();
+      if (isCapacitor) {
+        // Use the capacitor-native-settings plugin
+        openAppSettings();
       } else {
         showManualInstructions();
       }
@@ -285,69 +285,32 @@
     }
   }
   
-  function tryAndroidIntent() {
-    if (navigator.userAgent.includes('Android')) {
-      const packageName = 'com.ilgaming.mybibliotheca';
-      
-      // Detect Android version
-      const androidVersion = getAndroidVersion();
-      log(`Detected Android version: ${androidVersion}`);
-      
-      // Use different intents based on Android version
-      let intents = [];
-      
-      if (androidVersion >= 11) {
-        // Android 11+ (API 30+) - Use newer intent format
-        log('Using Android 11+ intent format');
-        intents = [
-          `intent://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}#Intent;scheme=android-app;package=com.android.settings;end`,
-          `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`,
-          `intent://com.android.settings/.applications.ManageApplications#Intent;scheme=android-app;package=com.android.settings;end`
-        ];
-      } else if (androidVersion >= 8) {
-        // Android 8-10 (API 26-29) - Use standard intent format
-        log('Using Android 8-10 intent format');
-        intents = [
-          `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`,
-          `intent://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}#Intent;scheme=android-app;package=com.android.settings;end`,
-          `android-app://com.android.settings/.applications.ManageApplications`
-        ];
+  async function openAppSettings() {
+    try {
+      if (Capacitor.getPlatform() === 'android') {
+        log('Opening Android app settings...');
+        // Import and use the NativeSettings plugin with correct syntax
+        const { NativeSettings, AndroidSettings } = await import('capacitor-native-settings');
+        await NativeSettings.openAndroid({
+          option: AndroidSettings.ApplicationDetails,
+        });
+        log('Android app settings opened successfully');
+      } else if (Capacitor.getPlatform() === 'ios') {
+        log('Opening iOS app settings...');
+        const { NativeSettings, IOSSettings } = await import('capacitor-native-settings');
+        await NativeSettings.openIOS({
+          option: IOSSettings.App,
+        });
+        log('iOS app settings opened successfully');
       } else {
-        // Android 7 and below - Use older format
-        log('Using Android 7 and below intent format');
-        intents = [
-          `android-app://com.android.settings/.applications.InstalledAppDetails?pkg=${packageName}`,
-          `android-app://com.android.settings/.applications.ManageApplications`,
-          `intent://com.android.settings/.applications.ManageApplications#Intent;scheme=android-app;package=com.android.settings;end`
-        ];
+        log('Unknown platform, showing manual instructions');
+        showManualInstructions();
       }
-      
-      log(`Trying ${intents.length} Android intents for version ${androidVersion}...`);
-      
-      // Try the intents with delays
-      intents.forEach((intent, index) => {
-        setTimeout(() => {
-          try {
-            window.location.href = intent;
-            log(`Android intent ${index + 1} attempted: ${intent}`);
-          } catch (error) {
-            log(`Android intent ${index + 1} failed: ${error.message}`, 'error');
-          }
-        }, index * 2000); // 2 second delays between attempts
-      });
-      
-    } else {
+    } catch (error) {
+      log(`Error opening app settings: ${error.message}`, 'error');
+      // Fallback to manual instructions
       showManualInstructions();
     }
-  }
-  
-  function getAndroidVersion() {
-    const userAgent = navigator.userAgent;
-    const match = userAgent.match(/Android\s([0-9.]*)/);
-    if (match && match[1]) {
-      return parseFloat(match[1]);
-    }
-    return 0; // Unknown version
   }
   
   function showManualInstructions() {
