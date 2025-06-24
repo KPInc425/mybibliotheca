@@ -191,6 +191,10 @@
     🔄 Refresh Permission Status
   </button>
   
+  <button id="testDirectCamera" class="test-button" style="background: #e83e8c;">
+    📹 Test Direct Camera Access
+  </button>
+  
   <button id="testPermissions" class="test-button" style="background: #28a745;">
     📷 Test Camera Permissions
   </button>
@@ -522,48 +526,58 @@
       
       log('Barcode scanning is supported');
       
-      // Check permissions
+      // Check permissions but don't fail if denied
       log('Checking camera permissions...');
-      const { granted } = await BarcodeScanner.checkPermissions();
-      log(`Initial permission status: ${granted ? 'granted' : 'denied'}`);
+      let permissionGranted = false;
+      try {
+        const { granted } = await BarcodeScanner.checkPermissions();
+        log(`Initial permission status: ${granted ? 'granted' : 'denied'}`);
+        permissionGranted = granted;
+      } catch (permError) {
+        log(`Permission check error: ${permError.message}`, 'warning');
+      }
       
-      if (!granted) {
-        log('Requesting camera permissions...');
+      if (!permissionGranted) {
+        log('Permission not granted, attempting to request...');
         try {
           const { granted: newGranted } = await BarcodeScanner.requestPermissions();
           log(`Permission request result: ${newGranted ? 'granted' : 'denied'}`);
-          if (!newGranted) {
-            throw new Error('Camera permission denied by user');
-          }
-        } catch (permissionError) {
-          log(`Permission request error: ${permissionError.message}`, 'error');
-          showResult(`Camera permission error: ${permissionError.message}`, 'error');
-          showPermissionHelp();
-          return;
+          permissionGranted = newGranted;
+        } catch (permError) {
+          log(`Permission request error: ${permError.message}`, 'warning');
         }
       }
       
-      log('Camera permissions granted');
-      
-      // Start scanning
-      log('Starting barcode scan...');
-      const { barcodes } = await BarcodeScanner.scan();
-      
-      if (barcodes && barcodes.length > 0) {
-        const barcode = barcodes[0];
-        const result = `✅ Barcode Detected!
+      // Try to start scanning even if permissions appear denied
+      log('Attempting to start barcode scan...');
+      try {
+        const { barcodes } = await BarcodeScanner.scan();
+        
+        if (barcodes && barcodes.length > 0) {
+          const barcode = barcodes[0];
+          const result = `✅ Barcode Detected!
 Format: ${barcode.format}
 Value: ${barcode.rawValue}
 Type: ${barcode.type}
 Confidence: ${barcode.confidence || 'N/A'}`;
+          
+          log(`Native scanner detected: ${barcode.rawValue} (${barcode.format})`, 'success');
+          showResult(result, 'success');
+          updateStatus(`Detected: ${barcode.rawValue}`, 'success');
+        } else {
+          log('No barcode detected');
+          showResult('No barcode detected', 'info');
+          updateStatus('No barcode detected', 'info');
+        }
+      } catch (scanError) {
+        log(`Scan error: ${scanError.message}`, 'error');
         
-        log(`Native scanner detected: ${barcode.rawValue} (${barcode.format})`, 'success');
-        showResult(result, 'success');
-        updateStatus(`Detected: ${barcode.rawValue}`, 'success');
-      } else {
-        log('No barcode detected');
-        showResult('No barcode detected', 'info');
-        updateStatus('No barcode detected', 'info');
+        if (scanError.message.includes('permission') || scanError.message.includes('denied')) {
+          showResult('Camera permission error during scanning. Please check device settings.', 'error');
+          showPermissionHelp();
+        } else {
+          showResult(`Scanning error: ${scanError.message}`, 'error');
+        }
       }
       
     } catch (error) {
@@ -815,6 +829,56 @@ Confidence: ${barcode.confidence || 'N/A'}`;
     } finally {
       button.disabled = false;
       button.textContent = '🔄 Refresh Permission Status';
+    }
+  });
+  
+  // Test Direct Camera Access
+  document.getElementById('testDirectCamera').addEventListener('click', async function() {
+    const button = this;
+    button.disabled = true;
+    button.textContent = '📹 Testing...';
+    
+    try {
+      log('=== TESTING DIRECT CAMERA ACCESS ===');
+      
+      if (!isCapacitor) {
+        throw new Error('Capacitor not available');
+      }
+      
+      log('Attempting to access camera directly...');
+      
+      // Try to get camera stream directly using Web API
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        
+        log('✅ Direct camera access successful!', 'success');
+        showResult('Direct camera access is working! The camera permission is actually granted.', 'success');
+        updateStatus('Camera access confirmed!', 'success');
+        
+        // Stop the stream immediately
+        stream.getTracks().forEach(track => track.stop());
+        log('Camera stream stopped');
+        
+      } catch (cameraError) {
+        log(`Direct camera access failed: ${cameraError.message}`, 'error');
+        
+        if (cameraError.name === 'NotAllowedError') {
+          showResult('Camera access denied by browser/system. This confirms the permission issue.', 'error');
+        } else if (cameraError.name === 'NotFoundError') {
+          showResult('No camera found on device.', 'error');
+        } else {
+          showResult(`Camera access error: ${cameraError.message}`, 'error');
+        }
+      }
+      
+    } catch (error) {
+      log(`Direct camera test error: ${error.message}`, 'error');
+      showResult(`Error: ${error.message}`, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = '📹 Test Direct Camera Access';
     }
   });
   
