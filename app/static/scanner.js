@@ -465,8 +465,12 @@ function stopZXingScanner() {
   debugLog('[stopZXingScanner] Stopping ZXing-js scanner');
   if (zxingCodeReader) {
     try {
-      // Stop the decode loop first
-      zxingCodeReader.reset();
+      // Stop the decode loop first - check if reset method exists
+      if (typeof zxingCodeReader.reset === 'function') {
+        zxingCodeReader.reset();
+      } else {
+        debugLog('[stopZXingScanner] ZXing reader reset method not available');
+      }
       // Force stop any ongoing decode operations
       if (zxingCodeReader._stopAsyncDecode) {
         zxingCodeReader._stopAsyncDecode();
@@ -1746,7 +1750,7 @@ function autofetchBookData() {
           'author': data.author,
           'publisher': data.publisher,
           'publication_date': data.published_date,
-          'pages': data.page_count,
+          'pages': data.page_count && data.page_count > 0 ? data.page_count : null,
           'language': data.language,
           'format': data.format,
           'description': data.description

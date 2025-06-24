@@ -500,9 +500,13 @@ function handleSuccessfulScan(code) {
     isbnField.dispatchEvent(new Event('input', { bubbles: true }));
   }
   
-  // Stop scanner
-  if (window.ScannerModule && window.ScannerModule.stopScanner) {
+  // Stop scanner only if we're in browser mode and scanner is active
+  if (window.ScannerModule && window.ScannerModule.stopScanner && 
+      (window.scannerState === 'scanning' || window.zxingActive)) {
+    console.log('[handleSuccessfulScan] Stopping browser scanner');
     window.ScannerModule.stopScanner();
+  } else {
+    console.log('[handleSuccessfulScan] No browser scanner to stop (likely native scan)');
   }
   
   // Show success notification

@@ -65,13 +65,26 @@ async function startNativeScanner() {
       
       // Auto-fetch book data after successful scan
       logScannerStatus('Auto-fetching book data...', 'info');
+      console.log('[Native Scanner] Debug info:', {
+        debugEnabled: window.debugEnabled,
+        handleSuccessfulScan: typeof window.handleSuccessfulScan,
+        autofetchBookData: typeof window.autofetchBookData,
+        ScannerModule: typeof window.ScannerModule
+      });
+      
       if (window.debugEnabled) {
         logScannerStatus('Debug mode enabled - auto-fetch skipped. Click "Fetch Book Data" manually when ready.', 'info');
+      } else if (window.handleSuccessfulScan) {
+        logScannerStatus('Calling handleSuccessfulScan for unified behavior', 'success');
+        console.log('[Native Scanner] Calling handleSuccessfulScan with code:', barcode.rawValue);
+        window.handleSuccessfulScan(barcode.rawValue);
       } else if (window.autofetchBookData) {
-        logScannerStatus('Calling autofetchBookData directly', 'success');
+        logScannerStatus('Calling autofetchBookData directly (fallback)', 'success');
+        console.log('[Native Scanner] Calling autofetchBookData directly');
         window.autofetchBookData();
       } else {
-        logScannerStatus('autofetchBookData not found - please click "Fetch Book Data" manually', 'warning');
+        logScannerStatus('No autofetch function found - please click "Fetch Book Data" manually', 'warning');
+        console.log('[Native Scanner] No autofetch functions available');
       }
     } else {
       logScannerStatus('No barcode detected', 'info');
