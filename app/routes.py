@@ -142,13 +142,8 @@ def index():
 def add_book():
     book_data = None
     
-    # Get debug setting with error handling
-    try:
-        debug_enabled = SystemSettings.is_debug_enabled()
-    except Exception as e:
-        # Fallback to False if there's any database error
-        debug_enabled = False
-        print(f"Warning: Could not get debug setting: {e}")
+    # Get debug setting from current user
+    debug_enabled = current_user.is_debug_enabled()
     
     if request.method == 'POST':
         if 'fetch' in request.form:

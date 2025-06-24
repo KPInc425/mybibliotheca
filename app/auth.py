@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from app.models import User, db
@@ -359,3 +359,30 @@ def update_streak_settings():
         flash('Error updating streak settings. Please try again.', 'danger')
     
     return redirect(url_for('auth.privacy_settings'))
+
+@auth.route('/toggle_debug_mode', methods=['POST'])
+@login_required
+def toggle_debug_mode():
+    """Toggle debug mode for admin users"""
+    # Only allow admins to toggle debug mode
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Access denied. Only administrators can toggle debug mode.'}), 403
+    
+    try:
+        data = request.get_json()
+        if not data or 'enabled' not in data:
+            return jsonify({'success': False, 'error': 'Invalid request data'}), 400
+        
+        # Update the user's debug setting
+        current_user.debug_enabled = data['enabled']
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'enabled': current_user.debug_enabled,
+            'message': f'Debug mode {"enabled" if current_user.debug_enabled else "disabled"}'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500

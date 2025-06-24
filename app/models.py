@@ -33,6 +33,9 @@ class User(UserMixin, db.Model):
     # Reading streak offset
     reading_streak_offset = db.Column(db.Integer, default=0)
     
+    # Debug mode setting (user-specific)
+    debug_enabled = db.Column(db.Boolean, default=False)
+    
     # Relationships
     books = db.relationship('Book', backref='user', lazy=True, cascade='all, delete-orphan')
     
@@ -138,6 +141,16 @@ class User(UserMixin, db.Model):
         """Get the user's current reading streak with their personal offset"""
         from app.utils import calculate_reading_streak
         return calculate_reading_streak(self.id, self.reading_streak_offset)
+    
+    def is_debug_enabled(self):
+        """Check if debug mode is enabled for this user"""
+        return self.debug_enabled
+    
+    def toggle_debug_mode(self):
+        """Toggle debug mode for this user"""
+        self.debug_enabled = not self.debug_enabled
+        db.session.commit()
+        return self.debug_enabled
     
     def __repr__(self):
         return f'<User {self.username}>'
