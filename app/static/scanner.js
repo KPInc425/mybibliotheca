@@ -1481,6 +1481,12 @@ function resetToIdle() {
  */
 function handleScannerButtonClick() {
   console.log("[DEBUG] Scanner button clicked, current state:", scannerState);
+  console.log("[DEBUG] Button click details:", {
+    scannerState: scannerState,
+    scanner: !!scanner,
+    zxingActive: zxingActive,
+    animationFrameId: animationFrameId
+  });
   debugLog('[handleScannerButtonClick] Button clicked, state:', scannerState);
   
   if (scannerState === 'idle') {
@@ -1496,6 +1502,10 @@ function handleScannerButtonClick() {
   } else if (scannerState === 'stopping') {
     debugLog('[handleScannerButtonClick] Scanner is stopping, ignoring click');
     // Ignore clicks while stopping to prevent conflicts
+  } else {
+    console.log("[DEBUG] Unknown scanner state:", scannerState);
+    debugLog('[handleScannerButtonClick] Unknown state, resetting to idle');
+    resetToIdle();
   }
 }
 

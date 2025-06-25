@@ -10,8 +10,8 @@ async function startNativeScanner() {
   console.log('[Native Scanner] Starting native barcode scanner...');
   
   // Set scanner state to starting
-  if (window.scannerState) {
-    window.scannerState = 'starting';
+  if (typeof scannerState !== 'undefined') {
+    scannerState = 'starting';
     console.log('[Native Scanner] Set scanner state to starting');
   }
   
@@ -48,8 +48,8 @@ async function startNativeScanner() {
   logScannerStatus('Starting native barcode scan...', 'info');
   
   // Set scanner state to scanning
-  if (window.scannerState) {
-    window.scannerState = 'scanning';
+  if (typeof scannerState !== 'undefined') {
+    scannerState = 'scanning';
     console.log('[Native Scanner] Set scanner state to scanning');
   }
   
@@ -125,8 +125,8 @@ async function startNativeScanner() {
   }
   
   // Always reset scanner state to idle after completion
-  if (window.scannerState) {
-    window.scannerState = 'idle';
+  if (typeof scannerState !== 'undefined') {
+    scannerState = 'idle';
     console.log('[Native Scanner] Reset scanner state to idle');
   }
 }
