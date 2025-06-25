@@ -95,6 +95,12 @@ async function startNativeScanner() {
       logScannerStatus('No barcode detected', 'info');
     }
     
+    // Always reset scanner state to idle after completion
+    if (window.scannerState) {
+      window.scannerState = 'idle';
+      console.log('[Native Scanner] Reset scanner state to idle');
+    }
+    
   } catch (error) {
     // Check if this is a user cancellation
     const errorMessage = error.message || error.toString();
@@ -111,10 +117,20 @@ async function startNativeScanner() {
     
     if (isCancellation) {
       logScannerStatus('Scan cancelled by user', 'info');
+      // Reset scanner state to idle after cancellation
+      if (window.scannerState) {
+        window.scannerState = 'idle';
+        console.log('[Native Scanner] Reset scanner state to idle after cancellation');
+      }
       // Don't throw error for cancellation - just return normally
       return;
     } else {
       logScannerStatus(`Native scanner error: ${error.message}`, 'error');
+      // Reset scanner state to idle after error
+      if (window.scannerState) {
+        window.scannerState = 'idle';
+        console.log('[Native Scanner] Reset scanner state to idle after error');
+      }
       throw error; // Re-throw actual errors to trigger fallback
     }
   }
