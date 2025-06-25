@@ -45,7 +45,7 @@
 <!-- Advanced Filter Section -->
 <div class="bg-base-100 border-2 border-secondary rounded-2xl p-6 mb-8 shadow-lg relative filter-section">
   <h5 class="text-xl font-semibold text-primary mb-6 pl-12 relative z-10">Find Your Books</h5>
-  <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end filter-form">
+  <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end filter-form">
     <div class="form-control w-full">
       <label for="search" class="label">
         <span class="label-text font-semibold">Search</span>
@@ -92,13 +92,10 @@
         {% endfor %}
       </select>
     </div>
-    <div class="form-control w-full">
-      <button type="submit" class="btn btn-primary w-full">🔍 Filter</button>
-    </div>
   </form>
   <div class="mt-6 text-center">
     <a href="{{ url_for('main.index') }}" class="btn btn-secondary btn-sm mr-4">Clear All Filters</a>
-    <span class="text-base-content/70 font-semibold">Showing {{ books|length }} book(s)</span>
+    <span class="text-base-content/70 font-semibold" id="book-count-display">Showing {{ books|length }} book(s)</span>
   </div>
 </div>
 
@@ -358,15 +355,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Mobile-optimized form handling
+    // Simple form handling - prevent auto-submission, use existing backend filtering
     const filterSelects = document.querySelectorAll('#category, #publisher, #language');
+    const searchInput = document.querySelector('#search');
+    const filterForm = document.querySelector('.filter-form');
+    
+    // Debounce function for search input
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+    
+    // Handle search input with debouncing
+    if (searchInput) {
+        const debouncedSubmit = debounce(() => {
+            filterForm.submit();
+        }, 500);
+        
+        searchInput.addEventListener('input', debouncedSubmit);
+    }
+    
+    // Handle dropdown changes - submit form after a short delay
     filterSelects.forEach(select => {
         select.addEventListener('change', function() {
-            // Add loading state for mobile
-            this.disabled = true;
-            this.form.submit();
+            // Small delay to allow user to see their selection
+            setTimeout(() => {
+                filterForm.submit();
+            }, 100);
         });
     });
+    
+    // Handle form submission (for the filter button) - no changes needed
+    // The form will submit normally to the backend
     
     // Initialize pagination
     if (totalBooks > booksPerPage) {
