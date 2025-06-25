@@ -1896,6 +1896,7 @@ function autofetchBookData() {
     });
 }
 
+window.setupMobileOptimizations = setupMobileOptimizations;
 window.autofetchBookData = autofetchBookData;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -2133,6 +2134,4 @@ if (window.ScannerUtils) {
       }, 300);
     }, duration);
   };
-}
-
-window.setupMobileOptimizations = setupMobileOptimizations; 
+} 
