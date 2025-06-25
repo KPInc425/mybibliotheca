@@ -7,8 +7,6 @@
  * Setup mobile optimizations for better scanning experience
  */
 function setupMobileOptimizations() {
-  console.log("Setting up mobile optimizations...");
-  
   // Add mobile-specific CSS for better camera experience
   const style = document.createElement('style');
   style.textContent = `
@@ -30,42 +28,21 @@ function setupMobileOptimizations() {
     
     .mobile-scanner .scanner-overlay {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-    
-    .mobile-scanner .scanner-frame {
-      position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 250px;
-      height: 150px;
-      border: 2px solid #fff;
-      border-radius: 10px;
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      width: 80%;
+      height: 60%;
+      border: 3px solid #DAA520;
+      border-radius: 15px;
+      pointer-events: none;
+      box-shadow: 0 0 20px rgba(218, 165, 32, 0.6);
+      animation: pulse 2s infinite;
     }
     
-    .mobile-scanner .scanner-controls {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-    }
-    
-    .mobile-scanner .scanner-controls button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 25px;
-      background: rgba(255, 255, 255, 0.9);
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(218, 165, 32, 0.6); }
+      50% { box-shadow: 0 0 30px rgba(218, 165, 32, 0.8); }
     }
   `;
   document.head.appendChild(style);
@@ -119,55 +96,45 @@ function setupMobileFocusDetection() {
 }
 
 /**
- * Show notification with styling
+ * Show notification with improved stacking
  */
-function showNotification(message, type = 'info', duration = 3000) {
+function showNotification(message, type = 'info', duration = 5000) {
+  const notificationStack = document.getElementById('notificationStack');
+  if (!notificationStack) return;
+
   const notification = document.createElement('div');
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 20px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 600;
-    z-index: 10000;
-    max-width: 300px;
-    word-wrap: break-word;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-  `;
+  notification.className = `alert alert-${type} animate-slide-in shadow-lg max-w-sm`;
   
+  // Add icon based on type
+  let icon = '';
   switch (type) {
     case 'success':
-      notification.style.background = '#28a745';
+      icon = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
       break;
     case 'error':
-      notification.style.background = '#dc3545';
+      icon = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
       break;
     case 'warning':
-      notification.style.background = '#ffc107';
-      notification.style.color = '#212529';
+      icon = '<svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" /></svg>';
       break;
     default:
-      notification.style.background = '#17a2b8';
+      icon = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
   }
   
-  notification.textContent = message;
-  document.body.appendChild(notification);
+  notification.innerHTML = `
+    ${icon}
+    <span>${message}</span>
+    <button class="btn btn-sm btn-ghost" onclick="this.parentElement.remove()">✕</button>
+  `;
   
-  setTimeout(() => {
-    notification.style.transform = 'translateX(0)';
-  }, 100);
+  notificationStack.appendChild(notification);
   
+  // Auto-remove after duration
   setTimeout(() => {
-    notification.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 300);
+    if (notification.parentNode) {
+      notification.classList.add('animate-fade-out');
+      setTimeout(() => notification.remove(), 300);
+    }
   }, duration);
 }
 
@@ -176,27 +143,25 @@ function showNotification(message, type = 'info', duration = 3000) {
  */
 function updateScannerStatus(message, type = 'info') {
   const statusDiv = document.getElementById('scannerStatus');
+  if (!statusDiv) return;
+  
+  statusDiv.className = `alert alert-${type} mt-4`;
+  statusDiv.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+    </svg>
+    <span>${message}</span>
+  `;
+  statusDiv.style.display = 'block';
+}
+
+/**
+ * Hide scanner status
+ */
+function hideScannerStatus() {
+  const statusDiv = document.getElementById('scannerStatus');
   if (statusDiv) {
-    const colors = {
-      success: { bg: '#d4edda', border: '#28a745', text: '#155724' },
-      info: { bg: '#e7f3ff', border: '#0056b3', text: '#004085' },
-      warning: { bg: '#fff3cd', border: '#856404', text: '#856404' },
-      error: { bg: '#f8d7da', border: '#dc3545', text: '#721c24' }
-    };
-    
-    const color = colors[type] || colors.info;
-    
-    statusDiv.innerHTML = `
-      <div style="text-align: center; padding: 15px;">
-        <h4 style="color: ${color.text}; margin-bottom: 10px;">🔍 Scanner Active</h4>
-        <p style="margin-bottom: 15px;">
-          ${message}
-        </p>
-      </div>
-    `;
-    statusDiv.style.background = color.bg;
-    statusDiv.style.border = `2px solid ${color.border}`;
-    statusDiv.style.display = 'block';
+    statusDiv.style.display = 'none';
   }
 }
 
@@ -308,46 +273,129 @@ function focusOnISBNField() {
 /**
  * Update scanner button state
  */
-function updateScannerButton(text, className, disabled = false) {
+function updateScannerButton(isScanning = false) {
   const scannerBtn = document.getElementById('scannerBtn');
-  if (scannerBtn) {
-    scannerBtn.textContent = text;
-    scannerBtn.className = className;
-    scannerBtn.disabled = disabled;
+  if (!scannerBtn) return;
+  
+  if (isScanning) {
+    scannerBtn.innerHTML = '🛑 Stop Scanner';
+    scannerBtn.className = 'btn btn-error btn-lg';
+    scannerBtn.onclick = () => {
+      if (typeof stopScanner === 'function') {
+        stopScanner();
+      }
+    };
+  } else {
+    scannerBtn.innerHTML = '📷 Scan Barcode';
+    scannerBtn.className = 'btn btn-primary btn-lg';
+    scannerBtn.onclick = () => {
+      if (typeof handleScannerButtonClick === 'function') {
+        handleScannerButtonClick();
+      }
+    };
   }
 }
 
 /**
- * Show/hide scanner container
+ * Show scanner viewport
  */
-function toggleScannerContainer(show = true) {
-  const scannerDiv = document.getElementById('scanner');
-  if (scannerDiv) {
-    scannerDiv.style.display = show ? 'block' : 'none';
+function showScannerViewport() {
+  const scanner = document.getElementById('scanner');
+  if (scanner) {
+    scanner.classList.remove('hidden');
+    scanner.classList.add('block');
   }
 }
 
 /**
- * Show/hide status container
+ * Hide scanner viewport
  */
-function toggleStatusContainer(show = true) {
-  const statusDiv = document.getElementById('scannerStatus');
-  if (statusDiv) {
-    statusDiv.style.display = show ? 'block' : 'none';
+function hideScannerViewport() {
+  const scanner = document.getElementById('scanner');
+  if (scanner) {
+    scanner.classList.add('hidden');
+    scanner.classList.remove('block');
   }
 }
 
-// Export UI functions
+/**
+ * Update book cover preview
+ */
+function updateBookCover(coverUrl) {
+  const coverImg = document.getElementById('coverPreviewImg');
+  if (coverImg && coverUrl) {
+    coverImg.src = coverUrl;
+  }
+}
+
+/**
+ * Fill form fields with book data
+ */
+function fillBookForm(bookData) {
+  if (!bookData) return;
+  
+  const fields = {
+    'title': bookData.title,
+    'author': bookData.author,
+    'publisher': bookData.publisher,
+    'publication_date': bookData.published_date,
+    'pages': bookData.page_count,
+    'language': bookData.language,
+    'format': bookData.format,
+    'description': bookData.description
+  };
+  
+  Object.entries(fields).forEach(([fieldName, value]) => {
+    const field = document.getElementById(fieldName);
+    if (field && value) {
+      field.value = value;
+    }
+  });
+  
+  // Update cover if available
+  if (bookData.cover) {
+    updateBookCover(bookData.cover);
+  }
+}
+
+/**
+ * Show loading state for fetch button
+ */
+function showFetchLoading() {
+  const fetchBtn = document.getElementById('fetchBtn');
+  if (fetchBtn) {
+    fetchBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Fetching...';
+    fetchBtn.disabled = true;
+  }
+}
+
+/**
+ * Reset fetch button state
+ */
+function resetFetchButton() {
+  const fetchBtn = document.getElementById('fetchBtn');
+  if (fetchBtn) {
+    fetchBtn.innerHTML = '🔍 Fetch Book Data';
+    fetchBtn.disabled = false;
+  }
+}
+
+// Export functions to global scope
 window.ScannerUI = {
   setupMobileOptimizations,
   setupMobileFocusDetection,
   showNotification,
   updateScannerStatus,
+  hideScannerStatus,
   showBarcodeDetectorDiagnostics,
   focusOnISBNField,
   updateScannerButton,
-  toggleScannerContainer,
-  toggleStatusContainer
+  showScannerViewport,
+  hideScannerViewport,
+  updateBookCover,
+  fillBookForm,
+  showFetchLoading,
+  resetFetchButton
 };
 
 // Make showNotification available globally for other modules

@@ -3,525 +3,194 @@
 {% block title %}Add Book - MyBibliotheca{% endblock %}
 
 {% block content %}
-
-<style>
-  :root {
-    --primary-brown: #8B4513;
-    --light-brown: #D2B48C;
-    --cream: #F5F5DC;
-    --warm-white: #FEFEFE;
-    --gold: #DAA520;
-    --shadow: rgba(0,0,0,0.1);
-    --hover-shadow: rgba(0,0,0,0.2);
-  }
-  .library-header {
-    background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
-    color: white;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    border-radius: 15px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .library-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
-    opacity: 0.3;
-  }
-  .library-header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    position: relative;
-    z-index: 1;
-  }
-  .form-container {
-    background: var(--cream);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 8px 25px var(--shadow);
-    border: 3px solid var(--light-brown);
-  }
-  .scanner-section {
-    background: var(--warm-white);
-    border: 2px solid var(--light-brown);
-    border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    text-align: center;
-  }
-  .scanner-buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    margin-bottom: 1rem;
-  }
-  .btn-scan {
-    background: linear-gradient(135deg, var(--primary-brown), var(--light-brown));
-    border: none;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
-  }
-  .btn-scan:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
-    color: white;
-  }
-  .btn-stop {
-    background: linear-gradient(135deg, #dc3545, #c82333);
-    border: none;
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 10px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
-  }
-  .btn-stop:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
-    color: white;
-  }
-  #scanner {
-    border: 3px solid var(--primary-brown) !important;
-    border-radius: 15px !important;
-    margin: 1rem auto !important;
-    box-shadow: 0 8px 25px var(--shadow) !important;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-  }
-  #scanner-overlay {
-    border: 3px solid var(--gold) !important;
-    box-shadow: 0 0 20px rgba(218, 165, 32, 0.6);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0% { box-shadow: 0 0 20px rgba(218, 165, 32, 0.6); }
-    50% { box-shadow: 0 0 30px rgba(218, 165, 32, 0.8); }
-    100% { box-shadow: 0 0 20px rgba(218, 165, 32, 0.6); }
-  }
-  .form-group {
-    margin-bottom: 1.5rem;
-  }
-  .form-group label {
-    display: block;
-    font-weight: 600;
-    color: var(--primary-brown);
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-  }
-  .form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 2px solid var(--light-brown);
-    border-radius: 10px;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    background: var(--warm-white);
-  }
-  .form-control:focus {
-    outline: none;
-    border-color: var(--gold);
-    box-shadow: 0 0 15px rgba(218, 165, 32, 0.3);
-  }
-  .btn-fetch {
-    background: linear-gradient(135deg, var(--gold), #B8860B);
-    border: none;
-    color: white;
-    padding: 0.75rem 2rem;
-    border-radius: 10px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(218, 165, 32, 0.3);
-    margin-bottom: 1.5rem;
-  }
-  .btn-fetch:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(218, 165, 32, 0.4);
-    color: white;
-  }
-  .book-cover-preview {
-    text-align: center;
-    margin: 2rem 0;
-    padding: 1.5rem;
-    background: var(--warm-white);
-    border: 2px solid var(--light-brown);
-    border-radius: 15px;
-  }
-  .book-cover-preview img {
-    max-height: 200px;
-    border-radius: 10px;
-    box-shadow: 0 8px 25px var(--shadow);
-  }
-  .checkbox-group {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin: 2rem 0;
-    background: var(--warm-white);
-    padding: 1.5rem;
-    border-radius: 15px;
-    border: 2px solid var(--light-brown);
-  }
-  .checkbox-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-size: 1.1rem;
-    color: var(--primary-brown);
-    font-weight: 500;
-  }
-  .checkbox-item input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    accent-color: var(--primary-brown);
-  }
-  .btn-submit {
-    background: linear-gradient(135deg, var(--primary-brown), var(--light-brown));
-    border: none;
-    color: white;
-    padding: 1rem 3rem;
-    border-radius: 15px;
-    font-weight: 700;
-    font-size: 1.2rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
-    width: 100%;
-    margin: 2rem 0 1rem 0;
-  }
-  .btn-submit:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(139, 69, 19, 0.4);
-    color: white;
-  }
-  .back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--primary-brown);
-    text-decoration: none;
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    border: 2px solid var(--light-brown);
-    border-radius: 10px;
-    transition: all 0.3s ease;
-    background: var(--warm-white);
-  }
-  .back-link:hover {
-    background: var(--light-brown);
-    color: white;
-    transform: translateX(-5px);
-  }
-  .row {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-  .col-md-6 {
-    flex: 1;
-    min-width: 250px;
-  }
-  @media (max-width: 768px) {
-    .scanner-buttons {
-      flex-direction: column;
-      align-items: center;
-    }
-    .row {
-      flex-direction: column;
-    }
-    .library-header h1 {
-      font-size: 2rem;
-    }
-    #scanner {
-      height: 350px !important;
-      max-width: 100% !important;
-      margin: 1rem 0 !important;
-    }
-    .btn-scan, .btn-stop, .btn-fetch {
-      min-height: 44px;
-      min-width: 44px;
-      font-size: 1rem;
-    }
-    /* Better mobile scanner positioning */
-    #scanner-overlay {
-      width: 90% !important;
-      height: 50% !important;
-    }
-  }
-  /* Floating Notification System */
-  .floating-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 12px 20px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 600;
-    z-index: 9999;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  }
-  .floating-notification.show {
-    transform: translateX(0);
-  }
-  .floating-notification.success {
-    background: linear-gradient(135deg, #28a745, #20c997);
-  }
-  .floating-notification.error {
-    background: linear-gradient(135deg, #dc3545, #c82333);
-  }
-  .floating-notification.warning {
-    background: linear-gradient(135deg, #ffc107, #e0a800);
-    color: #212529;
-  }
-  .floating-notification.info {
-    background: linear-gradient(135deg, #17a2b8, #138496);
-  }
-  @media (max-width: 768px) {
-  }
-</style>
-
-<div class="library-header">
-  <h1>📚 Add New Book</h1>
-  <p class="mb-0">Scan, search, or manually add books to your library</p>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-5xl font-bold mb-4">📚 Add New Book</h1>
+      <p class="text-xl opacity-90">Scan, search, or manually add books to your library</p>
+    </div>
+  </div>
 </div>
 
-<!-- Floating Notification Container -->
-<div id="notification-container"></div>
-
-<div class="form-container">
-  <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    
-    <!-- Scanner Section -->
-    <div class="scanner-section">
-      <h4 style="color: var(--primary-brown); margin-bottom: 1rem;">📱 Barcode Scanner</h4>
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <form method="post" class="space-y-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       
-      <div style="
-        background: #e7f3ff;
-        border: 1px solid #b3d9ff;
-        border-radius: 8px;
-        padding: 10px;
-        margin-bottom: 1rem;
-        font-size: 0.9rem;
-        color: #0056b3;
-      ">
-        <strong>💡 Scanner Tips:</strong><br>
-        • <strong>Native App:</strong> Best experience with automatic scanning<br>
-        • <strong>Browser:</strong> Works but may be slower on mobile devices<br>
-        • <strong>Manual Mode:</strong> Use camera to view barcode, then enter ISBN manually
-      </div>
-      
-      <div class="scanner-buttons">
-        <button type="button" class="btn-scan" onclick="handleScannerButtonClick()" id="scannerBtn">
-          📷 Scan Barcode
-        </button>
-      </div>
-      
-      <!-- Scanner viewport -->
-      <div id="scanner" style="
-        width: 100%;
-        max-width: 400px;
-        height: 300px;
-        margin: 1rem auto;
-        position: relative;
-        display: none;
-        background: #000;
-        border-radius: 15px;
-        overflow: hidden;
-      ">
-        <video id="scanner-video" style="
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          border-radius: 15px;
-        " autoplay playsinline muted></video>
-        
-        <div id="scanner-overlay" style="
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 200px;
-          height: 200px;
-          border: 3px solid var(--gold);
-          border-radius: 15px;
-          pointer-events: none;
-          box-shadow: 0 0 20px rgba(218, 165, 32, 0.6);
-          animation: pulse 2s infinite;
-          "></div>
-      </div>
-      
-      <!-- Scanner Status -->
-      <div id="scannerStatus" style="
-        margin-top: 1rem;
-        padding: 0.75rem;
-        border-radius: 10px;
-            display: none;
-        font-weight: 600;
-          "></div>
-      
-      <!-- Debug Panel (for native app debugging) -->
-      {% if debug_enabled %}
-      <div id="debugPanel" style="
-        margin-top: 1rem;
-        padding: 0.75rem;
-        border-radius: 10px;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        font-family: monospace;
-        font-size: 0.9rem;
-        display: none;
-        max-height: 200px;
-        overflow-y: auto;
-      ">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-          <strong>🔍 Debug Log</strong>
-          <button onclick="clearDebugLog()" style="
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            cursor: pointer;
-          ">Clear</button>
+      <!-- Scanner Section -->
+      <div class="card bg-base-200 border-2 border-primary/20">
+        <div class="card-body">
+          <h3 class="card-title text-primary mb-4">
+            📱 Barcode Scanner
+          </h3>
+          
+          <!-- Scanner Tips -->
+          <div class="alert alert-info mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <h4 class="font-bold">Scanner Tips</h4>
+              <div class="text-sm">
+                <p><strong>Native App:</strong> Best experience with automatic scanning</p>
+                <p><strong>Browser:</strong> Works but may be slower on mobile devices</p>
+                <p><strong>Manual Mode:</strong> Use camera to view barcode, then enter ISBN manually</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Scanner Button -->
+          <div class="flex justify-center mb-4">
+            <button type="button" class="btn btn-primary btn-lg" onclick="handleScannerButtonClick()" id="scannerBtn">
+              📷 Scan Barcode
+            </button>
+          </div>
+          
+          <!-- Scanner Viewport -->
+          <div id="scanner" class="hidden w-full max-w-md h-80 mx-auto relative bg-black rounded-box overflow-hidden">
+            <video id="scanner-video" class="w-full h-full object-cover rounded-box" autoplay playsinline muted></video>
+            <div id="scanner-overlay" class="scanner-overlay absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 rounded-box pointer-events-none"></div>
+          </div>
+          
+          <!-- Scanner Status -->
+          <div id="scannerStatus" class="hidden mt-4"></div>
         </div>
-        <div id="debugContent"></div>
       </div>
-      {% endif %}
-    </div>
 
-    <!-- ISBN and Fetch Section -->
-    <div class="form-group">
-      <label for="isbn">📖 ISBN Number</label>
-      <input id="isbn" name="isbn" class="form-control" value="{{ request.form.isbn or '' }}" 
-             type="text" pattern="[0-9\-]+" title="Enter a valid ISBN (digits and hyphens only)"
-             placeholder="Enter ISBN or scan barcode above">
-      <button id="fetchBtn" name="fetch" value="1" type="button" class="btn-fetch mt-2">
-        🔍 Fetch Book Data
-      </button>
-    </div>
+      <!-- ISBN and Fetch Section -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text text-lg font-semibold">📖 ISBN Number</span>
+        </label>
+        <div class="join w-full">
+          <input id="isbn" name="isbn" class="input input-bordered join-item flex-1" 
+                 value="{{ request.form.isbn or '' }}" 
+                 type="text" pattern="[0-9\-]+" title="Enter a valid ISBN (digits and hyphens only)"
+                 placeholder="Enter ISBN or scan barcode above">
+          <button id="fetchBtn" name="fetch" value="1" type="button" class="btn btn-secondary join-item">
+            🔍 Fetch Book Data
+          </button>
+        </div>
+      </div>
 
-    <!-- Book Details -->
-    <div class="row">
-      <div class="col-md-6">
-        <div class="form-group">
-          <label for="title">📚 Title</label>
-          <input id="title" name="title" class="form-control" 
+      <!-- Book Details -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📚 Title</span>
+          </label>
+          <input id="title" name="title" class="input input-bordered" 
                  value="{{ book_data.title if book_data else request.form.title or '' }}"
                  placeholder="Enter book title">
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="form-group">
-          <label for="author">✍️ Author</label>
-          <input id="author" name="author" class="form-control" 
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">✍️ Author</span>
+          </label>
+          <input id="author" name="author" class="input input-bordered" 
                  value="{{ book_data.author if book_data else request.form.author or '' }}"
                  placeholder="Enter author name">
         </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="form-group">
-          <label for="publisher">🏢 Publisher</label>
-          <input id="publisher" name="publisher" class="form-control" 
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">🏢 Publisher</span>
+          </label>
+          <input id="publisher" name="publisher" class="input input-bordered" 
                  value="{{ book_data.publisher if book_data else request.form.publisher or '' }}"
                  placeholder="Enter publisher name">
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="form-group">
-          <label for="publication_date">📅 Publication Date</label>
-          <input id="publication_date" name="publication_date" class="form-control" 
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📅 Publication Date</span>
+          </label>
+          <input id="publication_date" name="publication_date" class="input input-bordered" 
                  value="{{ book_data.published_date if book_data else request.form.publication_date or '' }}"
                  placeholder="Enter publication date">
         </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="form-group">
-          <label for="pages">📄 Pages</label>
-          <input id="pages" name="pages" class="form-control" 
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📄 Pages</span>
+          </label>
+          <input id="pages" name="pages" class="input input-bordered" 
                  value="{{ book_data.page_count if book_data else request.form.pages or '' }}"
                  placeholder="Enter number of pages">
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="form-group">
-          <label for="language">🌐 Language</label>
-          <input id="language" name="language" class="form-control" 
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">🌐 Language</span>
+          </label>
+          <input id="language" name="language" class="input input-bordered" 
                  value="{{ book_data.language if book_data else request.form.language or '' }}"
                  placeholder="Enter language">
         </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-md-6">
-        <div class="form-group">
-          <label for="format">📦 Format</label>
-          <input id="format" name="format" class="form-control" 
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📦 Format</span>
+          </label>
+          <input id="format" name="format" class="input input-bordered" 
                  value="{{ book_data.format if book_data else request.form.format or '' }}"
                  placeholder="Enter format (optional)">
         </div>
-      </div>
-      <div class="col-md-6">
-        <div class="form-group">
-          <label for="description">📝 Description</label>
-          <textarea id="description" name="description" class="form-control" rows="3"
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📝 Description</span>
+          </label>
+          <textarea id="description" name="description" class="textarea textarea-bordered h-24"
                     placeholder="Enter book description">{{ book_data.description if book_data else request.form.description or '' }}</textarea>
         </div>
       </div>
+
+      <!-- Book Cover Preview -->
+      <div class="card bg-base-200">
+        <div class="card-body text-center">
+          <h3 class="card-title text-primary mb-4">📸 Book Cover</h3>
+          <img id="coverPreviewImg" 
+               src="{{ book_data.cover if book_data and book_data.cover else url_for('static', filename='bookshelf.png') }}" 
+               alt="Book Cover" 
+               class="max-h-56 rounded-box shadow-lg mx-auto">
+        </div>
+      </div>
+
+      <!-- Reading Options -->
+      <div class="card bg-base-200">
+        <div class="card-body">
+          <h3 class="card-title text-primary mb-4">⚙️ Reading Options</h3>
+          <div class="space-y-4">
+            <label class="label cursor-pointer justify-start gap-4">
+              <input type="checkbox" name="want_to_read" class="checkbox checkbox-primary" 
+                     {% if request.form.want_to_read %}checked{% endif %}>
+              <span class="label-text text-lg">📋 Want to Read (Add to reading list)</span>
+            </label>
+            <label class="label cursor-pointer justify-start gap-4">
+              <input type="checkbox" name="library_only" class="checkbox checkbox-primary" 
+                     {% if request.form.library_only %}checked{% endif %}>
+              <span class="label-text text-lg">📚 Library Only (Reference/Collection)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="flex justify-center">
+        <button type="submit" name="add" class="btn btn-primary btn-lg btn-wide">
+          ➕ Add Book to Library
+        </button>
+      </div>
+    </form>
+
+    <!-- Back Link -->
+    <div class="text-center mt-8">
+      <a href="{{ url_for('main.index') }}" class="btn btn-outline btn-wide">
+        ⬅️ Back to Library
+      </a>
     </div>
-
-    <!-- Book Cover Preview (always visible) -->
-    <div class="book-cover-preview" style="text-align:center; margin-bottom:1rem;">
-      <h5 style="color: var(--primary-brown); margin-bottom: 1rem;">📸 Book Cover</h5>
-      <img id="coverPreviewImg" src="{{ book_data.cover if book_data and book_data.cover else url_for('static', filename='bookshelf.png') }}" alt="Book Cover" class="img-fluid" style="max-height:220px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.15);">
-    </div>
-
-    <!-- Options -->
-    <div class="checkbox-group">
-      <h5 style="color: var(--primary-brown); margin-bottom: 1rem;">⚙️ Reading Options</h5>
-      <label class="checkbox-item">
-        <input type="checkbox" name="want_to_read" {% if request.form.want_to_read %}checked{% endif %}>
-        <span>📋 Want to Read (Add to reading list)</span>
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" name="library_only" {% if request.form.library_only %}checked{% endif %}>
-        <span>📚 Library Only (Reference/Collection)</span>
-      </label>
-    </div>
-
-    <!-- Submit Button -->
-    <button type="submit" name="add" class="btn-submit">
-      ➕ Add Book to Library
-    </button>
-  </form>
-
-  <!-- Back Link -->
-  <div style="text-align: center; margin-top: 1rem;">
-    <a href="{{ url_for('main.index') }}" class="back-link">
-      ⬅️ Back to Library
-    </a>
   </div>
 </div>
 
@@ -537,17 +206,15 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Initialize mobile optimizations if available
   if (typeof setupMobileOptimizations === 'function') {
     setupMobileOptimizations();
   }
   
-  // Test if scanner functions are available
-  console.log('[Page Load] Scanner functions availability:', {
-    handleSuccessfulScan: typeof window.handleSuccessfulScan,
-    autofetchBookData: typeof window.autofetchBookData,
-    ScannerModule: typeof window.ScannerModule,
-    NativeScanner: typeof window.NativeScanner
-  });
+  // Initialize scanner functions
+  if (typeof importModuleFunctions === 'function') {
+    importModuleFunctions();
+  }
 });
 </script>
 {% endblock %}

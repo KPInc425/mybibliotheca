@@ -11,7 +11,9 @@
  * - NativeScanner: Native Capacitor scanning
  */
 
-// Import functions from other modules when they're available
+/**
+ * Import functions from other modules when they're available
+ */
 function importModuleFunctions() {
   // Import from ScannerCore
   if (window.ScannerCore) {
@@ -19,30 +21,36 @@ function importModuleFunctions() {
     window.stopScanner = window.ScannerCore.stopScanner;
     window.handleScannerButtonClick = window.ScannerCore.handleScannerButtonClick;
     window.resetToIdle = window.ScannerCore.resetToIdle;
-    window.debugLog = window.ScannerCore.debugLog;
-    window.clearDebugLog = window.ScannerCore.clearDebugLog;
+    window.handleScanDetection = window.ScannerCore.handleScanDetection;
+    window.handleScanError = window.ScannerCore.handleScanError;
   }
   
   // Import from ScannerZXing
   if (window.ScannerZXing) {
     window.startBrowserScanner = window.ScannerZXing.startBrowserScanner;
-    window.stopZXingScanner = window.ScannerZXing.stopZXingScanner;
+    window.stopBrowserScanner = window.ScannerZXing.stopBrowserScanner;
+    window.isBrowserScannerAvailable = window.ScannerZXing.isBrowserScannerAvailable;
   }
   
   // Import from ScannerUI
   if (window.ScannerUI) {
-    window.setupMobileOptimizations = window.ScannerUI.setupMobileOptimizations;
-    window.setupMobileFocusDetection = window.ScannerUI.setupMobileFocusDetection;
     window.showNotification = window.ScannerUI.showNotification;
     window.updateScannerStatus = window.ScannerUI.updateScannerStatus;
-    window.showBarcodeDetectorDiagnostics = window.ScannerUI.showBarcodeDetectorDiagnostics;
-    window.focusOnISBNField = window.ScannerUI.focusOnISBNField;
+    window.hideScannerStatus = window.ScannerUI.hideScannerStatus;
+    window.updateScannerButton = window.ScannerUI.updateScannerButton;
+    window.showScannerViewport = window.ScannerUI.showScannerViewport;
+    window.hideScannerViewport = window.ScannerUI.hideScannerViewport;
+    window.updateBookCover = window.ScannerUI.updateBookCover;
+    window.fillBookForm = window.ScannerUI.fillBookForm;
+    window.showFetchLoading = window.ScannerUI.showFetchLoading;
+    window.resetFetchButton = window.ScannerUI.resetFetchButton;
   }
   
   // Import from ScannerData
   if (window.ScannerData) {
     window.autofetchBookData = window.ScannerData.autofetchBookData;
     window.handleSuccessfulScan = window.ScannerData.handleSuccessfulScan;
+    window.handleScanError = window.ScannerData.handleScanError;
   }
   
   // Import from ScannerUtils (fallback implementations)
@@ -121,42 +129,58 @@ function importModuleFunctions() {
   // Import from NativeScanner
   if (window.NativeScanner) {
     window.startNativeScanner = window.NativeScanner.startNativeScanner;
-    window.logScannerStatus = window.NativeScanner.logScannerStatus;
-    window.isNativeScannerAvailable = window.NativeScanner.isNativeScannerAvailable;
+    window.stopNativeScanner = window.NativeScanner.stopNativeScanner;
   }
 }
 
-// Initialize scanner when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('[Scanner] Initializing scanner modules...');
-  
-  // Import functions from all modules
+/**
+ * Initialize scanner system
+ */
+function initializeScanner() {
+  // Import functions from modules
   importModuleFunctions();
   
-  // Setup mobile optimizations if UI module is available
-  if (window.setupMobileOptimizations) {
-    window.setupMobileOptimizations();
+  // Setup mobile optimizations
+  if (window.ScannerUI && window.ScannerUI.setupMobileOptimizations) {
+    window.ScannerUI.setupMobileOptimizations();
   }
   
-  // Initialize scanner state
-  if (window.ScannerCore) {
-    window.ScannerCore.scannerState = 'idle';
-    if (window.debugLog) {
-      window.debugLog('[DOMContentLoaded] Scanner state initialized to idle');
-    }
+  // Initialize data module
+  if (window.ScannerData && window.ScannerData.initializeDataModule) {
+    window.ScannerData.initializeDataModule();
   }
   
-  console.log('[Scanner] Scanner modules initialized');
-});
+  // Check scanner availability
+  const isAvailable = window.ScannerCore && window.ScannerCore.isScannerAvailable();
+  
+  if (!isAvailable) {
+    console.warn('No scanner available - native or browser scanner not detected');
+  }
+}
 
-// Export main scanner module for backward compatibility
-window.ScannerModule = {
-  startSmartScanner: window.startSmartScanner,
-  stopScanner: window.stopScanner,
-  handleScannerButtonClick: window.handleScannerButtonClick,
-  resetToIdle: window.resetToIdle
-};
+/**
+ * Get scanner system status
+ */
+function getScannerSystemStatus() {
+  return {
+    core: window.ScannerCore ? window.ScannerCore.getScannerState() : 'unavailable',
+    native: window.NativeScanner ? 'available' : 'unavailable',
+    browser: window.ScannerZXing ? window.ScannerZXing.getBrowserScannerStatus() : 'unavailable',
+    ui: window.ScannerUI ? 'available' : 'unavailable',
+    data: window.ScannerData ? 'available' : 'unavailable'
+  };
+}
 
-// Export setupMobileOptimizations for backward compatibility
-window.setupMobileOptimizations = window.setupMobileOptimizations;
-window.autofetchBookData = window.autofetchBookData; 
+// Initialize when DOM is loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeScanner);
+} else {
+  initializeScanner();
+}
+
+// Export main scanner functions
+window.Scanner = {
+  initializeScanner,
+  importModuleFunctions,
+  getScannerSystemStatus
+}; 
