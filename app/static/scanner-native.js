@@ -55,21 +55,6 @@ async function startNativeScanner() {
       const barcode = barcodes[0];
       logScannerStatus(`✅ Barcode detected: ${barcode.rawValue}`, 'success');
       
-      // Debug: Log the barcode details to see what format is being reported
-      console.log('[Native Scanner] Barcode details:', {
-        rawValue: barcode.rawValue,
-        format: barcode.format,
-        type: barcode.type
-      });
-      
-      // Temporarily disable validation to see if that's the issue
-      // const isValidISBN = window.isValidISBNCode ? window.isValidISBNCode(barcode.rawValue, barcode.format) : true;
-      // if (!isValidISBN) {
-      //   logScannerStatus(`❌ Invalid ISBN format: ${barcode.rawValue} (${barcode.format})`, 'warning');
-      //   showNotification('Invalid ISBN format detected. Please scan a valid book barcode.', 'warning', 3000);
-      //   return;
-      // }
-      
       // Fill in the ISBN field
       const isbnField = document.getElementById('isbn');
       if (isbnField) {
@@ -110,12 +95,6 @@ async function startNativeScanner() {
       logScannerStatus('No barcode detected', 'info');
     }
     
-    // Always reset scanner state to idle after completion
-    if (window.scannerState) {
-      window.scannerState = 'idle';
-      console.log('[Native Scanner] Reset scanner state to idle');
-    }
-    
   } catch (error) {
     // Check if this is a user cancellation
     const errorMessage = error.message || error.toString();
@@ -132,20 +111,10 @@ async function startNativeScanner() {
     
     if (isCancellation) {
       logScannerStatus('Scan cancelled by user', 'info');
-      // Reset scanner state to idle after cancellation
-      if (window.scannerState) {
-        window.scannerState = 'idle';
-        console.log('[Native Scanner] Reset scanner state to idle after cancellation');
-      }
       // Don't throw error for cancellation - just return normally
       return;
     } else {
       logScannerStatus(`Native scanner error: ${error.message}`, 'error');
-      // Reset scanner state to idle after error
-      if (window.scannerState) {
-        window.scannerState = 'idle';
-        console.log('[Native Scanner] Reset scanner state to idle after error');
-      }
       throw error; // Re-throw actual errors to trigger fallback
     }
   }
