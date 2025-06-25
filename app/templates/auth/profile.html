@@ -3,94 +3,88 @@
 {% block title %}User Profile - MyBibliotheca{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2><i class="bi bi-person"></i> User Profile</h2>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-4xl font-bold mb-4">👤 User Profile</h1>
+      <p class="text-xl opacity-90">Manage your account settings</p>
     </div>
+  </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h3>Profile Information</h3>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="mb-3">
-                        {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
-                        {% if form.username.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.username.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
-                        {% if form.email.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.email.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.submit(class="btn btn-primary") }}
-                    </div>
-                </form>
-            </div>
-        </div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <div class="lg:col-span-2">
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-primary mb-6">Profile Information</h2>
+        <form method="post" class="space-y-6">
+          {{ form.hidden_tag() }}
+          <div>
+            {{ form.username.label(class="label label-text font-semibold") }}
+            {{ form.username(class="input input-bordered w-full" + (" input-error" if form.username.errors else "")) }}
+            {% if form.username.errors %}
+              <div class="text-error text-sm mt-1">
+                {% for error in form.username.errors %}
+                  <span>{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div>
+            {{ form.email.label(class="label label-text font-semibold") }}
+            {{ form.email(class="input input-bordered w-full" + (" input-error" if form.email.errors else "")) }}
+            {% if form.email.errors %}
+              <div class="text-error text-sm mt-1">
+                {% for error in form.email.errors %}
+                  <span>{{ error }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div>
+            {{ form.submit(class="btn btn-primary") }}
+          </div>
+        </form>
+      </div>
     </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5>Account Info</h5>
-            </div>
-            <div class="card-body">
-                <p><strong>Member since:</strong> {{ current_user.created_at.strftime('%B %d, %Y') }}</p>
-                <p><strong>Status:</strong> 
-                    {% if current_user.is_admin %}
-                        <span class="badge bg-danger">Administrator</span>
-                    {% else %}
-                        <span class="badge bg-primary">User</span>
-                    {% endif %}
-                </p>
-                <p><strong>Books in library:</strong> {{ current_user.books|length }}</p>
-                <p><strong>Reading logs:</strong> {{ current_user.reading_logs|length }}</p>
-            </div>
+  </div>
+  <div class="lg:col-span-1 flex flex-col gap-6">
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h3 class="card-title text-primary mb-4">Account Info</h3>
+        <div class="space-y-3">
+          <p><span class="font-semibold">Member since:</span> {{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+          <p><span class="font-semibold">Status:</span>
+            {% if current_user.is_admin %}
+              <span class="badge badge-error">Administrator</span>
+            {% else %}
+              <span class="badge badge-primary">User</span>
+            {% endif %}
+          </p>
+          <p><span class="font-semibold">Books in library:</span> {{ current_user.books|length }}</p>
+          <p><span class="font-semibold">Reading logs:</span> {{ current_user.reading_logs|length }}</p>
         </div>
-        
-        {% if current_user.is_admin %}
-        <div class="card mt-3">
-            <div class="card-header">
-                <h5>🔧 Debug Settings</h5>
-            </div>
-            <div class="card-body">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="debug_mode" 
-                           {% if current_user.debug_enabled %}checked{% endif %}
-                           onchange="toggleDebugMode()">
-                    <label class="form-check-label" for="debug_mode">
-                        🔍 Enable Debug Mode
-                    </label>
-                    <small class="form-text text-muted d-block">
-                        Show debug information in the barcode scanner interface for troubleshooting
-                    </small>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+      </div>
     </div>
+    {% if current_user.is_admin %}
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h3 class="card-title text-primary mb-4">🔧 Debug Settings</h3>
+        <div class="flex items-center gap-3">
+          <input class="toggle toggle-primary" type="checkbox" id="debug_mode" 
+                 {% if current_user.debug_enabled %}checked{% endif %}
+                 onchange="toggleDebugMode()">
+          <div>
+            <label class="font-semibold" for="debug_mode">🔍 Enable Debug Mode</label>
+            <p class="text-sm text-base-content/60">
+              Show debug information in the barcode scanner interface for troubleshooting
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
 </div>
 
 <script>

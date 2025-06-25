@@ -1,1009 +1,63 @@
 {% extends "base.html" %}
 {% block title %}MyBibliotheca - Your Personal Library{% endblock %}
+
 {% block content %}
-<!-- Update your CSS styles -->
-<style>
-  :root {
-    --primary-brown: #8B4513;
-    --light-brown: #D2B48C;
-    --cream: #F5F5DC;
-    --warm-white: #FEFEFE;
-    --gold: #DAA520;
-    --shadow: rgba(0,0,0,0.1);
-    --hover-shadow: rgba(0,0,0,0.2);
-  }
-
-  .container {
-    max-width: 75vw !important;
-    width: 100% !important;
-    margin: 0 auto !important;
-  }
-
-  .book-cover-shelf {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    transition: transform 0.3s ease, opacity 0.3s ease;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-    image-rendering: pixelated;
-    transform: translateZ(0);
-    will-change: transform;
-    backface-visibility: hidden;
-    background: #f8f8f8;
-    border-radius: 4px;
-    opacity: 1; /* Always visible by default */
-  }
-
-  /* Enhanced mobile-first responsive grid */
-  .books-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 16px;
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    transform: translateZ(0);
-    will-change: contents;
-  }
-
-  .book-card {
-    background: var(--cream);
-    border: 2px solid var(--light-brown);
-    border-radius: 8px;
-    padding: 0.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    min-height: 280px;
-    max-width: 200px;
-    margin: 0 auto;
-    transform: translateZ(0);
-    will-change: transform, box-shadow, border-color;
-    backface-visibility: hidden;
-  }
-
-  .book-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(145deg, transparent 0%, rgba(218, 165, 32, 0.1) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    transform: translateZ(0);
-  }
-
-  .book-card:hover {
-    transform: translateY(-4px) scale(1.02) translateZ(0);
-    box-shadow: 0 8px 20px var(--hover-shadow);
-    border-color: var(--gold);
-  }
-
-  .book-card:hover::before {
-    opacity: 1;
-  }
-
-  .book-cover-wrapper {
-    position: relative;
-    margin-bottom: 0.5rem;
-    border-radius: 6px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    aspect-ratio: 3/4;
-    width: 100%;
-    height: 160px;
-    transform: translateZ(0);
-    will-change: transform;
-    background: #f8f8f8; /* Light background for loading state */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* Loading state for images */
-  .book-cover-wrapper::before {
-    content: '📚';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2rem;
-    opacity: 0.3;
-    z-index: 1;
-    pointer-events: none;
-  }
-
-  .book-cover-wrapper img {
-    position: relative;
-    z-index: 2;
-  }
-
-  /* Hide placeholder when image loads */
-  .book-cover-wrapper img:not([src=""]):not([src*="bookshelf.png"]) + ::before {
-    display: none;
-  }
-
-  .book-card:hover .book-cover-shelf {
-    transform: scale(1.02) translateZ(0);
-  }
-
-  .book-info {
-    position: relative;
-    z-index: 2;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 0.25rem 0;
-  }
-
-  .book-title {
-    font-size: 0.75rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-    line-height: 1.2;
-    color: var(--primary-brown);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    height: 2.4em;
-  }
-
-  .book-title a {
-    text-decoration: none;
-    color: inherit;
-    transition: color 0.3s ease;
-  }
-
-  .book-title a:hover {
-    color: var(--gold);
-  }
-
-  .book-author {
-    font-size: 0.65rem;
-    color: #666;
-    margin-bottom: 0.5rem;
-    font-style: italic;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .book-meta {
-    margin-bottom: 0.5rem;
-    flex-grow: 1;
-  }
-
-  .category-badges {
-    margin-bottom: 0.25rem;
-  }
-
-  .category-badge {
-    background: var(--light-brown) !important;
-    color: var(--primary-brown) !important;
-    font-size: clamp(0.4rem, 0.7vw, 0.55rem) !important;
-    padding: clamp(1px, 0.2vw, 2px) clamp(2px, 0.4vw, 4px) !important;
-    border-radius: clamp(4px, 0.8vw, 8px) !important;
-    margin: clamp(0.5px, 0.1vw, 1px);
-    border: 1px solid var(--primary-brown);
-    display: inline-block;
-    line-height: 1;
-    white-space: nowrap;
-  }
-
-  .rating-display {
-    color: var(--gold);
-    font-size: 0.6rem;
-    font-weight: 500;
-  }
-
-  .book-badges {
-    margin-top: auto;
-    padding-top: clamp(0.2rem, 0.4vw, 0.4rem);
-    display: flex;
-    flex-wrap: wrap;
-    gap: clamp(0.1rem, 0.2vw, 0.25rem);
-    justify-content: center;
-    align-items: center;
-  }
-
-  .status-badge {
-    font-size: clamp(0.45rem, 0.8vw, 0.65rem) !important;
-    padding: clamp(1px, 0.3vw, 3px) clamp(3px, 0.6vw, 6px) !important;
-    border-radius: clamp(6px, 1vw, 12px) !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: clamp(0.2px, 0.1vw, 0.4px);
-    line-height: 1;
-    white-space: nowrap;
-    display: inline-block;
-    min-width: fit-content;
-  }
-
-  /* Keep existing styles for other elements... */
-  .library-header {
-    background: linear-gradient(135deg, var(--primary-brown) 0%, var(--light-brown) 100%);
-    color: white;
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-    border-radius: 15px;
-    position: relative;
-    overflow: hidden;
-    transform: translateZ(0);
-  }
-
-  .library-header::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
-    opacity: 0.3;
-  }
-
-  .library-header h1 {
-    font-size: clamp(1.5rem, 4vw, 2.5rem);
-    font-weight: 700;
-    margin: 0;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    position: relative;
-    z-index: 1;
-  }
-
-  .library-stats {
-    background: var(--warm-white);
-    border: 2px solid var(--light-brown);
-    border-radius: 10px;
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 8px var(--shadow);
-    transform: translateZ(0);
-  }
-
-  .filter-section {
-    background: var(--warm-white);
-    border: 2px solid var(--light-brown);
-    border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 6px 20px var(--shadow);
-    position: relative;
-    transform: translateZ(0);
-  }
-
-  .filter-section::before {
-    content: '🔍';
-    position: absolute;
-    top: -10px;
-    left: 20px;
-    background: var(--primary-brown);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 50%;
-    font-size: clamp(1rem, 2vw, 1.2rem);
-  }
-
-  .filter-title {
-    color: var(--primary-brown);
-    font-weight: 600;
-    margin-bottom: 1rem;
-    padding-left: 40px;
-    font-size: clamp(1rem, 2vw, 1.25rem);
-  }
-
-  .bookshelf-container {
-    background: linear-gradient(145deg, #f0e6d2 0%, #e6dcc6 100%);
-    border-radius: 20px;
-    padding: clamp(1rem, 2vw, 2rem);
-    box-shadow: inset 0 4px 8px rgba(0,0,0,0.1);
-    position: relative;
-    width: 100%;
-    transform: translateZ(0);
-  }
-
-  .bookshelf-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('https://www.transparenttextures.com/patterns/wood-pattern.png');
-    opacity: 0.2;
-    border-radius: 20px;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    margin-bottom: 1rem;
-    transform: translateZ(0);
-  }
-
-  .stat-item {
-    text-align: center;
-    padding: clamp(0.5rem, 1vw, 0.75rem);
-    background: var(--cream);
-    border-radius: 8px;
-    border: 1px solid var(--light-brown);
-    transform: translateZ(0);
-  }
-
-  .stat-number {
-    font-size: clamp(1rem, 2vw, 1.5rem);
-    font-weight: 700;
-    color: var(--primary-brown);
-    display: block;
-  }
-
-  .stat-label {
-    font-size: clamp(0.6rem, 1vw, 0.8rem);
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .form-control, .form-select {
-    border: 2px solid var(--light-brown);
-    border-radius: 8px;
-    padding: clamp(0.4rem, 0.8vw, 0.5rem) clamp(0.6rem, 1vw, 0.75rem);
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    font-size: clamp(0.8rem, 1vw, 0.9rem);
-  }
-
-  .form-control:focus, .form-select:focus {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 0.2rem rgba(218, 165, 32, 0.25);
-  }
-
-  .form-label {
-    font-size: clamp(0.8rem, 1vw, 0.9rem);
-  }
-
-  .btn-primary {
-    background: var(--primary-brown);
-    border-color: var(--primary-brown);
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    font-size: clamp(0.8rem, 1vw, 0.9rem);
-    padding: clamp(0.4rem, 0.8vw, 0.5rem) clamp(0.6rem, 1vw, 0.75rem);
-    transform: translateZ(0);
-    will-change: transform, background-color, border-color;
-  }
-
-  .btn-primary:hover {
-    background: var(--gold);
-    border-color: var(--gold);
-    transform: translateY(-2px) translateZ(0);
-  }
-
-  .btn-secondary {
-    background: var(--light-brown);
-    border-color: var(--light-brown);
-    color: var(--primary-brown);
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: clamp(0.7rem, 0.9vw, 0.8rem);
-  }
-
-  .filter-form {
-    display: grid;
-    grid-template-columns: 2fr repeat(3, minmax(140px, 1fr)) minmax(100px, auto);
-    gap: 16px;
-    align-items: end;
-  }
-
-  .reading-streak-stat {
-    background: linear-gradient(135deg, #28a745, #20c997) !important;
-    color: white !important;
-    border: 2px solid #20c997 !important;
-  }
-  
-  .reading-streak-stat .stat-number {
-    color: white !important;
-  }
-  
-  .reading-streak-stat .stat-label {
-    color: rgba(255, 255, 255, 0.9) !important;
-  }
-  
-  .reading-streak-stat small {
-    color: rgba(255, 255, 255, 0.7) !important;
-    font-size: 0.6rem !important;
-    display: block !important;
-    margin-top: 2px !important;
-  }
-
-  .pagination-controls {
-    background: var(--warm-white);
-    border: 1px solid var(--light-brown);
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 1rem 0;
-    transform: translateZ(0);
-  }
-  
-  .pagination-info {
-    min-width: 200px;
-  }
-  
-  .pagination-buttons {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  .book-card.hidden {
-    display: none !important;
-  }
-  
-  .pagination-controls .btn {
-    transition: all 0.3s ease;
-    transform: translateZ(0);
-    will-change: transform;
-  }
-  
-  .pagination-controls .btn:hover:not(:disabled) {
-    transform: translateY(-1px) translateZ(0);
-  }
-
-  /* MOBILE-FIRST RESPONSIVE DESIGN */
-  
-  /* Large Desktop (1920px+) */
-  @media (min-width: 1920px) {
-    .books-grid {
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 20px;
-    }
-    
-    .book-card {
-      min-height: 300px;
-      max-width: 220px;
-    }
-    
-    .book-cover-wrapper {
-      height: 180px;
-    }
-
-    .status-badge {
-      font-size: 0.6rem !important;
-      padding: 3px 6px !important;
-      border-radius: 10px !important;
-      letter-spacing: 0.3px;
-    }
-
-    .category-badge {
-      font-size: 0.52rem !important;
-      padding: 2px 4px !important;
-      border-radius: 7px !important;
-    }
-  }
-
-  /* Desktop (1400-1919px) */
-  @media (min-width: 1400px) and (max-width: 1919px) {
-    .books-grid {
-      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-      gap: 18px;
-    }
-    
-    .book-card {
-      min-height: 290px;
-      max-width: 210px;
-    }
-    
-    .book-cover-wrapper {
-      height: 170px;
-    }
-
-    .status-badge {
-      font-size: 0.55rem !important;
-      padding: 2px 5px !important;
-      border-radius: 9px !important;
-      letter-spacing: 0.25px;
-    }
-
-    .category-badge {
-      font-size: 0.48rem !important;
-      padding: 1px 3px !important;
-      border-radius: 6px !important;
-    }
-  }
-
-  /* Medium Desktop (1024-1399px) */
-  @media (min-width: 1024px) and (max-width: 1399px) {
-    .books-grid {
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 16px;
-    }
-    
-    .book-card {
-      min-height: 280px;
-      max-width: 200px;
-    }
-    
-    .book-cover-wrapper {
-      height: 160px;
-    }
-
-    .status-badge {
-      font-size: 0.5rem !important;
-      padding: 2px 5px !important;
-      border-radius: 8px !important;
-      letter-spacing: 0.2px;
-    }
-
-    .category-badge {
-      font-size: 0.45rem !important;
-      padding: 1px 3px !important;
-      border-radius: 6px !important;
-    }
-  }
-
-  /* Tablet Landscape (768-1023px) */
-  @media (min-width: 768px) and (max-width: 1023px) {
-    .container {
-      max-width: 95vw !important;
-    }
-
-    .books-grid {
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 14px;
-    }
-    
-    .book-card {
-      min-height: 260px;
-      max-width: 180px;
-    }
-    
-    .book-cover-wrapper {
-      height: 140px;
-    }
-
-    .status-badge {
-      font-size: 0.48rem !important;
-      padding: 2px 4px !important;
-      border-radius: 7px !important;
-      letter-spacing: 0.15px;
-    }
-
-    .category-badge {
-      font-size: 0.42rem !important;
-      padding: 1px 3px !important;
-      border-radius: 5px !important;
-    }
-
-    .filter-form {
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-  }
-
-  /* Mobile Landscape & Tablet Portrait (481-767px) */
-  @media (min-width: 481px) and (max-width: 767px) {
-    .container {
-      max-width: 98vw !important;
-      padding: 0 0.75rem !important;
-    }
-    
-    .library-header {
-      padding: 1.5rem 0;
-      margin-bottom: 1.5rem;
-      border-radius: 10px;
-    }
-
-    .library-stats {
-      padding: 0.75rem;
-      margin-bottom: 1rem;
-    }
-
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    .filter-section {
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      border-radius: 10px;
-    }
-    
-    .filter-section::before {
-      display: none;
-    }
-    
-    .filter-title {
-      padding-left: 0;
-      text-align: center;
-      font-size: 1rem;
-    }
-    
-    .filter-form {
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    
-    .books-grid {
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 12px;
-    }
-    
-    .book-card {
-      min-height: 240px;
-      max-width: 160px;
-      padding: 0.4rem;
-    }
-    
-    .book-cover-wrapper {
-      height: 120px;
-      margin-bottom: 0.4rem;
-    }
-
-    .book-title {
-      font-size: 0.68rem;
-    }
-
-    .book-author {
-      font-size: 0.58rem;
-    }
-
-    .status-badge {
-      font-size: 0.45rem !important;
-      padding: 1px 4px !important;
-      border-radius: 6px !important;
-      letter-spacing: 0.1px;
-    }
-
-    .category-badge {
-      font-size: 0.4rem !important;
-      padding: 1px 2px !important;
-      border-radius: 4px !important;
-    }
-    
-    .pagination-controls {
-      padding: 0.75rem;
-    }
-
-    .pagination-controls .d-flex {
-      flex-direction: column;
-      gap: 12px;
-    }
-    
-    .pagination-info {
-      min-width: auto;
-      text-align: center;
-    }
-    
-    .pagination-buttons {
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .pagination-buttons .btn {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.5rem;
-    }
-  }
-
-  /* Mobile Portrait (320-480px) */
-  @media (max-width: 480px) {
-    .container {
-      max-width: 100vw !important;
-      padding: 0 0.5rem !important;
-    }
-
-    .library-header {
-      padding: 1rem 0;
-      margin-bottom: 1rem;
-      border-radius: 8px;
-    }
-
-    .library-header h1 {
-      font-size: 1.25rem;
-    }
-
-    .library-stats {
-      padding: 0.5rem;
-      margin-bottom: 0.75rem;
-    }
-
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-
-    .stat-item {
-      padding: 0.4rem;
-    }
-
-    .stat-number {
-      font-size: 1rem;
-    }
-
-    .stat-label {
-      font-size: 0.55rem;
-    }
-
-    .filter-section {
-      padding: 0.75rem;
-      margin-bottom: 1rem;
-      border-radius: 8px;
-    }
-
-    .filter-title {
-      font-size: 0.9rem;
-      margin-bottom: 0.75rem;
-    }
-    
-    .filter-form {
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-
-    .form-control, .form-select {
-      padding: 0.4rem 0.5rem;
-      font-size: 0.8rem;
-    }
-
-    .btn-primary {
-      padding: 0.4rem 0.6rem;
-      font-size: 0.8rem;
-    }
-    
-    .bookshelf-container {
-      padding: 0.75rem;
-      border-radius: 12px;
-    }
-
-    .books-grid {
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 10px;
-    }
-    
-    .book-card {
-      min-height: 220px;
-      max-width: 140px;
-      padding: 0.35rem;
-      border-width: 1px;
-    }
-    
-    .book-cover-wrapper {
-      height: 100px;
-      margin-bottom: 0.3rem;
-      border-radius: 4px;
-    }
-
-    .book-info {
-      padding: 0.2rem 0;
-    }
-
-    .book-title {
-      font-size: 0.6rem;
-      margin-bottom: 0.2rem;
-      height: 2.2em;
-    }
-    
-    .book-author {
-      font-size: 0.55rem;
-      margin-bottom: 0.3rem;
-    }
-
-    .book-meta {
-      margin-bottom: 0.3rem;
-    }
-
-    .category-badges {
-      margin-bottom: 0.2rem;
-    }
-
-    .rating-display {
-      font-size: 0.5rem;
-    }
-
-    .status-badge {
-      font-size: 0.4rem !important;
-      padding: 1px 3px !important;
-      border-radius: 5px !important;
-      letter-spacing: 0.05px;
-    }
-
-    .category-badge {
-      font-size: 0.38rem !important;
-      padding: 0.5px 2px !important;
-      border-radius: 4px !important;
-    }
-
-    .book-badges {
-      gap: 0.08rem;
-      padding-top: 0.15rem;
-    }
-
-    .pagination-controls {
-      padding: 0.5rem;
-      margin: 0.5rem 0;
-    }
-
-    .pagination-controls .d-flex {
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .pagination-buttons .btn {
-      font-size: 0.7rem;
-      padding: 0.2rem 0.4rem;
-    }
-
-    .pagination-info small {
-      font-size: 0.7rem;
-    }
-  }
-
-  /* Very Small Mobile (max-width: 360px) */
-  @media (max-width: 360px) {
-    .container {
-      padding: 0 0.25rem !important;
-    }
-
-    .books-grid {
-      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-      gap: 8px;
-    }
-    
-    .book-card {
-      min-height: 200px;
-      max-width: 120px;
-      padding: 0.25rem;
-    }
-    
-    .book-cover-wrapper {
-      height: 80px;
-    }
-
-    .book-title {
-      font-size: 0.55rem;
-      height: 2em;
-    }
-    
-    .book-author {
-      font-size: 0.5rem;
-    }
-
-    .status-badge {
-      font-size: 0.38rem !important;
-      padding: 1px 2px !important;
-      border-radius: 4px !important;
-      letter-spacing: 0;
-    }
-
-    .category-badge {
-      font-size: 0.35rem !important;
-      padding: 0.5px 1px !important;
-      border-radius: 3px !important;
-    }
-
-    .rating-display {
-      font-size: 0.45rem;
-    }
-
-    .stats-grid {
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-
-    .filter-section {
-      padding: 0.5rem;
-    }
-
-    .pagination-buttons .btn {
-      font-size: 0.65rem;
-      padding: 0.15rem 0.3rem;
-    }
-  }
-
-  /* Touch-friendly interactions */
-  @media (hover: none) and (pointer: coarse) {
-    .book-card {
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .book-card:active {
-      transform: scale(0.98) translateZ(0);
-    }
-
-    .btn:active {
-      transform: scale(0.95) translateZ(0);
-    }
-
-    /* Larger tap targets for mobile */
-    .pagination-buttons .btn {
-      min-height: 44px;
-      min-width: 44px;
-    }
-
-    .form-control, .form-select {
-      min-height: 44px;
-    }
-  }
-
-  /* Reduce animations on low-end devices */
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
-
-  /* High DPI displays optimization */
-  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-    .book-cover-shelf {
-      image-rendering: -webkit-optimize-contrast;
-    }
-  }
-</style>
-
 <!-- Library Header -->
-<div class="library-header text-center">
-  <h1>📚 MyBibliotheca</h1>
+<div class="library-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
+  <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">📚 MyBibliotheca</h1>
 </div>
 
-<!-- Temporary Test Link -->
-<div class="text-center mb-3">
-  <a href="{{ url_for('main.test_native_barcode') }}" class="btn btn-outline-info btn-sm">
+<!-- Temporary Test Link - Only show in debug mode -->
+{% if config.DEBUG_MODE %}
+<div class="text-center mb-6">
+  <a href="{{ url_for('main.test_native_barcode') }}" class="btn btn-outline btn-info btn-sm">
     🧪 Test Native Scanner (Development)
   </a>
 </div>
+{% endif %}
 
 <!-- Library Statistics -->
-<div class="library-stats">
-  <div class="stats-grid">
-    <div class="stat-item">
-      <span class="stat-number">{{ books|length }}</span>
-      <span class="stat-label">Total Books</span>
+<div class="bg-base-100 border-2 border-secondary rounded-xl p-6 mb-6 shadow-lg">
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div class="stat-item bg-base-200 border border-secondary rounded-lg p-4 text-center">
+      <span class="stat-number text-2xl md:text-3xl font-bold text-primary block">{{ books|length }}</span>
+      <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Total Books</span>
     </div>
-    <div class="stat-item">
-      <span class="stat-number">{{ books|selectattr('finish_date')|list|length }}</span>
-      <span class="stat-label">Finished</span>
+    <div class="stat-item bg-base-200 border border-secondary rounded-lg p-4 text-center">
+      <span class="stat-number text-2xl md:text-3xl font-bold text-primary block">{{ books|selectattr('finish_date')|list|length }}</span>
+      <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Finished</span>
     </div>
-    <div class="stat-item">
-      <span class="stat-number">{{ books|rejectattr('finish_date')|rejectattr('want_to_read')|rejectattr('library_only')|list|length }}</span>
-      <span class="stat-label">Currently Reading</span>
+    <div class="stat-item bg-base-200 border border-secondary rounded-lg p-4 text-center">
+      <span class="stat-number text-2xl md:text-3xl font-bold text-primary block">{{ books|rejectattr('finish_date')|rejectattr('want_to_read')|rejectattr('library_only')|list|length }}</span>
+      <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Currently Reading</span>
     </div>
-    <div class="stat-item">
-      <span class="stat-number">{{ books|selectattr('want_to_read')|list|length }}</span>
-      <span class="stat-label">Want to Read</span>
+    <div class="stat-item bg-base-200 border border-secondary rounded-lg p-4 text-center">
+      <span class="stat-number text-2xl md:text-3xl font-bold text-primary block">{{ books|selectattr('want_to_read')|list|length }}</span>
+      <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Want to Read</span>
     </div>
-    <div class="stat-item reading-streak-stat">
-      <span class="stat-number">{{ current_user.get_reading_streak() }}</span>
-      <span class="stat-label">Day Streak 🔥</span>
+    <div class="reading-streak-stat rounded-lg p-4 text-center">
+      <span class="stat-number text-2xl md:text-3xl font-bold block">{{ current_user.get_reading_streak() }}</span>
+      <span class="stat-label text-sm uppercase tracking-wide">Day Streak 🔥</span>
     </div>
   </div>
 </div>
 
 <!-- Advanced Filter Section -->
-<div class="filter-section">
-  <h5 class="filter-title">Find Your Books</h5>
-  <form method="GET" class="filter-form">
-    <div>
-      <label for="search" class="form-label fw-semibold">Search</label>
-      <input type="text" class="form-control" id="search" name="search" 
+<div class="bg-base-100 border-2 border-secondary rounded-2xl p-6 mb-8 shadow-lg relative filter-section">
+  <h5 class="text-xl font-semibold text-primary mb-6 pl-12 relative z-10">Find Your Books</h5>
+  <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end filter-form">
+    <div class="form-control w-full">
+      <label for="search" class="label">
+        <span class="label-text font-semibold">Search</span>
+      </label>
+      <input type="text" class="input input-bordered w-full" id="search" name="search" 
              value="{{ current_search }}" placeholder="Title, author, description...">
     </div>
-    <div>
-      <label for="category" class="form-label fw-semibold">Category</label>
-      <select class="form-select" id="category" name="category">
+    <div class="form-control w-full">
+      <label for="category" class="label">
+        <span class="label-text font-semibold">Category</span>
+      </label>
+      <select class="select select-bordered w-full" id="category" name="category">
         <option value="">Categories</option>
         {% for category in categories %}
           <option value="{{ category }}" {% if category == current_category %}selected{% endif %}>
@@ -1012,9 +66,11 @@
         {% endfor %}
       </select>
     </div>
-    <div>
-      <label for="publisher" class="form-label fw-semibold">Publisher</label>
-      <select class="form-select" id="publisher" name="publisher">
+    <div class="form-control w-full">
+      <label for="publisher" class="label">
+        <span class="label-text font-semibold">Publisher</span>
+      </label>
+      <select class="select select-bordered w-full" id="publisher" name="publisher">
         <option value="">Publishers</option>
         {% for publisher in publishers %}
           <option value="{{ publisher }}" {% if publisher == current_publisher %}selected{% endif %}>
@@ -1023,9 +79,11 @@
         {% endfor %}
       </select>
     </div>
-    <div>
-      <label for="language" class="form-label fw-semibold">Language</label>
-      <select class="form-select" id="language" name="language">
+    <div class="form-control w-full">
+      <label for="language" class="label">
+        <span class="label-text font-semibold">Language</span>
+      </label>
+      <select class="select select-bordered w-full" id="language" name="language">
         <option value="">Languages</option>
         {% for language in languages %}
           <option value="{{ language }}" {% if language == current_language %}selected{% endif %}>
@@ -1034,30 +92,30 @@
         {% endfor %}
       </select>
     </div>
-    <div>
-      <button type="submit" class="btn btn-primary w-100">🔍 Filter</button>
+    <div class="form-control w-full">
+      <button type="submit" class="btn btn-primary w-full">🔍 Filter</button>
     </div>
   </form>
-  <div class="mt-3 text-center">
-    <a href="{{ url_for('main.index') }}" class="btn btn-secondary btn-sm me-3">Clear All Filters</a>
-    <span class="text-muted fw-semibold">Showing {{ books|length }} book(s)</span>
+  <div class="mt-6 text-center">
+    <a href="{{ url_for('main.index') }}" class="btn btn-secondary btn-sm mr-4">Clear All Filters</a>
+    <span class="text-base-content/70 font-semibold">Showing {{ books|length }} book(s)</span>
   </div>
 </div>
 
 <!-- Books Grid -->
-<div class="bookshelf-container">
+<div class="bookshelf-container bg-gradient-to-br from-base-200 to-base-300 rounded-3xl p-6 shadow-inner relative">
   {% if books %}
-    <div class="books-grid" id="books-grid">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4" id="books-grid">
       {% for book in books %}
-        <div class="book-card" data-index="{{ loop.index0 }}">
-          <div class="book-cover-wrapper">
+        <div class="book-card bg-base-100 border-2 border-secondary rounded-lg p-3 transition-all duration-300 hover:scale-105 hover:-translate-y-1 hover:shadow-xl cursor-pointer flex flex-col mx-auto h-80 w-full max-w-[200px] relative pb-6" data-index="{{ loop.index0 }}">
+          <div class="book-cover-wrapper relative mb-3 rounded-lg overflow-hidden shadow-lg aspect-[3/4] w-full h-40 bg-base-200 flex items-center justify-center">
             <a href="{{ url_for('main.view_book', uid=book.uid) }}">
               <img 
                 src="{{ book.secure_cover_url or url_for('static', filename='bookshelf.png') }}"
                 {% if book.secure_cover_url %}
                 srcset="{{ book.secure_cover_url }} 1x"
                 {% endif %}
-                class="book-cover-shelf"
+                class="book-cover-shelf w-full h-full object-contain rounded"
                 alt="{{ book.title }} cover"
                 loading="lazy"
                 decoding="async"
@@ -1065,79 +123,78 @@
             </a>
           </div>
 
-          <div class="book-info">
-            <div class="book-title">
-              <a href="{{ url_for('main.view_book', uid=book.uid) }}">
+          <div class="book-info flex-grow flex flex-col p-1">
+            <div class="book-title text-sm font-bold mb-1 line-clamp-2">
+              <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="text-primary hover:text-accent transition-colors">
                 {{ book.title }}
               </a>
             </div>
 
-            <div class="book-author">{{ book.author }}</div>
+            <div class="book-author text-xs text-base-content/70 mb-3 italic line-clamp-1">{{ book.author }}</div>
 
-            <div class="book-meta">
+            <div class="book-meta mb-3 flex-grow">
               {% if book.categories %}
-                <div class="category-badges mb-2">
+                <div class="category-badges mb-2 flex flex-wrap gap-1">
                   {% for category in book.categories.split(',')[:2] %}
-                    <span class="badge category-badge">{{ category.strip() }}</span>
+                    <span class="badge badge-sm bg-secondary text-secondary-content border border-primary text-xs px-2 py-1 truncate max-w-full">{{ category.strip() }}</span>
                   {% endfor %}
                 </div>
               {% endif %}
 
               {% if book.average_rating %}
-                <div class="rating-display mb-2">
+                <div class="rating-display text-accent text-xs font-medium mb-2">
                   {% for i in range(5) %}
                     {% if i < book.average_rating %}⭐{% else %}☆{% endif %}
                   {% endfor %}
                   {{ "%.1f"|format(book.average_rating) }}
-                  {% if book.rating_count %}<small>({{ book.rating_count }})</small>{% endif %}
+                  {% if book.rating_count %}<small class="text-base-content/60">({{ book.rating_count }})</small>{% endif %}
                 </div>
               {% endif %}
             </div>
+          </div>
 
-            <div class="book-badges">
-              {% if book.want_to_read %}
-                <span class="badge bg-info status-badge">Want to Read</span>
-              {% elif not book.finish_date and not book.library_only %}
-                <span class="badge bg-warning status-badge">Currently Reading</span>
-              {% elif book.finish_date %}
-                <span class="badge bg-success status-badge">Finished</span>
-              {% elif book.library_only %}
-                <span class="badge bg-secondary status-badge">Library Only</span>
-              {% endif %}
-            </div>
+          <!-- Status badges positioned at bottom overlapping border -->
+          <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-10 text-center md:text-left">
+            {% if book.want_to_read %}
+              <span class="badge badge-sm badge-info md:whitespace-nowrap h-fit">Want to Read</span>
+            {% elif not book.finish_date and not book.library_only %}
+              <span class="badge badge-sm badge-warning md:whitespace-nowrap h-fit">Currently Reading</span>
+            {% elif book.finish_date %}
+              <span class="badge badge-sm badge-success md:whitespace-nowrap h-fit">Finished</span>
+            {% elif book.library_only %}
+              <span class="badge badge-sm badge-neutral md:whitespace-nowrap h-fit">Library Only</span>
+            {% endif %}
           </div>
         </div>
       {% endfor %}
     </div>
   {% else %}
-    <div class="books-grid">
-      <div class="empty-state">
-        <div class="empty-state-icon">📚</div>
-        <h3>No books found</h3>
-        <p>Try adjusting your filters or <a href="{{ url_for('main.add_book') }}">add some books</a> to your library!</p>
-      </div>
+    <div class="text-center py-12">
+      <div class="text-6xl mb-4">📚</div>
+      <h3 class="text-2xl font-bold text-primary mb-2">No books found</h3>
+      <p class="text-base-content/70">Try adjusting your filters or <a href="{{ url_for('main.add_book') }}" class="link link-primary">add some books</a> to your library!</p>
     </div>
   {% endif %}
 </div>
 
-<!-- Pagination Controls (bottom) -->
-<div class="pagination-controls mb-3 text-center">
-  <div class="d-flex justify-content-between align-items-center flex-wrap">
+<!-- Pagination Controls -->
+<div class="bg-base-100 border border-secondary rounded-lg p-6 my-6 text-center">
+  <div class="flex flex-col md:flex-row justify-between items-center gap-4">
     <div class="pagination-info">
-      <small class="text-muted">
+      <small class="text-base-content/70">
         Showing <strong><span id="showing-start">1</span>-<span id="showing-end">14</span></strong> 
         of <strong>{{ books|length }}</strong> books
       </small>
     </div>
-    <div class="pagination-buttons">
-      <button id="prev-btn" class="btn btn-outline-secondary btn-sm me-2" disabled>
+    <div class="pagination-buttons flex items-center flex-wrap gap-2">
+      <button id="prev-btn" class="btn btn-outline btn-sm" disabled>
         ← Previous
       </button>
-      <span id="page-info" class="text-muted me-2">Page 1</span>
-      <button id="next-btn" class="btn btn-outline-secondary btn-sm me-3">
+      <span id="page-info" class="text-base-content/70 mx-2">Page 1</span>
+      <button id="next-btn" class="btn btn-outline btn-sm">
         Next →
       </button>
-      <button id="show-all-btn" class="btn btn-outline-primary btn-sm">
+      <button id="show-all-btn" class="btn btn-outline btn-primary btn-sm">
         Show All
       </button>
     </div>
@@ -1269,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function scrollToGrid() {
         // Smooth scroll with mobile optimization
-        const grid = document.querySelector('.books-grid');
+        const grid = document.querySelector('#books-grid');
         if (grid) {
             grid.scrollIntoView({ 
                 behavior: 'smooth', 
@@ -1346,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Add touch event listeners to books grid
-    const booksGrid = document.querySelector('.books-grid');
+    const booksGrid = document.querySelector('#books-grid');
     if (booksGrid) {
         booksGrid.addEventListener('touchstart', function(e) {
             touchStartX = e.changedTouches[0].screenX;

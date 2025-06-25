@@ -3,310 +3,244 @@
 {% block title %}Admin Dashboard - MyBibliotheca{% endblock %}
 
 {% block content %}
-<style>
-.icon-square {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    font-weight: bold;
-    color: white;
-    margin-right: 8px;
-    font-size: 14px;
-}
-.icon-square.dash { background-color: #6f42c1; }
-.icon-square.users { background-color: #0d6efd; }
-.icon-square.settings { background-color: #6c757d; }
-.icon-square.library { background-color: #20c997; }
-</style>
-
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Admin Dashboard</h2>
-            <div class="btn-group">
-                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
-                    Manage Users
-                </a>
-                <a href="{{ url_for('admin.settings') }}" class="btn btn-outline-secondary">
-                    Settings
-                </a>
-                <a href="{{ url_for('main.library') }}" class="btn btn-outline-secondary">
-                    Back to Library
-                </a>
-            </div>
-        </div>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-4xl font-bold mb-4">⚙️ Admin Dashboard</h1>
+      <p class="text-xl opacity-90">System overview and management</p>
     </div>
+  </div>
+</div>
+
+<div class="flex justify-between items-center mb-8">
+  <h2 class="text-2xl font-bold">System Overview</h2>
+  <div class="flex gap-2">
+    <a href="{{ url_for('admin.users') }}" class="btn btn-outline btn-primary">
+      👥 Manage Users
+    </a>
+    <a href="{{ url_for('admin.settings') }}" class="btn btn-outline btn-secondary">
+      ⚙️ Settings
+    </a>
+    <a href="{{ url_for('main.library') }}" class="btn btn-outline btn-accent">
+      📚 Back to Library
+    </a>
+  </div>
 </div>
 
 <!-- System Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-md-3 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.total_users }}</h4>
-                        <p class="card-text">Total Users</p>
-                    </div>
-                </div>
-                {% if stats.new_users_30d > 0 %}
-                <small class="text-light">+{{ stats.new_users_30d }} this month</small>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.active_users }}</h4>
-                        <p class="card-text">Active Users</p>
-                    </div>
-                </div>
-                <small class="text-light">{{ stats.admin_users }} admin(s)</small>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.total_books }}</h4>
-                        <p class="card-text">Total Books</p>
-                    </div>
-                </div>
-                {% if stats.new_books_30d > 0 %}
-                <small class="text-light">+{{ stats.new_books_30d }} this month</small>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ stats.total_books // stats.total_users if stats.total_users > 0 else 0 }}</h4>
-                        <p class="card-text">Avg Books/User</p>
-                    </div>
-                </div>
-                <small class="text-light">System average</small>
-            </div>
-        </div>
-    </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+  <div class="stat bg-primary text-primary-content rounded-box">
+    <div class="stat-title text-primary-content/80">Total Users</div>
+    <div class="stat-value text-3xl">{{ stats.total_users }}</div>
+    {% if stats.new_users_30d > 0 %}
+    <div class="stat-desc text-primary-content/80">+{{ stats.new_users_30d }} this month</div>
+    {% endif %}
+  </div>
+  
+  <div class="stat bg-success text-success-content rounded-box">
+    <div class="stat-title text-success-content/80">Active Users</div>
+    <div class="stat-value text-3xl">{{ stats.active_users }}</div>
+    <div class="stat-desc text-success-content/80">{{ stats.admin_users }} admin(s)</div>
+  </div>
+  
+  <div class="stat bg-info text-info-content rounded-box">
+    <div class="stat-title text-info-content/80">Total Books</div>
+    <div class="stat-value text-3xl">{{ stats.total_books }}</div>
+    {% if stats.new_books_30d > 0 %}
+    <div class="stat-desc text-info-content/80">+{{ stats.new_books_30d }} this month</div>
+    {% endif %}
+  </div>
+  
+  <div class="stat bg-warning text-warning-content rounded-box">
+    <div class="stat-title text-warning-content/80">Avg Books/User</div>
+    <div class="stat-value text-3xl">{{ stats.total_books // stats.total_users if stats.total_users > 0 else 0 }}</div>
+    <div class="stat-desc text-warning-content/80">System average</div>
+  </div>
 </div>
 
 <!-- System Health Section -->
 {% if stats.system %}
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">System Health</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Disk Usage</h6>
-                        {% if stats.system.disk_percent != 'N/A' %}
-                        <div class="progress mb-2">
-                            <div class="progress-bar {% if stats.system.disk_percent > 80 %}bg-danger{% elif stats.system.disk_percent > 60 %}bg-warning{% else %}bg-success{% endif %}" 
-                                 role="progressbar" style="width: {{ stats.system.disk_percent }}%">
-                                {{ stats.system.disk_percent }}%
-                            </div>
-                        </div>
-                        <small class="text-muted">{{ stats.system.disk_free_gb }}GB free of {{ stats.system.disk_total_gb }}GB</small>
-                        {% else %}
-                        <p class="text-muted">Disk information not available</p>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Memory Usage</h6>
-                        {% if stats.system.memory_percent != 'N/A' %}
-                        <div class="progress mb-2">
-                            <div class="progress-bar {% if stats.system.memory_percent > 80 %}bg-danger{% elif stats.system.memory_percent > 60 %}bg-warning{% else %}bg-success{% endif %}" 
-                                 role="progressbar" style="width: {{ stats.system.memory_percent }}%">
-                                {{ stats.system.memory_percent }}%
-                            </div>
-                        </div>
-                        <small class="text-muted">{{ stats.system.memory_available_gb }}GB available</small>
-                        {% else %}
-                        <p class="text-muted">Memory information not available</p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="card bg-base-100 shadow-xl mb-8">
+  <div class="card-body">
+    <h2 class="card-title text-primary mb-6">💻 System Health</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div>
+        <h3 class="font-semibold mb-3">Disk Usage</h3>
+        {% if stats.system.disk_percent != 'N/A' %}
+        <progress class="progress w-full mb-2 
+          {% if stats.system.disk_percent > 80 %}progress-error
+          {% elif stats.system.disk_percent > 60 %}progress-warning
+          {% else %}progress-success{% endif %}" 
+          value="{{ stats.system.disk_percent }}" max="100">
+          {{ stats.system.disk_percent }}%
+        </progress>
+        <p class="text-sm text-base-content/60">{{ stats.system.disk_free_gb }}GB free of {{ stats.system.disk_total_gb }}GB</p>
+        {% else %}
+        <p class="text-base-content/60">Disk information not available</p>
+        {% endif %}
+      </div>
+      <div>
+        <h3 class="font-semibold mb-3">Memory Usage</h3>
+        {% if stats.system.memory_percent != 'N/A' %}
+        <progress class="progress w-full mb-2 
+          {% if stats.system.memory_percent > 80 %}progress-error
+          {% elif stats.system.memory_percent > 60 %}progress-warning
+          {% else %}progress-success{% endif %}" 
+          value="{{ stats.system.memory_percent }}" max="100">
+          {{ stats.system.memory_percent }}%
+        </progress>
+        <p class="text-sm text-base-content/60">{{ stats.system.memory_available_gb }}GB available</p>
+        {% else %}
+        <p class="text-base-content/60">Memory information not available</p>
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
 {% endif %}
 
-<div class="row">
-    <!-- Top Users -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Most Active Users</h5>
-            </div>
-            <div class="card-body">
-                {% if stats.top_users %}
-                    <div class="list-group list-group-flush">
-                        {% for user in stats.top_users %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <span>{{ user.username }}</span>
-                            <span class="badge bg-primary rounded-pill">{{ user.book_count }} books</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-muted">No user activity data available.</p>
-                {% endif %}
-            </div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+  <!-- Top Users -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-primary mb-4">🏆 Most Active Users</h2>
+      {% if stats.top_users %}
+        <div class="space-y-3">
+          {% for user in stats.top_users %}
+          <div class="flex justify-between items-center p-3 bg-base-200 rounded-lg">
+            <span class="font-semibold">{{ user.username }}</span>
+            <span class="badge badge-primary">{{ user.book_count }} books</span>
+          </div>
+          {% endfor %}
         </div>
+      {% else %}
+        <p class="text-base-content/60">No user activity data available.</p>
+      {% endif %}
     </div>
-    
-    <!-- Recent Users -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Recent Users</h5>
-                <small class="text-muted">Last 30 days</small>
-            </div>
-            <div class="card-body">
-                {% if recent_users %}
-                    <div class="list-group list-group-flush">
-                        {% for user in recent_users %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong>{{ user.username }}</strong>
-                                {% if user.is_admin %}
-                                    <span class="badge bg-danger ms-1">Admin</span>
-                                {% endif %}
-                                {% if not user.is_active %}
-                                    <span class="badge bg-secondary ms-1">Inactive</span>
-                                {% endif %}
-                                <br>
-                                <small class="text-muted">{{ user.email }}</small>
-                            </div>
-                            <div class="text-end">
-                                <small class="text-muted">
-                                    {{ user.created_at.strftime('%m/%d/%Y') }}
-                                </small>
-                                <br>
-                                <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" 
-                                   class="btn btn-sm btn-outline-primary">Manage</a>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% if recent_users|length == 10 %}
-                        <div class="text-center mt-3">
-                            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
-                                View All Users
-                            </a>
-                        </div>
-                    {% endif %}
-                {% else %}
-                    <p class="text-muted">No recent user registrations.</p>
+  </div>
+  
+  <!-- Recent Users -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="card-title text-primary">👥 Recent Users</h2>
+        <span class="text-sm text-base-content/60">Last 30 days</span>
+      </div>
+      {% if recent_users %}
+        <div class="space-y-3">
+          {% for user in recent_users %}
+          <div class="flex justify-between items-start p-3 bg-base-200 rounded-lg">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-semibold">{{ user.username }}</span>
+                {% if user.is_admin %}
+                  <span class="badge badge-error">Admin</span>
                 {% endif %}
+                {% if not user.is_active %}
+                  <span class="badge badge-neutral">Inactive</span>
+                {% endif %}
+              </div>
+              <p class="text-sm text-base-content/60">{{ user.email }}</p>
             </div>
+            <div class="text-right">
+              <p class="text-sm text-base-content/60 mb-1">
+                {{ user.created_at.strftime('%m/%d/%Y') }}
+              </p>
+              <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" 
+                 class="btn btn-sm btn-outline btn-primary">Manage</a>
+            </div>
+          </div>
+          {% endfor %}
         </div>
+        {% if recent_users|length == 10 %}
+          <div class="text-center mt-4">
+            <a href="{{ url_for('admin.users') }}" class="btn btn-outline btn-primary">
+              View All Users
+            </a>
+          </div>
+        {% endif %}
+      {% else %}
+        <p class="text-base-content/60">No recent user registrations.</p>
+      {% endif %}
     </div>
+  </div>
 </div>
 
 <!-- Recent Books -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">Recently Added Books</h5>
-                <small class="text-muted">Last 30 days</small>
-            </div>
-            <div class="card-body">
-                {% if recent_books %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Author</th>
-                                    <th>User</th>
-                                    <th>Added</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for book in recent_books %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ url_for('main.view_book', uid=book.uid) }}" 
-                                           class="text-decoration-none">
-                                            {{ book.title }}
-                                        </a>
-                                    </td>
-                                    <td>{{ book.author }}</td>
-                                    <td>
-                                        <a href="{{ url_for('admin.user_detail', user_id=book.user.id) }}"
-                                           class="text-decoration-none">
-                                            {{ book.user.username }}
-                                        </a>
-                                    </td>
-                                    <td>{{ book.created_at.strftime('%m/%d/%Y') }}</td>
-                                    <td>
-                                        {% if book.finished %}
-                                            <span class="badge bg-success">Finished</span>
-                                        {% elif book.currently_reading %}
-                                            <span class="badge bg-primary">Reading</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">To Read</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                {% else %}
-                    <p class="text-muted">No books added recently.</p>
-                {% endif %}
-            </div>
-        </div>
+<div class="card bg-base-100 shadow-xl mb-8">
+  <div class="card-body">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="card-title text-primary">📚 Recently Added Books</h2>
+      <span class="text-sm text-base-content/60">Last 30 days</span>
     </div>
+    {% if recent_books %}
+      <div class="overflow-x-auto">
+        <table class="table table-zebra w-full">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Author</th>
+              <th>User</th>
+              <th>Added</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for book in recent_books %}
+            <tr>
+              <td>
+                <a href="{{ url_for('main.view_book', uid=book.uid) }}" 
+                   class="link link-primary">
+                  {{ book.title }}
+                </a>
+              </td>
+              <td>{{ book.author }}</td>
+              <td>
+                <a href="{{ url_for('admin.user_detail', user_id=book.user.id) }}"
+                   class="link link-primary">
+                  {{ book.user.username }}
+                </a>
+              </td>
+              <td>{{ book.created_at.strftime('%m/%d/%Y') }}</td>
+              <td>
+                {% if book.finished %}
+                  <span class="badge badge-success">Finished</span>
+                {% elif book.currently_reading %}
+                  <span class="badge badge-primary">Reading</span>
+                {% else %}
+                  <span class="badge badge-neutral">To Read</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-base-content/60">No books added recently.</p>
+    {% endif %}
+  </div>
 </div>
 
 <!-- Quick Actions -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Quick Actions</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ url_for('admin.users') }}" class="btn btn-outline-primary">
-                        Manage Users
-                    </a>
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-success">
-                        Create New User
-                    </a>
-                    <a href="{{ url_for('main.bulk_import') }}" class="btn btn-outline-info">
-                        Bulk Import Books
-                    </a>
-                    <a href="{{ url_for('main.download_db') }}" class="btn btn-outline-warning">
-                        Backup Database
-                    </a>
-                </div>
-            </div>
-        </div>
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h2 class="card-title text-primary mb-6">⚡ Quick Actions</h2>
+    <div class="flex flex-wrap gap-3">
+      <a href="{{ url_for('admin.users') }}" class="btn btn-outline btn-primary">
+        👥 Manage Users
+      </a>
+      <a href="{{ url_for('auth.register') }}" class="btn btn-outline btn-success">
+        ➕ Create New User
+      </a>
+      <a href="{{ url_for('main.bulk_import') }}" class="btn btn-outline btn-info">
+        📥 Bulk Import Books
+      </a>
+      <a href="{{ url_for('main.download_db') }}" class="btn btn-outline btn-warning">
+        💾 Backup Database
+      </a>
     </div>
+  </div>
 </div>
 
 <script>

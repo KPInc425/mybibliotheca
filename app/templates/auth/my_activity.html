@@ -3,179 +3,148 @@
 {% block title %}My Reading Activity - MyBibliotheca{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2><i class="bi bi-activity"></i> My Reading Activity</h2>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-4xl font-bold mb-4">📊 My Reading Activity</h1>
+      <p class="text-xl opacity-90">Track your reading progress and statistics</p>
     </div>
+  </div>
 </div>
 
 <!-- Statistics Cards -->
-<div class="row mb-4">
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ total_books }}</h4>
-                        <p class="card-text mb-0">Total Books</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ reading_logs }}</h4>
-                        <p class="card-text mb-0">Reading Entries</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ books_this_year }}</h4>
-                        <p class="card-text mb-0">Books This Year</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ current_user.created_at.strftime('%b %Y') }}</h4>
-                        <p class="card-text mb-0">Member Since</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+  <div class="stat bg-primary text-primary-content rounded-box">
+    <div class="stat-title text-primary-content/80">Total Books</div>
+    <div class="stat-value text-3xl">{{ total_books }}</div>
+  </div>
+  <div class="stat bg-success text-success-content rounded-box">
+    <div class="stat-title text-success-content/80">Reading Entries</div>
+    <div class="stat-value text-3xl">{{ reading_logs }}</div>
+  </div>
+  <div class="stat bg-info text-info-content rounded-box">
+    <div class="stat-title text-info-content/80">Books This Year</div>
+    <div class="stat-value text-3xl">{{ books_this_year }}</div>
+  </div>
+  <div class="stat bg-warning text-warning-content rounded-box">
+    <div class="stat-title text-warning-content/80">Member Since</div>
+    <div class="stat-value text-3xl">{{ current_user.created_at.strftime('%b %Y') }}</div>
+  </div>
 </div>
 
-<div class="row">
-    <!-- Recent Books -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-book"></i> Recent Books Added
-                </h5>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+  <!-- Recent Books -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-primary mb-4">📚 Recent Books Added</h2>
+      {% if recent_books %}
+        <div class="space-y-3">
+          {% for book in recent_books %}
+          <div class="flex justify-between items-start p-3 bg-base-200 rounded-lg">
+            <div class="flex-1">
+              <div class="font-semibold">{{ book.title }}</div>
+              <div class="text-sm text-base-content/60">
+                {% if book.author %}by {{ book.author }}{% endif %}
+                • Added {{ book.created_at.strftime('%b %d, %Y') }}
+              </div>
             </div>
-            <div class="card-body">
-                {% if recent_books %}
-                    <div class="list-group list-group-flush">
-                        {% for book in recent_books %}
-                        <div class="list-group-item d-flex justify-content-between align-items-start">
-                            <div class="ms-2 me-auto">
-                                <div class="fw-bold">{{ book.title }}</div>
-                                <small class="text-muted">
-                                    {% if book.author %}by {{ book.author }}{% endif %}
-                                    • Added {{ book.created_at.strftime('%b %d, %Y') }}
-                                </small>
-                            </div>
-                            <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% if total_books > 10 %}
-                    <div class="card-footer">
-                        <a href="{{ url_for('main.library') }}" class="btn btn-sm btn-primary">
-                            <i class="bi bi-books"></i> View All Books
-                        </a>
-                    </div>
-                    {% endif %}
-                {% else %}
-                    <p class="text-muted">No books added yet.</p>
-                    <a href="{{ url_for('main.add_book') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Add Your First Book
-                    </a>
-                {% endif %}
-            </div>
+            <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="btn btn-sm btn-primary">
+              👁️
+            </a>
+          </div>
+          {% endfor %}
         </div>
-    </div>
-    
-    <!-- Recent Reading Activity -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-journal-text"></i> Recent Reading Activity
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if recent_logs %}
-                    <div class="list-group list-group-flush">
-                        {% for log in recent_logs %}
-                        <div class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ log.book.title if log.book else 'Unknown Book' }}</h6>
-                                <small>{{ log.date.strftime('%b %d') }}</small>
-                            </div>
-                            <small class="text-muted">
-                                Logged on {{ log.created_at.strftime('%b %d, %Y') }}
-                            </small>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-muted">No reading activity recorded yet.</p>
-                    <small class="text-muted">Start logging your reading progress to see your activity here.</small>
-                {% endif %}
-            </div>
+        {% if total_books > 10 %}
+        <div class="card-actions justify-end mt-4">
+          <a href="{{ url_for('main.library') }}" class="btn btn-primary">
+            📚 View All Books
+          </a>
         </div>
+        {% endif %}
+      {% else %}
+        <div class="text-center py-8">
+          <p class="text-base-content/60 mb-4">No books added yet.</p>
+          <a href="{{ url_for('main.add_book') }}" class="btn btn-primary">
+            ➕ Add Your First Book
+          </a>
+        </div>
+      {% endif %}
     </div>
+  </div>
+  
+  <!-- Recent Reading Activity -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title text-primary mb-4">📖 Recent Reading Activity</h2>
+      {% if recent_logs %}
+        <div class="space-y-3">
+          {% for log in recent_logs %}
+          <div class="p-3 bg-base-200 rounded-lg">
+            <div class="flex justify-between items-start">
+              <h4 class="font-semibold">{{ log.book.title if log.book else 'Unknown Book' }}</h4>
+              <span class="text-sm text-base-content/60">{{ log.date.strftime('%b %d') }}</span>
+            </div>
+            <div class="text-sm text-base-content/60">
+              Logged on {{ log.created_at.strftime('%b %d, %Y') }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-8">
+          <p class="text-base-content/60 mb-2">No reading activity recorded yet.</p>
+          <p class="text-sm text-base-content/60">Start logging your reading progress to see your activity here.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <!-- Account Information -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-person-circle"></i> Account Information
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Username:</strong> {{ current_user.username }}</p>
-                        <p><strong>Email:</strong> {{ current_user.email }}</p>
-                        <p><strong>Member Since:</strong> {{ current_user.created_at.strftime('%B %d, %Y') }}</p>
-                        {% if current_user.last_login %}
-                        <p><strong>Last Login:</strong> {{ current_user.last_login.strftime('%B %d, %Y at %I:%M %p') }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Account Status:</strong> 
-                            <span class="badge bg-success">Active</span>
-                            {% if current_user.is_admin %}
-                            <span class="badge bg-primary">Admin</span>
-                            {% endif %}
-                        </p>
-                        <p><strong>Privacy Settings:</strong></p>
-                        <ul class="list-unstyled">
-                            <li><i class="bi bi-{{ 'check' if current_user.share_current_reading else 'x' }}-circle text-{{ 'success' if current_user.share_current_reading else 'muted' }}"></i> Share current reading</li>
-                            <li><i class="bi bi-{{ 'check' if current_user.share_reading_activity else 'x' }}-circle text-{{ 'success' if current_user.share_reading_activity else 'muted' }}"></i> Share reading activity</li>
-                            <li><i class="bi bi-{{ 'check' if current_user.share_library else 'x' }}-circle text-{{ 'success' if current_user.share_library else 'muted' }}"></i> Share library</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h2 class="card-title text-primary mb-6">👤 Account Information</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div class="space-y-3">
+        <p><span class="font-semibold">Username:</span> {{ current_user.username }}</p>
+        <p><span class="font-semibold">Email:</span> {{ current_user.email }}</p>
+        <p><span class="font-semibold">Member Since:</span> {{ current_user.created_at.strftime('%B %d, %Y') }}</p>
+        {% if current_user.last_login %}
+        <p><span class="font-semibold">Last Login:</span> {{ current_user.last_login.strftime('%B %d, %Y at %I:%M %p') }}</p>
+        {% endif %}
+      </div>
+      <div class="space-y-3">
+        <p><span class="font-semibold">Account Status:</span>
+          <span class="badge badge-success">Active</span>
+          {% if current_user.is_admin %}
+          <span class="badge badge-primary">Admin</span>
+          {% endif %}
+        </p>
+        <div>
+          <span class="font-semibold">Privacy Settings:</span>
+          <ul class="space-y-1 mt-2">
+            <li class="flex items-center gap-2">
+              <span class="text-{{ 'success' if current_user.share_current_reading else 'base-content/40' }}">
+                {{ '✅' if current_user.share_current_reading else '❌' }}
+              </span>
+              Share current reading
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-{{ 'success' if current_user.share_reading_activity else 'base-content/40' }}">
+                {{ '✅' if current_user.share_reading_activity else '❌' }}
+              </span>
+              Share reading activity
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="text-{{ 'success' if current_user.share_library else 'base-content/40' }}">
+                {{ '✅' if current_user.share_library else '❌' }}
+              </span>
+              Share library
+            </li>
+          </ul>
         </div>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

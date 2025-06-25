@@ -3,202 +3,128 @@
 {% block title %}{{ profile_user.username }}'s Profile - MyBibliotheca{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex align-items-center mb-4">
-            <a href="{{ url_for('main.community_activity') }}" class="btn btn-outline-secondary me-3">
-                <i class="bi bi-arrow-left"></i> Back to Community
-            </a>
-            <h2><i class="bi bi-person"></i> {{ profile_user.username }}'s Reading Profile</h2>
-        </div>
-    </div>
+<div class="flex flex-col md:flex-row items-center gap-4 mb-8">
+  <a href="{{ url_for('main.community_activity') }}" class="btn btn-outline btn-sm">
+    ⬅️ Back to Community
+  </a>
+  <h2 class="text-3xl font-bold text-primary">{{ profile_user.username }}'s Reading Profile</h2>
 </div>
 
 <!-- User Stats -->
-<div class="row mb-4">
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ total_books }}</h4>
-                        <p class="card-text mb-0">Total Books</p>
-                    </div>
-                    <div>
-                        <i class="bi bi-books" style="font-size: 2rem; opacity: 0.7;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+  <div class="card bg-primary text-primary-content">
+    <div class="card-body">
+      <h4 class="card-title text-3xl">{{ total_books }}</h4>
+      <p class="text-lg opacity-90">Total Books</p>
+      <span class="text-4xl">📚</span>
     </div>
-    
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ books_this_year }}</h4>
-                        <p class="card-text mb-0">Books This Year</p>
-                    </div>
-                    <div>
-                        <i class="bi bi-calendar-check" style="font-size: 2rem; opacity: 0.7;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+  </div>
+  <div class="card bg-success text-success-content">
+    <div class="card-body">
+      <h4 class="card-title text-3xl">{{ books_this_year }}</h4>
+      <p class="text-lg opacity-90">Books This Year</p>
+      <span class="text-4xl">📅</span>
     </div>
-    
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ books_this_month }}</h4>
-                        <p class="card-text mb-0">Books This Month</p>
-                    </div>
-                    <div>
-                        <i class="bi bi-calendar-month" style="font-size: 2rem; opacity: 0.7;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+  </div>
+  <div class="card bg-info text-info-content">
+    <div class="card-body">
+      <h4 class="card-title text-3xl">{{ books_this_month }}</h4>
+      <p class="text-lg opacity-90">Books This Month</p>
+      <span class="text-4xl">🗓️</span>
     </div>
-    
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">{{ reading_logs_count }}</h4>
-                        <p class="card-text mb-0">Reading Logs</p>
-                    </div>
-                    <div>
-                        <i class="bi bi-activity" style="font-size: 2rem; opacity: 0.7;"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+  </div>
+  <div class="card bg-warning text-warning-content">
+    <div class="card-body">
+      <h4 class="card-title text-3xl">{{ reading_logs_count }}</h4>
+      <p class="text-lg opacity-90">Reading Logs</p>
+      <span class="text-4xl">📈</span>
     </div>
+  </div>
 </div>
 
-<div class="row">
-    <!-- Currently Reading -->
-    {% if currently_reading %}
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-book-half"></i> Currently Reading
-                </h5>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+  <!-- Currently Reading -->
+  {% if currently_reading %}
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h3 class="card-title text-primary mb-4">📖 Currently Reading</h3>
+      <div class="space-y-4">
+        {% for book in currently_reading %}
+        <div class="flex items-center gap-4">
+          {% if book.cover_url %}
+            <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="h-20 w-auto rounded-lg shadow-md">
+          {% else %}
+            <div class="h-20 w-14 bg-base-200 rounded-lg flex items-center justify-center">
+              <span class="text-2xl">📚</span>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for book in currently_reading %}
-                    <div class="col-12 mb-3">
-                        <div class="d-flex">
-                            {% if book.cover_url %}
-                                <img src="{{ book.cover_url }}" alt="{{ book.title }}" 
-                                     style="height:80px;width:auto;margin-right:12px;border-radius:4px;">
-                            {% else %}
-                                <div style="height:80px;width:55px;background:#f8f9fa;border:1px solid #dee2e6;margin-right:12px;border-radius:4px;display:flex;align-items:center;justify-content:center;">
-                                    <i class="bi bi-book text-muted"></i>
-                                </div>
-                            {% endif %}
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1">{{ book.title }}</h6>
-                                <small class="text-muted">by {{ book.author }}</small><br>
-                                <small class="text-info">
-                                    Started: {{ book.start_date.strftime('%b %d') if book.start_date else 'Unknown' }}
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+          {% endif %}
+          <div class="flex-1">
+            <h6 class="font-bold">{{ book.title }}</h6>
+            <p class="text-base-content/70 text-sm">by {{ book.author }}</p>
+            <p class="text-info text-xs">Started: {{ book.start_date.strftime('%b %d') if book.start_date else 'Unknown' }}</p>
+          </div>
         </div>
+        {% endfor %}
+      </div>
     </div>
-    {% endif %}
-    
-    <!-- Recent Finished Books -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-check-circle"></i> Recently Finished
-                </h5>
+  </div>
+  {% endif %}
+  <!-- Recent Finished Books -->
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h3 class="card-title text-primary mb-4">✅ Recently Finished</h3>
+      {% if recent_finished %}
+      <div class="space-y-4">
+        {% for book in recent_finished %}
+        <div class="flex items-center gap-4">
+          {% if book.cover_url %}
+            <img src="{{ book.cover_url }}" alt="{{ book.title }}" class="h-16 w-auto rounded-lg shadow-md">
+          {% else %}
+            <div class="h-16 w-10 bg-base-200 rounded-lg flex items-center justify-center">
+              <span class="text-lg">📚</span>
             </div>
-            <div class="card-body">
-                {% if recent_finished %}
-                    <div class="list-group list-group-flush">
-                        {% for book in recent_finished %}
-                        <div class="list-group-item border-0 px-0">
-                            <div class="d-flex">
-                                {% if book.cover_url %}
-                                    <img src="{{ book.cover_url }}" alt="{{ book.title }}" 
-                                         style="height:60px;width:auto;margin-right:12px;border-radius:4px;">
-                                {% else %}
-                                    <div style="height:60px;width:40px;background:#f8f9fa;border:1px solid #dee2e6;margin-right:12px;border-radius:4px;display:flex;align-items:center;justify-content:center;">
-                                        <i class="bi bi-book text-muted" style="font-size: 0.8rem;"></i>
-                                    </div>
-                                {% endif %}
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">{{ book.title }}</h6>
-                                    <small class="text-muted">by {{ book.author }}</small><br>
-                                    <small class="text-success">
-                                        Finished: {{ book.finish_date.strftime('%b %d, %Y') }}
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-muted">No books finished yet.</p>
-                {% endif %}
-            </div>
+          {% endif %}
+          <div class="flex-1">
+            <h6 class="font-bold">{{ book.title }}</h6>
+            <p class="text-base-content/70 text-sm">by {{ book.author }}</p>
+            <p class="text-success text-xs">Finished: {{ book.finish_date.strftime('%b %d, %Y') }}</p>
+          </div>
         </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-base-content/60">No books finished yet.</p>
+      {% endif %}
     </div>
+  </div>
 </div>
 
 <!-- Member Info -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-info-circle"></i> Member Information
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Member since:</strong> {{ profile_user.created_at.strftime('%B %d, %Y') }}</p>
-                        <p><strong>Status:</strong> 
-                            {% if profile_user.is_admin %}
-                                <span class="badge bg-danger">Administrator</span>
-                            {% else %}
-                                <span class="badge bg-primary">Reader</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Sharing Activity:</strong> 
-                            <span class="badge bg-success">
-                                <i class="bi bi-check-circle"></i> Enabled
-                            </span>
-                        </p>
-                        {% if profile_user.share_current_reading %}
-                        <p><strong>Current Reading:</strong> 
-                            <span class="badge bg-info">
-                                <i class="bi bi-check-circle"></i> Shared
-                            </span>
-                        </p>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title text-primary mb-4">ℹ️ Member Information</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <p><span class="font-semibold">Member since:</span> {{ profile_user.created_at.strftime('%B %d, %Y') }}</p>
+        <p><span class="font-semibold">Status:</span>
+          {% if profile_user.is_admin %}
+            <span class="badge badge-error">Administrator</span>
+          {% else %}
+            <span class="badge badge-primary">Reader</span>
+          {% endif %}
+        </p>
+      </div>
+      <div>
+        <p><span class="font-semibold">Sharing Activity:</span>
+          <span class="badge badge-success">Enabled</span>
+        </p>
+        {% if profile_user.share_current_reading %}
+        <p><span class="font-semibold">Current Reading:</span>
+          <span class="badge badge-info">Shared</span>
+        </p>
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

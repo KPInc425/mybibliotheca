@@ -1,85 +1,147 @@
 {% extends "base.html" %}
 {% block title %}Edit Book - MyBibliotheca{% endblock %}
+
 {% block content %}
-<h1>Edit Book</h1>
-<form method="post">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-  <div class="mb-3">
-    <label for="title" class="form-label">Title</label>
-    <input type="text" class="form-control" id="title" name="title" value="{{ book.title }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="author" class="form-label">Author</label>
-    <input type="text" class="form-control" id="author" name="author" value="{{ book.author }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="isbn" class="form-label">ISBN</label>
-    <input type="text" class="form-control" id="isbn" name="isbn" value="{{ book.isbn }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="description" class="form-label">Description</label>
-    <textarea class="form-control" id="description" name="description" rows="4">{{ book.description or '' }}</textarea>
-  </div>
-  <div class="row">
-    <div class="col-md-6">
-      <div class="mb-3">
-        <label for="published_date" class="form-label">Published Date</label>
-        <input type="text" class="form-control" id="published_date" name="published_date" value="{{ book.published_date or '' }}">
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="mb-3">
-        <label for="page_count" class="form-label">Page Count</label>
-        <input type="number" class="form-control" id="page_count" name="page_count" value="{{ book.page_count or '' }}">
-      </div>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-4xl font-bold mb-4">✏️ Edit Book</h1>
+      <p class="text-xl opacity-90">Update book information and details</p>
     </div>
   </div>
-  <div class="row">
-    <div class="col-md-6">
-      <div class="mb-3">
-        <label for="publisher" class="form-label">Publisher</label>
-        <input type="text" class="form-control" id="publisher" name="publisher" value="{{ book.publisher or '' }}">
+</div>
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <form method="post" class="space-y-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      
+      <!-- Basic Information -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📚 Title</span>
+          </label>
+          <input type="text" class="input input-bordered" id="title" name="title" 
+                 value="{{ book.title }}" required>
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">✍️ Author</span>
+          </label>
+          <input type="text" class="input input-bordered" id="author" name="author" 
+                 value="{{ book.author }}" required>
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📖 ISBN</span>
+          </label>
+          <input type="text" class="input input-bordered" id="isbn" name="isbn" 
+                 value="{{ book.isbn }}" required>
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">🏢 Publisher</span>
+          </label>
+          <input type="text" class="input input-bordered" id="publisher" name="publisher" 
+                 value="{{ book.publisher or '' }}">
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📅 Published Date</span>
+          </label>
+          <input type="text" class="input input-bordered" id="published_date" name="published_date" 
+                 value="{{ book.published_date or '' }}">
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📄 Page Count</span>
+          </label>
+          <input type="number" class="input input-bordered" id="page_count" name="page_count" 
+                 value="{{ book.page_count or '' }}">
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">🌐 Language</span>
+          </label>
+          <input type="text" class="input input-bordered" id="language" name="language" 
+                 value="{{ book.language or '' }}">
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📊 Average Rating</span>
+          </label>
+          <input type="number" step="0.1" min="0" max="5" class="input input-bordered" 
+                 id="average_rating" name="average_rating" value="{{ book.average_rating or '' }}">
+        </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">📈 Rating Count</span>
+          </label>
+          <input type="number" class="input input-bordered" id="rating_count" name="rating_count" 
+                 value="{{ book.rating_count or '' }}">
+        </div>
       </div>
-    </div>
-    <div class="col-md-6">
-      <div class="mb-3">
-        <label for="language" class="form-label">Language</label>
-        <input type="text" class="form-control" id="language" name="language" value="{{ book.language or '' }}">
+
+      <!-- Description -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text text-lg font-semibold">📝 Description</span>
+        </label>
+        <textarea class="textarea textarea-bordered h-32" id="description" name="description" 
+                  placeholder="Enter book description">{{ book.description or '' }}</textarea>
       </div>
-    </div>
-  </div>
-  <div class="mb-3">
-    <label for="categories" class="form-label">Categories</label>
-    <input type="text" class="form-control" id="categories" name="categories" value="{{ book.categories or '' }}" placeholder="Comma-separated categories">
-    <div class="form-text">Enter categories separated by commas (e.g., Fiction, Science Fiction, Adventure)</div>
-  </div>
-  <div class="row">
-    <div class="col-md-6">
-      <div class="mb-3">
-        <label for="average_rating" class="form-label">Average Rating</label>
-        <input type="number" step="0.1" min="0" max="5" class="form-control" id="average_rating" name="average_rating" value="{{ book.average_rating or '' }}">
+
+      <!-- Categories -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text text-lg font-semibold">🏷️ Categories</span>
+        </label>
+        <input type="text" class="input input-bordered" id="categories" name="categories" 
+               value="{{ book.categories or '' }}" 
+               placeholder="Comma-separated categories">
+        <label class="label">
+          <span class="label-text-alt">Enter categories separated by commas (e.g., Fiction, Science Fiction, Adventure)</span>
+        </label>
       </div>
-    </div>
-    <div class="col-md-6">
-      <div class="mb-3">
-        <label for="rating_count" class="form-label">Rating Count</label>
-        <input type="number" class="form-control" id="rating_count" name="rating_count" value="{{ book.rating_count or '' }}">
+
+      <!-- Cover Image -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text text-lg font-semibold">📸 Cover Image URL</span>
+        </label>
+        <input type="url" class="input input-bordered" id="cover_url" name="cover_url" 
+               value="{{ book.cover_url or '' }}" placeholder="Direct image URL">
+        <label class="label">
+          <span class="label-text-alt">Paste a direct image URL to override the cover</span>
+        </label>
+        
+        {% if book.cover_url %}
+        <div class="mt-4 text-center">
+          <img src="{{ book.cover_url }}" alt="Current Cover" 
+               class="max-h-32 max-w-32 rounded-lg shadow-lg mx-auto">
+        </div>
+        {% endif %}
       </div>
-    </div>
-  </div>
-  <div class="mb-3">
-    <label for="cover_url" class="form-label">Cover Image URL</label>
-    <input type="url" class="form-control" id="cover_url" name="cover_url" value="{{ book.cover_url or '' }}">
-    {% if book.cover_url %}
-      <div class="mt-2 text-center">
-        <img src="{{ book.cover_url }}" alt="Current Cover" class="img-fluid rounded" style="max-height:120px; max-width:120px;">
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <button type="submit" class="btn btn-primary btn-lg">
+          💾 Save Changes
+        </button>
+        <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="btn btn-outline btn-lg">
+          ❌ Cancel
+        </a>
       </div>
-    {% endif %}
-    <div class="form-text">Paste a direct image URL to override the cover.</div>
+    </form>
   </div>
-  <div class="d-grid gap-2">
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-    <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="btn btn-outline-secondary">Cancel</a>
-  </div>
-</form>
+</div>
 {% endblock %}

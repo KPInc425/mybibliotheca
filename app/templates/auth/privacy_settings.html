@@ -3,129 +3,108 @@
 {% block title %}Privacy Settings - MyBibliotheca{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2><i class="bi bi-shield-lock"></i> Privacy Settings</h2>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-4xl font-bold mb-4">🔒 Privacy Settings</h1>
+      <p class="text-xl opacity-90">Control your data sharing preferences</p>
     </div>
+  </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-eye"></i> Sharing Preferences
-                </h5>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+  <div class="lg:col-span-2">
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-primary mb-4">👁️ Sharing Preferences</h2>
+        <p class="text-base-content/70 mb-6">
+          Control what information you share with other users and how your reading activity is displayed.
+        </p>
+        <form method="POST" class="space-y-6">
+          {{ form.hidden_tag() }}
+          <div class="space-y-4">
+            <div class="flex items-center gap-4">
+              {{ form.share_current_reading(class="toggle toggle-primary") }}
+              <div>
+                {{ form.share_current_reading.label(class="font-semibold") }}
+                <p class="text-sm text-base-content/60">Allow others to see what book you're currently reading</p>
+              </div>
             </div>
-            <div class="card-body">
-                <p class="text-muted mb-4">
-                    Control what information you share with other users and how your reading activity is displayed.
-                </p>
-                
-                <form method="POST">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="mb-4">
-                        <div class="form-check form-switch">
-                            {{ form.share_current_reading(class="form-check-input") }}
-                            {{ form.share_current_reading.label(class="form-check-label") }}
-                        </div>
-                        <small class="text-muted">Allow others to see what book you're currently reading</small>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <div class="form-check form-switch">
-                            {{ form.share_reading_activity(class="form-check-input") }}
-                            {{ form.share_reading_activity.label(class="form-check-label") }}
-                        </div>
-                        <small class="text-muted">Share your reading statistics and activity timeline</small>
-                    </div>
-                    
-                    <div class="mb-4">
-                        <div class="form-check form-switch">
-                            {{ form.share_library(class="form-check-input") }}
-                            {{ form.share_library.label(class="form-check-label") }}
-                        </div>
-                        <small class="text-muted">Make your book library visible to other users</small>
-                    </div>
-                    
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary") }}
-                    </div>
-                </form>
+            <div class="flex items-center gap-4">
+              {{ form.share_reading_activity(class="toggle toggle-primary") }}
+              <div>
+                {{ form.share_reading_activity.label(class="font-semibold") }}
+                <p class="text-sm text-base-content/60">Share your reading statistics and activity timeline</p>
+              </div>
             </div>
-        </div>
+            <div class="flex items-center gap-4">
+              {{ form.share_library(class="toggle toggle-primary") }}
+              <div>
+                {{ form.share_library.label(class="font-semibold") }}
+                <p class="text-sm text-base-content/60">Make your book library visible to other users</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            {{ form.submit(class="btn btn-primary w-full") }}
+          </div>
+        </form>
+      </div>
     </div>
-    
-    <div class="col-md-4">
-        <div class="card bg-light">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="bi bi-info-circle"></i> Privacy Information
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <strong>Current Reading:</strong>
-                    <p class="small text-muted">Controls whether your current book appears in activity feeds and your profile.</p>
-                </div>
-                
-                <div class="mb-3">
-                    <strong>Reading Activity:</strong>
-                    <p class="small text-muted">Includes reading statistics, completion dates, and reading history.</p>
-                </div>
-                
-                <div class="mb-3">
-                    <strong>Library Visibility:</strong>
-                    <p class="small text-muted">Your complete book collection and ratings will be visible to others.</p>
-                </div>
-                
-                <div class="alert alert-info">
-                    <small>
-                        <i class="bi bi-lightbulb"></i>
-                        <strong>Tip:</strong> You can change these settings at any time. Your data remains secure regardless of these preferences.
-                    </small>
-                </div>
-            </div>
+  </div>
+  <div class="lg:col-span-1">
+    <div class="card bg-base-200 shadow-xl">
+      <div class="card-body">
+        <h3 class="card-title text-primary mb-4">ℹ️ Privacy Information</h3>
+        <div class="space-y-4">
+          <div>
+            <span class="font-semibold">Current Reading:</span>
+            <p class="text-sm text-base-content/60">Controls whether your current book appears in activity feeds and your profile.</p>
+          </div>
+          <div>
+            <span class="font-semibold">Reading Activity:</span>
+            <p class="text-sm text-base-content/60">Includes reading statistics, completion dates, and reading history.</p>
+          </div>
+          <div>
+            <span class="font-semibold">Library Visibility:</span>
+            <p class="text-sm text-base-content/60">Your complete book collection and ratings will be visible to others.</p>
+          </div>
         </div>
+        <div class="alert alert-info mt-6">
+          <span class="text-sm">
+            <span class="font-bold">💡 Tip:</span> You can change these settings at any time. Your data remains secure regardless of these preferences.
+          </span>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 
-<div class="row">
-    <div class="col-md-8 mb-4">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="bi bi-calendar-check"></i> Reading Streak Settings
-                </h6>
-            </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('auth.update_streak_settings') }}">
-                    {{ streak_form.hidden_tag() }}
-                    
-                    <div class="mb-3">
-                        {{ streak_form.reading_streak_offset.label(class="form-label") }}
-                        {{ streak_form.reading_streak_offset }}
-                        <div class="form-text">
-                            Add extra days to your reading streak. This can account for days you read but forgot to log, 
-                            or give yourself a head start. Current streak: <strong>{{ current_user.get_reading_streak() }}</strong> days.
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info">
-                        <small>
-                            <i class="bi bi-info-circle"></i>
-                            <strong>How it works:</strong> Your streak is calculated from your reading logs, 
-                            then this offset is added. The offset doesn't replace your actual reading activity.
-                        </small>
-                    </div>
-                    
-                    <div class="d-grid">
-                        {{ streak_form.submit }}
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h2 class="card-title text-primary mb-4">📅 Reading Streak Settings</h2>
+    <form method="POST" action="{{ url_for('auth.update_streak_settings') }}" class="space-y-6">
+      {{ streak_form.hidden_tag() }}
+      <div>
+        {{ streak_form.reading_streak_offset.label(class="label label-text font-semibold") }}
+        {{ streak_form.reading_streak_offset(class="input input-bordered w-full max-w-xs") }}
+        <label class="label">
+          <span class="label-text-alt">
+            Add extra days to your reading streak. This can account for days you read but forgot to log, 
+            or give yourself a head start. Current streak: <strong>{{ current_user.get_reading_streak() }}</strong> days.
+          </span>
+        </label>
+      </div>
+      <div class="alert alert-info">
+        <span class="text-sm">
+          <span class="font-bold">ℹ️ How it works:</span> Your streak is calculated from your reading logs, 
+          then this offset is added. The offset doesn't replace your actual reading activity.
+        </span>
+      </div>
+      <div>
+        {{ streak_form.submit(class="btn btn-primary") }}
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

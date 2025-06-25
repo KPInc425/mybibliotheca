@@ -34,7 +34,7 @@
   <div id="notificationStack" class="notification-stack"></div>
 
   <!-- Navigation -->
-  <div class="navbar bg-base-100 shadow-lg">
+  <div class="navbar bg-base-100 shadow-lg" id="navbar">
     <div class="navbar-start">
       <div class="dropdown">
         <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
@@ -42,7 +42,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16"></path>
           </svg>
         </div>
-        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[60] p-2 shadow bg-base-100 rounded-box w-52">
           <li><a href="{{ url_for('main.index') }}">📚 Library</a></li>
           <li><a href="{{ url_for('main.add_book') }}">➕ Add Book</a></li>
           <li><a href="{{ url_for('main.search_books') }}">🔍 Search</a></li>
@@ -71,11 +71,11 @@
       {% if current_user.is_authenticated %}
         <div class="dropdown dropdown-end">
           <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
-            <div class="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
+            <div class="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center pt-2">
               {{ current_user.username[0].upper() }}
             </div>
           </div>
-          <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+          <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[60] p-2 shadow bg-base-100 rounded-box w-52">
             <li><a href="{{ url_for('auth.profile') }}">👤 Profile</a></li>
             <li><a href="{{ url_for('auth.my_activity') }}">📈 My Activity</a></li>
             <li><a href="{{ url_for('auth.privacy_settings') }}">🔒 Privacy</a></li>
@@ -96,7 +96,7 @@
   </div>
 
   <!-- Main Content -->
-  <main class="container mx-auto px-4 py-8">
+  <main class="container mx-auto px-4 py-8 pt-20 md:pt-24">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="space-y-2 mb-6">
@@ -113,14 +113,14 @@
   </main>
 
   <!-- Footer -->
-  <footer class="footer footer-center p-10 bg-base-300 text-base-content">
+  <footer class="footer footer-center p-10 bg-base-300 text-base-content flex flex-col-reverse md:flex-row justify-between">
     <div>
       <p class="font-bold text-lg">📖 MyBibliotheca</p>
       <p class="text-sm opacity-75">Your personal digital library</p>
       <p class="text-xs opacity-50">© 2024 - All rights reserved</p>
     </div>
     <div>
-      <div class="grid grid-flow-col gap-4">
+      <div class="grid grid-cols-2 md:flex gap-4">
         <a href="{{ url_for('main.index') }}" class="link link-hover">Library</a>
         <a href="{{ url_for('main.add_book') }}" class="link link-hover">Add Book</a>
         <a href="{{ url_for('main.search_books') }}" class="link link-hover">Search</a>
@@ -132,7 +132,7 @@
   </footer>
 
   <!-- Theme Toggle -->
-  <div class="fixed bottom-4 right-4">
+  <div class="fixed bottom-4 right-4 z-40">
     <button id="themeToggle" class="btn btn-circle btn-primary">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
@@ -153,6 +153,36 @@
     // Load saved theme
     const savedTheme = localStorage.getItem('theme') || 'mybibliotheca';
     document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Scroll-based header behavior
+    let lastScrollTop = 0;
+    const navbar = document.getElementById('navbar');
+    const scrollThreshold = 10;
+    
+    // Ensure navbar is visible on page load
+    navbar.classList.remove('navbar-hidden');
+    
+    window.addEventListener('scroll', function() {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Always show navbar when at the top
+      if (scrollTop <= 50) {
+        navbar.classList.remove('navbar-hidden');
+        lastScrollTop = scrollTop;
+        return;
+      }
+      
+      if (Math.abs(scrollTop - lastScrollTop) > scrollThreshold) {
+        if (scrollTop > lastScrollTop && scrollTop > 100) {
+          // Scrolling down - hide navbar
+          navbar.classList.add('navbar-hidden');
+        } else {
+          // Scrolling up - show navbar
+          navbar.classList.remove('navbar-hidden');
+        }
+        lastScrollTop = scrollTop;
+      }
+    });
   </script>
 
   <!-- Custom JavaScript -->

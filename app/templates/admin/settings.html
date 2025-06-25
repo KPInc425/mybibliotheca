@@ -3,198 +3,187 @@
 {% block title %}Admin Settings - MyBibliotheca{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Admin Settings</h2>
-            <div class="btn-group">
-                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary">
-                    Dashboard
-                </a>
-                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">
-                    👥 Users
-                </a>
-            </div>
-        </div>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-4xl font-bold mb-4">⚙️ Admin Settings</h1>
+      <p class="text-xl opacity-90">System configuration and security</p>
     </div>
+  </div>
+</div>
+
+<div class="flex justify-between items-center mb-8">
+  <h2 class="text-2xl font-bold">Admin Settings</h2>
+  <div class="flex gap-2">
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline btn-primary">
+      📊 Dashboard
+    </a>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-outline btn-secondary">
+      👥 Users
+    </a>
+  </div>
 </div>
 
 <!-- System Configuration -->
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">🔧 System Configuration</h5>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <div class="lg:col-span-2">
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-primary mb-6">🔧 System Configuration</h2>
+        <form method="POST" action="{{ url_for('admin.settings') }}" class="space-y-6">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          
+          <div>
+            <label for="site_name" class="label label-text font-semibold">Site Name</label>
+            <input type="text" class="input input-bordered w-full" id="site_name" name="site_name" value="MyBibliotheca" readonly>
+            <label class="label">
+              <span class="label-text-alt">The name displayed in the site header</span>
+            </label>
+          </div>
+          
+          <div>
+            <label for="max_users" class="label label-text font-semibold">Maximum Users</label>
+            <input type="number" class="input input-bordered w-full" id="max_users" name="max_users" value="100" readonly>
+            <label class="label">
+              <span class="label-text-alt">Maximum number of users allowed to register</span>
+            </label>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <input class="checkbox checkbox-disabled" type="checkbox" id="allow_registration" name="allow_registration" checked disabled>
+            <div>
+              <label class="font-semibold" for="allow_registration">Allow User Registration</label>
+              <p class="text-sm text-base-content/60">Whether new users can register accounts</p>
             </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('admin.settings') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                    
-                    <div class="mb-3">
-                        <label for="site_name" class="form-label">Site Name</label>
-                        <input type="text" class="form-control" id="site_name" name="site_name" value="MyBibliotheca" readonly>
-                        <small class="form-text text-muted">The name displayed in the site header</small>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="max_users" class="form-label">Maximum Users</label>
-                        <input type="number" class="form-control" id="max_users" name="max_users" value="100" readonly>
-                        <small class="form-text text-muted">Maximum number of users allowed to register</small>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="allow_registration" name="allow_registration" checked disabled>
-                            <label class="form-check-label" for="allow_registration">
-                                Allow User Registration
-                            </label>
-                            <small class="form-text text-muted d-block">Whether new users can register accounts</small>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="require_email_verification" name="require_email_verification" disabled>
-                            <label class="form-check-label" for="require_email_verification">
-                                Require Email Verification
-                            </label>
-                            <small class="form-text text-muted d-block">Require users to verify their email before activating account</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Debug Logging Toggle -->
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="debug_mode" name="debug_mode" 
-                                   {% if debug_enabled %}checked{% endif %}>
-                            <label class="form-check-label" for="debug_mode">
-                                🔍 Enable Debug Logging
-                            </label>
-                            <small class="form-text text-muted d-block">Show debug information in the barcode scanner interface for troubleshooting</small>
-                        </div>
-                    </div>
-                    
-                    <!-- Submit button for debug mode -->
-                    <div class="mb-3">
-                        <button type="submit" class="btn btn-primary">
-                            💾 Save Settings
-                        </button>
-                    </div>
-                    
-                    <!-- Note: These settings are read-only in this demo -->
-                    <div class="alert alert-info">
-                        <strong>ℹ️ Note:</strong> Most system configuration settings are currently read-only. 
-                        Contact your system administrator to modify these settings.
-                    </div>
-                </form>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <input class="checkbox checkbox-disabled" type="checkbox" id="require_email_verification" name="require_email_verification" disabled>
+            <div>
+              <label class="font-semibold" for="require_email_verification">Require Email Verification</label>
+              <p class="text-sm text-base-content/60">Require users to verify their email before activating account</p>
             </div>
+          </div>
+          
+          <!-- Debug Logging Toggle -->
+          <div class="flex items-center gap-3">
+            <input class="checkbox checkbox-primary" type="checkbox" id="debug_mode" name="debug_mode" 
+                   {% if debug_enabled %}checked{% endif %}>
+            <div>
+              <label class="font-semibold" for="debug_mode">🔍 Enable Debug Logging</label>
+              <p class="text-sm text-base-content/60">Show debug information in the barcode scanner interface for troubleshooting</p>
+            </div>
+          </div>
+          
+          <!-- Submit button for debug mode -->
+          <div>
+            <button type="submit" class="btn btn-primary">
+              💾 Save Settings
+            </button>
+          </div>
+          
+          <!-- Note: These settings are read-only in this demo -->
+          <div class="alert alert-info">
+            <span class="font-bold">ℹ️ Note:</span> Most system configuration settings are currently read-only. 
+            Contact your system administrator to modify these settings.
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <div class="lg:col-span-1 flex flex-col gap-6">
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h3 class="card-title text-primary mb-4">🔐 Security Actions</h3>
+        <div class="space-y-3">
+          <button class="btn btn-warning w-full" onclick="showPasswordResetModal()">
+            🔑 Change Admin Password
+          </button>
+          
+          <button class="btn btn-info w-full" onclick="exportData()">
+            📤 Export User Data
+          </button>
+          
+          <button class="btn btn-secondary w-full" onclick="clearSessions()">
+            🚪 Clear All User Sessions
+          </button>
+          
+          <div class="divider"></div>
+          
+          <button class="btn btn-error w-full" onclick="showMaintenanceModal()">
+            🚨 Maintenance Mode
+          </button>
         </div>
+      </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">🔐 Security Actions</h5>
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h3 class="card-title text-primary mb-4">Quick Stats</h3>
+        <div class="text-center space-y-4">
+          <div>
+            <div class="font-bold">{{ current_user.username }}</div>
+            <div class="text-sm text-base-content/60">Logged in as Admin</div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <div class="text-primary font-bold">Online</div>
+              <div class="text-sm text-base-content/60">System Status</div>
             </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <button class="btn btn-warning" onclick="showPasswordResetModal()">
-                        🔑 Change Admin Password
-                    </button>
-                    
-                    <button class="btn btn-info" onclick="exportData()">
-                        📤 Export User Data
-                    </button>
-                    
-                    <button class="btn btn-secondary" onclick="clearSessions()">
-                        🚪 Clear All User Sessions
-                    </button>
-                    
-                    <hr>
-                    
-                    <button class="btn btn-danger" onclick="showMaintenanceModal()">
-                        🚨 Maintenance Mode
-                    </button>
-                </div>
+            <div>
+              <div class="text-success font-bold">Multi-User Platform</div>
+              <div class="text-sm text-base-content/60">Version</div>
             </div>
+          </div>
         </div>
-        
-        <div class="card mt-3">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Quick Stats</h5>
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <div class="col-12 mb-2">
-                        <strong>{{ current_user.username }}</strong>
-                        <br><small class="text-muted">Logged in as Admin</small>
-                    </div>
-                    <div class="col-6">
-                        <h5 class="text-primary">Online</h5>
-                        <small class="text-muted">System Status</small>
-                    </div>
-                    <div class="col-6">
-                        <h5 class="text-success">Multi-User Platform</h5>
-                        <small class="text-muted">Version</small>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Password Reset Modal -->
-<div class="modal fade" id="passwordResetModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">🔑 Change Admin Password</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-warning">
-                    <strong>⚠️ Security Notice:</strong> For security reasons, admin passwords should be changed using the CLI tool.
-                </div>
-                <p>To change your admin password, run the following command on the server:</p>
-                <div class="bg-dark text-light p-3 rounded">
-                    <code>python admin_tools.py reset-admin-password</code>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+<dialog id="passwordResetModal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">🔑 Change Admin Password</h3>
+    <div class="alert alert-warning mb-4">
+      <span class="font-bold">⚠️ Security Notice:</span> For security reasons, admin passwords should be changed using the CLI tool.
     </div>
-</div>
+    <p class="mb-4">To change your admin password, run the following command on the server:</p>
+    <div class="bg-base-300 p-4 rounded-lg font-mono text-sm">
+      <code>python admin_tools.py reset-admin-password</code>
+    </div>
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn btn-secondary">Close</button>
+      </form>
+    </div>
+  </div>
+</dialog>
 
 <!-- Maintenance Mode Modal -->
-<div class="modal fade" id="maintenanceModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">🚨 Maintenance Mode</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-danger">
-                    <strong>⚠️ Warning:</strong> Maintenance mode will prevent all users (except admins) from accessing the system.
-                </div>
-                <p>This feature is not yet implemented in the current version.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+<dialog id="maintenanceModal" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg mb-4">🚨 Maintenance Mode</h3>
+    <div class="alert alert-error mb-4">
+      <span class="font-bold">⚠️ Warning:</span> Maintenance mode will prevent all users (except admins) from accessing the system.
     </div>
-</div>
+    <p>This feature is not yet implemented in the current version.</p>
+    <div class="modal-action">
+      <form method="dialog">
+        <button class="btn btn-secondary">Close</button>
+      </form>
+    </div>
+  </div>
+</dialog>
 
 <script>
 function showPasswordResetModal() {
-    new bootstrap.Modal(document.getElementById('passwordResetModal')).show();
+    document.getElementById('passwordResetModal').showModal();
 }
 
 function showMaintenanceModal() {
-    new bootstrap.Modal(document.getElementById('maintenanceModal')).show();
+    document.getElementById('maintenanceModal').showModal();
 }
 
 function exportData() {

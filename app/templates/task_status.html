@@ -3,137 +3,110 @@
 {% block title %}Task Status - {{ task.name }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>{{ task.name }}</h1>
-    <a href="{{ url_for('main.list_tasks') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-list"></i> All Tasks
-    </a>
+<div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+  <h1 class="text-2xl font-bold text-primary">{{ task.name }}</h1>
+  <a href="{{ url_for('main.list_tasks') }}" class="btn btn-outline btn-sm">
+    📋 All Tasks
+  </a>
 </div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Progress</h5>
-                <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'failed' %}danger{% elif task.status == 'running' %}primary{% else %}secondary{% endif %}">
-                    {{ task.status.title() }}
-                </span>
-            </div>
-            <div class="card-body">
-                <!-- Progress Bar -->
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <small class="text-muted">Progress</small>
-                        <small class="text-muted" id="progress-text">{{ task.progress }}%</small>
-                    </div>
-                    <div class="progress">
-                        <div class="progress-bar" role="progressbar" 
-                             style="width: {{ task.progress }}%" 
-                             id="progress-bar"
-                             aria-valuenow="{{ task.progress }}" 
-                             aria-valuemin="0" 
-                             aria-valuemax="100">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Current Status -->
-                <div class="row mb-3">
-                    <div class="col-sm-6">
-                        <strong>Processed:</strong> 
-                        <span id="processed-count">{{ task.processed_items }}</span> / 
-                        <span id="total-count">{{ task.total_items }}</span>
-                    </div>
-                    <div class="col-sm-6">
-                        <strong>Success:</strong> 
-                        <span id="success-count" class="text-success">{{ task.success_count or 0 }}</span>
-                        <strong class="ms-3">Errors:</strong> 
-                        <span id="error-count" class="text-danger">{{ task.error_count or 0 }}</span>
-                    </div>
-                </div>
-
-                <!-- Current Item -->
-                {% if task.current_item %}
-                <div class="mb-3">
-                    <strong>Current Item:</strong>
-                    <span id="current-item" class="text-muted">{{ task.current_item }}</span>
-                </div>
-                {% endif %}
-
-                <!-- Description -->
-                {% if task.description %}
-                <div class="mb-3">
-                    <strong>Description:</strong>
-                    <p class="text-muted mb-0">{{ task.description }}</p>
-                </div>
-                {% endif %}
-
-                <!-- Error Message -->
-                {% if task.error_message %}
-                <div class="alert alert-danger">
-                    <strong>Error:</strong> {{ task.error_message }}
-                </div>
-                {% endif %}
-
-                <!-- Completion Result -->
-                {% if task.result and task.status == 'completed' %}
-                <div class="alert alert-success">
-                    <strong>Completed!</strong> {{ task.result.message }}
-                </div>
-                {% endif %}
-            </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+  <div class="md:col-span-2">
+    <div class="card bg-base-100 shadow-xl mb-8">
+      <div class="card-body">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-2">
+          <h2 class="card-title text-lg">Progress</h2>
+          <span class="badge {% if task.status == 'completed' %}badge-success{% elif task.status == 'failed' %}badge-error{% elif task.status == 'running' %}badge-primary{% else %}badge-secondary{% endif %}">
+            {{ task.status.title() }}
+          </span>
         </div>
+        <!-- Progress Bar -->
+        <div class="mb-4">
+          <div class="flex justify-between mb-1">
+            <span class="text-xs text-base-content/60">Progress</span>
+            <span class="text-xs text-base-content/60" id="progress-text">{{ task.progress }}%</span>
+          </div>
+          <progress class="progress progress-primary w-full" value="{{ task.progress }}" max="100" id="progress-bar"></progress>
+        </div>
+        <!-- Current Status -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <span class="font-semibold">Processed:</span>
+            <span id="processed-count">{{ task.processed_items }}</span> /
+            <span id="total-count">{{ task.total_items }}</span>
+          </div>
+          <div>
+            <span class="font-semibold">Success:</span>
+            <span id="success-count" class="text-success">{{ task.success_count or 0 }}</span>
+            <span class="font-semibold ml-4">Errors:</span>
+            <span id="error-count" class="text-error">{{ task.error_count or 0 }}</span>
+          </div>
+        </div>
+        {% if task.current_item %}
+        <div class="mb-4">
+          <span class="font-semibold">Current Item:</span>
+          <span id="current-item" class="text-base-content/60">{{ task.current_item }}</span>
+        </div>
+        {% endif %}
+        {% if task.description %}
+        <div class="mb-4">
+          <span class="font-semibold">Description:</span>
+          <span class="text-base-content/60">{{ task.description }}</span>
+        </div>
+        {% endif %}
+        {% if task.error_message %}
+        <div class="alert alert-error mb-4">
+          <span class="font-bold">Error:</span> {{ task.error_message }}
+        </div>
+        {% endif %}
+        {% if task.result and task.status == 'completed' %}
+        <div class="alert alert-success mb-4">
+          <span class="font-bold">Completed!</span> {{ task.result.message }}
+        </div>
+        {% endif %}
+      </div>
     </div>
-
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Task Details</h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-2">
-                    <strong>Task ID:</strong><br>
-                    <small class="text-muted font-monospace">{{ task.id }}</small>
-                </div>
-                <div class="mb-2">
-                    <strong>Created:</strong><br>
-                    <small class="text-muted">{{ task.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') if task.created_at else 'N/A' }}</small>
-                </div>
-                {% if task.started_at %}
-                <div class="mb-2">
-                    <strong>Started:</strong><br>
-                    <small class="text-muted">{{ task.started_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</small>
-                </div>
-                {% endif %}
-                {% if task.completed_at %}
-                <div class="mb-2">
-                    <strong>Completed:</strong><br>
-                    <small class="text-muted">{{ task.completed_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</small>
-                </div>
-                {% endif %}
-            </div>
+  </div>
+  <div class="md:col-span-1 flex flex-col gap-8">
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-4">Task Details</h2>
+        <div class="mb-2">
+          <span class="font-semibold">Task ID:</span><br>
+          <span class="text-xs font-mono text-base-content/60">{{ task.id }}</span>
         </div>
-
-        <!-- Actions -->
-        <div class="card mt-3">
-            <div class="card-header">
-                <h5 class="mb-0">Actions</h5>
-            </div>
-            <div class="card-body">
-                <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm mb-2">
-                    <i class="bi bi-house"></i> Go to Library
-                </a>
-                {% if task.status == 'completed' %}
-                <a href="{{ url_for('main.bulk_import') }}" class="btn btn-success btn-sm mb-2">
-                    <i class="bi bi-upload"></i> Import More Books
-                </a>
-                {% endif %}
-                <button onclick="refreshStatus()" class="btn btn-outline-secondary btn-sm mb-2">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh
-                </button>
-            </div>
+        <div class="mb-2">
+          <span class="font-semibold">Created:</span><br>
+          <span class="text-xs text-base-content/60">{{ task.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') if task.created_at else 'N/A' }}</span>
         </div>
+        {% if task.started_at %}
+        <div class="mb-2">
+          <span class="font-semibold">Started:</span><br>
+          <span class="text-xs text-base-content/60">{{ task.started_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+        </div>
+        {% endif %}
+        {% if task.completed_at %}
+        <div class="mb-2">
+          <span class="font-semibold">Completed:</span><br>
+          <span class="text-xs text-base-content/60">{{ task.completed_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+        </div>
+        {% endif %}
+      </div>
     </div>
+    <!-- Actions -->
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-4">Actions</h2>
+        <div class="flex flex-col gap-2">
+          <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm">🏠 Go to Library</a>
+          {% if task.status == 'completed' %}
+          <a href="{{ url_for('main.bulk_import') }}" class="btn btn-success btn-sm">⬆️ Import More Books</a>
+          {% endif %}
+          <button onclick="refreshStatus()" class="btn btn-outline btn-sm">🔄 Refresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -145,7 +118,7 @@ function refreshStatus() {
         .then(response => response.json())
         .then(data => {
             // Update progress bar
-            document.getElementById('progress-bar').style.width = data.progress + '%';
+            document.getElementById('progress-bar').value = data.progress;
             document.getElementById('progress-bar').setAttribute('aria-valuenow', data.progress);
             document.getElementById('progress-text').textContent = data.progress + '%';
             

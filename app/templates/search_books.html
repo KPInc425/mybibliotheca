@@ -3,34 +3,71 @@
 {% block title %}Search Books - MyBibliotheca{% endblock %}
 
 {% block content %}
-<h2>Search for Books</h2>
-<form method="post" class="mb-4">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-  <input type="text" name="query" value="{{ query }}" placeholder="Enter book title" class="form-control" required>
-  <button type="submit" class="btn btn-primary mt-2">Search</button>
-</form>
-{% if results %}
-  <ul class="list-group">
-    {% for book in results %}
-      <li class="list-group-item d-flex align-items-center">
-        {% if book.image %}
-          <img src="{{ book.image }}" alt="cover" style="height:60px;width:auto;margin-right:16px;">
-        {% endif %}
-        <div class="flex-grow-1">
-          <strong>{{ book.title }}</strong><br>
-          <small>by {{ book.authors }}</small><br>
-          <small>ISBN: {{ book.isbn or 'N/A' }}</small>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-4xl font-bold mb-4">🔍 Search Books</h1>
+      <p class="text-xl opacity-90">Find books to add to your library</p>
+    </div>
+  </div>
+</div>
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <form method="post" class="mb-8">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="join w-full">
+        <input type="text" name="query" value="{{ query }}" 
+               placeholder="Enter book title, author, or ISBN" 
+               class="input input-bordered join-item flex-1" required>
+        <button type="submit" class="btn btn-primary join-item">
+          🔍 Search
+        </button>
+      </div>
+    </form>
+
+    {% if results %}
+    <div class="space-y-4">
+      {% for book in results %}
+      <div class="card bg-base-200 border border-base-300">
+        <div class="card-body p-4">
+          <div class="flex items-center gap-4">
+            {% if book.image %}
+            <img src="{{ book.image }}" alt="Book cover" 
+                 class="h-16 w-auto rounded-lg shadow-md">
+            {% else %}
+            <div class="h-16 w-12 bg-base-300 rounded-lg flex items-center justify-center">
+              <span class="text-2xl">📚</span>
+            </div>
+            {% endif %}
+            
+            <div class="flex-1">
+              <h3 class="font-bold text-lg">{{ book.title }}</h3>
+              <p class="text-base-content/70">by {{ book.authors }}</p>
+              <p class="text-sm text-base-content/60">ISBN: {{ book.isbn or 'N/A' }}</p>
+            </div>
+            
+            <form method="post" action="{{ url_for('main.add_book_from_search') }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <input type="hidden" name="title" value="{{ book.title }}">
+              <input type="hidden" name="author" value="{{ book.authors }}">
+              <input type="hidden" name="isbn" value="{{ book.isbn }}">
+              <input type="hidden" name="cover_url" value="{{ book.image }}">
+              <button type="submit" class="btn btn-success btn-sm">
+                ➕ Add Book
+              </button>
+            </form>
+          </div>
         </div>
-        <form method="post" action="{{ url_for('main.add_book_from_search') }}" class="ms-3">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-          <input type="hidden" name="title" value="{{ book.title }}">
-          <input type="hidden" name="author" value="{{ book.authors }}">
-          <input type="hidden" name="isbn" value="{{ book.isbn }}">
-          <input type="hidden" name="cover_url" value="{{ book.image }}">
-          <button type="submit" class="btn btn-success btn-sm">Add Book</button>
-        </form>
-      </li>
-    {% endfor %}
-  </ul>
-{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="text-center py-8">
+      <p class="text-base-content/70">No books found for "{{ query }}"</p>
+      <p class="text-sm text-base-content/60 mt-2">Try searching with different keywords</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

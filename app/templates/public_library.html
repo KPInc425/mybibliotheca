@@ -3,120 +3,43 @@
 {% block title %}MyBibliotheca{% endblock %}
 {% block footer %}{% endblock %}
 {% block content %}
-<style>
-  .bookshelf-bg {
-    background: url('https://www.transparenttextures.com/patterns/wood-pattern.png');
-    padding: 32px 0;
-    border-radius: 12px;
-    margin-bottom: 32px;
-  }
-  .book-card {
-    background: #fffbe6;
-    border: 2px solid #e0c9a6;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    /* margin: 12px auto; */ /* Rely on column padding/margins */
-    /* width: 180px; */ /* Handled by Bootstrap column */
-    /* display: flex; */ /* Handled by Bootstrap card/grid or utilities */
-    /* flex-direction: column; */ /* Handled by Bootstrap card/grid or utilities */
-    /* align-items: center; */ /* Handled by Bootstrap card/grid or utilities */
-    width: 100%; /* Make card take full width of column */
-    height: 100%; /* Added for consistent card height in a row */
-    display: flex; /* Keep flex for internal card structure */
-    flex-direction: column; /* Keep flex for internal card structure */
-    align-items: center; /* Keep flex for internal card structure, or adjust if needed */
-    transition: transform 0.1s;
-  }
-  .book-card:hover {
-    transform: translateY(-4px) scale(1.03);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.16);
-  }
-  .book-cover-shelf {
-    height: 120px; /* Or adjust/remove if using img-fluid to dictate height via aspect ratio */
-    width: auto;   /* Let height and image aspect ratio dictate width, up to max-width */
-    max-width: 100%; /* Ensure it doesn't overflow its container */
-    margin: 16px 0 8px 0;
-    border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
-    background: #eee; /* Placeholder background */
-  }
-  .book-title {
-    font-size: 1.05em;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 2px;
-    word-break: break-word;
-  }
-  .book-author {
-    font-size: 0.95em;
-    color: #555;
-    text-align: center;
-    margin-bottom: 4px;
-    word-break: break-word;
-  }
-  .book-badges {
-    margin-bottom: 8px;
-    text-align: center;
-  }
-  @media (max-width: 767px) {
-    /* .bookshelf-row { */
-      /* justify-content: center !important; */ /* Bootstrap grid handles this */
-    /* } */
-    /* .book-card { */
-      /* width: 90vw; */ /* Handled by Bootstrap column */
-      /* max-width: 320px; */ /* Handled by Bootstrap column */
-      /* margin: 10px auto; */ /* Handled by Bootstrap column */
-    /* } */
-    .book-cover-shelf {
-      height: 90px; /* Adjust cover height for smaller cards if needed */
-    }
-  }
-</style>
-
-<div class="d-flex justify-content-center mb-4 flex-wrap">
+<div class="flex flex-wrap justify-center gap-2 mb-6">
   <a href="{{ url_for('main.public_library', filter='all') }}"
-     class="btn btn-outline-primary m-1 {% if filter_status == 'all' %}active{% endif %}">
+     class="btn btn-outline btn-sm {% if filter_status == 'all' %}btn-active btn-primary{% endif %}">
     Show All
   </a>
   <a href="{{ url_for('main.public_library', filter='currently_reading') }}"
-     class="btn btn-outline-warning m-1 {% if filter_status == 'currently_reading' %}active{% endif %}">
+     class="btn btn-outline btn-sm {% if filter_status == 'currently_reading' %}btn-active btn-warning{% endif %}">
     Currently Reading
   </a>
   <a href="{{ url_for('main.public_library', filter='want_to_read') }}"
-     class="btn btn-outline-info m-1 {% if filter_status == 'want_to_read' %}active{% endif %}">
+     class="btn btn-outline btn-sm {% if filter_status == 'want_to_read' %}btn-active btn-info{% endif %}">
     Want to Read
   </a>
 </div>
 
-<h1 class="mb-4 text-center">MyBibliotheca</h1>
-<div class="bookshelf-bg">
-  <div class="row bookshelf-row justify-content-center"> <!-- Changed to justify-content-center -->
+<h1 class="mb-6 text-center text-3xl font-bold text-primary">MyBibliotheca</h1>
+<div class="rounded-2xl bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] bg-repeat py-8 px-2 mb-8">
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 justify-center">
     {% for book in books %}
-      <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 d-flex align-items-stretch">
-        <div class="book-card p-2"> <!-- Added padding to card for content spacing -->
-          {% if book.cover_url %}
-            <img src="{{ book.cover_url }}" alt="{{ book.title }} cover" class="book-cover-shelf img-fluid"
-                 onerror="this.onerror=null;this.src='{{ url_for('static', filename='bookshelf.png') }}';">
-          {% else %}
-            <img src="{{ url_for('static', filename='bookshelf.png') }}" alt="Default cover" class="book-cover-shelf img-fluid">
-          {% endif %}
-          <div class="book-title">
-            {{ book.title }}
-          </div>
-          <div class="book-author">
-            {{ book.author }}
-          </div>
-          <div class="book-badges">
-            {% if book.want_to_read %}<span class="badge bg-info">Want to Read</span>{% endif %}
-            {% if not book.finish_date and not book.want_to_read and not book.library_only %}<span class="badge bg-warning">Currently Reading</span>{% endif %}
-            {% if book.finish_date %}<span class="badge bg-success">Finished</span>{% endif %}
-            {% if book.library_only %}<span class="badge bg-secondary">Library Only</span>{% endif %}
-          </div>
-          <div style="font-size:0.85em; color:#888; margin-bottom:8px;">ISBN: {{ book.isbn }}</div>
+      <div class="card bg-base-100 border-2 border-secondary shadow-md flex flex-col items-center p-4">
+        {% if book.cover_url %}
+          <img src="{{ book.cover_url }}" alt="{{ book.title }} cover" class="h-32 w-auto rounded-lg shadow mb-2 object-contain" onerror="this.onerror=null;this.src='{{ url_for('static', filename='bookshelf.png') }}';">
+        {% else %}
+          <img src="{{ url_for('static', filename='bookshelf.png') }}" alt="Default cover" class="h-32 w-auto rounded-lg shadow mb-2 object-contain">
+        {% endif %}
+        <div class="font-bold text-center text-base mb-1 truncate w-full">{{ book.title }}</div>
+        <div class="text-sm text-base-content/70 text-center mb-2 truncate w-full">{{ book.author }}</div>
+        <div class="flex flex-wrap gap-1 justify-center mb-2">
+          {% if book.want_to_read %}<span class="badge badge-info">Want to Read</span>{% endif %}
+          {% if not book.finish_date and not book.want_to_read and not book.library_only %}<span class="badge badge-warning">Currently Reading</span>{% endif %}
+          {% if book.finish_date %}<span class="badge badge-success">Finished</span>{% endif %}
+          {% if book.library_only %}<span class="badge badge-secondary">Library Only</span>{% endif %}
         </div>
+        <div class="text-xs text-base-content/50 mb-1">ISBN: {{ book.isbn }}</div>
       </div>
     {% else %}
-      <div class="text-center w-100">No books found.</div>
+      <div class="text-center w-full col-span-full">No books found.</div>
     {% endfor %}
   </div>
 </div>

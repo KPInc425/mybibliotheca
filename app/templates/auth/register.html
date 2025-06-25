@@ -3,102 +3,85 @@
 {% block title %}Create New User - MyBibliotheca{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="text-center">
-                    <i class="bi bi-person-plus-fill me-2"></i>Create New User
-                </h3>
-                <p class="text-center text-muted mb-0">Administrator creating a new user account</p>
+<div class="flex justify-center items-center min-h-[60vh]">
+  <div class="card bg-base-100 shadow-xl w-full max-w-lg">
+    <div class="card-body">
+      <h2 class="card-title text-center text-2xl font-bold mb-2">👤 Create New User</h2>
+      <p class="text-center text-base-content/60 mb-4">Administrator creating a new user account</p>
+      <div class="alert alert-info mb-6">
+        <h4 class="font-bold mb-2">🔒 Password Security Requirements:</h4>
+        <ul class="list-disc list-inside text-sm mb-2">
+          <li>At least 12 characters long</li>
+          <li>Contains at least one uppercase letter (A-Z)</li>
+          <li>Contains at least one lowercase letter (a-z)</li>
+          <li>Contains at least one number (0-9)</li>
+          <li>Contains at least one special character (!@#$%^&*()_+-=[]{};':"\\|,.<>/?)</li>
+          <li>Not a commonly used password</li>
+        </ul>
+        <div class="border-t border-base-300 my-2"></div>
+        <span class="text-xs"><strong>Note:</strong> The new user will be required to change their password on first login.</span>
+      </div>
+      <form method="post" class="space-y-6">
+        {{ form.hidden_tag() }}
+        <div>
+          {{ form.username.label(class="label label-text font-semibold") }}
+          {{ form.username(class="input input-bordered w-full" + (" input-error" if form.username.errors else "")) }}
+          {% if form.username.errors %}
+            <div class="text-error text-sm mt-1">
+              {% for error in form.username.errors %}
+                <span>{{ error }}</span>
+              {% endfor %}
             </div>
-            <div class="card-body">
-                <div class="alert alert-info" role="alert">
-                    <h6><i class="fas fa-shield-alt"></i> Password Security Requirements:</h6>
-                    <ul class="mb-0">
-                        <li>At least 12 characters long</li>
-                        <li>Contains at least one uppercase letter (A-Z)</li>
-                        <li>Contains at least one lowercase letter (a-z)</li>
-                        <li>Contains at least one number (0-9)</li>
-                        <li>Contains at least one special character (!@#$%^&*()_+-=[]{};\':\"\\|,.<>/?)</li>
-                        <li>Not a commonly used password</li>
-                    </ul>
-                    <hr class="my-2">
-                    <small><strong>Note:</strong> The new user will be required to change their password on first login.</small>
-                </div>
-                
-                <form method="post">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="mb-3">
-                        {{ form.username.label(class="form-label") }}
-                        {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
-                        {% if form.username.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.username.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.email.label(class="form-label") }}
-                        {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
-                        {% if form.email.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.email.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.password.label(class="form-label") }}
-                        {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
-                        {% if form.password.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.password.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.password2.label(class="form-label") }}
-                        {{ form.password2(class="form-control" + (" is-invalid" if form.password2.errors else "")) }}
-                        {% if form.password2.errors %}
-                            <div class="invalid-feedback">
-                                {% for error in form.password2.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-success") }}
-                    </div>
-                </form>
-                
-                <div class="text-center mt-3">
-                    {% if current_user.is_authenticated and current_user.is_admin %}
-                        <p>
-                            <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary">
-                                ← Back to User Management
-                            </a>
-                        </p>
-                    {% else %}
-                        <p>
-                            Already have an account? 
-                            <a href="{{ url_for('auth.login') }}">Sign in here</a>
-                        </p>
-                    {% endif %}
-                </div>
-            </div>
+          {% endif %}
         </div>
+        <div>
+          {{ form.email.label(class="label label-text font-semibold") }}
+          {{ form.email(class="input input-bordered w-full" + (" input-error" if form.email.errors else "")) }}
+          {% if form.email.errors %}
+            <div class="text-error text-sm mt-1">
+              {% for error in form.email.errors %}
+                <span>{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div>
+          {{ form.password.label(class="label label-text font-semibold") }}
+          {{ form.password(class="input input-bordered w-full" + (" input-error" if form.password.errors else "")) }}
+          {% if form.password.errors %}
+            <div class="text-error text-sm mt-1">
+              {% for error in form.password.errors %}
+                <span>{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div>
+          {{ form.password2.label(class="label label-text font-semibold") }}
+          {{ form.password2(class="input input-bordered w-full" + (" input-error" if form.password2.errors else "")) }}
+          {% if form.password2.errors %}
+            <div class="text-error text-sm mt-1">
+              {% for error in form.password2.errors %}
+                <span>{{ error }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div>
+          {{ form.submit(class="btn btn-success w-full") }}
+        </div>
+      </form>
+      <div class="text-center mt-6">
+        {% if current_user.is_authenticated and current_user.is_admin %}
+          <a href="{{ url_for('admin.users') }}" class="btn btn-outline btn-sm">← Back to User Management</a>
+        {% else %}
+          <p class="text-sm mt-2">
+            Already have an account?
+            <a href="{{ url_for('auth.login') }}" class="link link-hover">Sign in here</a>
+          </p>
+        {% endif %}
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

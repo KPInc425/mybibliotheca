@@ -3,50 +3,51 @@
 {% block title %}Month Wrap Up - MyBibliotheca{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2><i class="bi bi-calendar-month"></i> Month Wrap Up - {{ month_name }} {{ year }}</h2>
+<div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+  <div class="hero-content text-center">
+    <div>
+      <h1 class="text-4xl font-bold mb-4">📅 Month Wrap Up - {{ month_name }} {{ year }}</h1>
+      <p class="text-xl opacity-90">See your monthly reading summary</p>
     </div>
+  </div>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card text-center">
-            <div class="card-body py-5">
-                <div class="mb-4">
-                    <i class="bi bi-book" style="font-size: 4rem; color: #8d5524; opacity: 0.7;"></i>
-                </div>
-                <h4 class="mb-3">No Books Finished This Month</h4>
-                <p class="text-muted mb-4">
-                    You haven't finished any books in {{ month_name }} {{ year }} yet. 
-                    Keep reading to see your amazing monthly wrap-up!
-                </p>
-                
-                <div class="d-flex justify-content-center gap-2 flex-wrap">
-                    <a href="{{ url_for('main.add_book') }}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Add a Book
-                    </a>
-                    <a href="{{ url_for('main.library') }}" class="btn btn-outline-secondary">
-                        <i class="bi bi-books"></i> View Library
-                    </a>
-                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-house"></i> Back to Home
-                    </a>
-                </div>
-            </div>
-        </div>
+<div class="flex justify-center mb-8">
+  <div class="card bg-base-100 shadow-xl w-full max-w-2xl">
+    <div class="card-body items-center text-center py-12">
+      <div class="mb-6">
+        <span class="text-6xl">📚</span>
+      </div>
+      <h2 class="text-2xl font-bold mb-3">No Books Finished This Month</h2>
+      <p class="text-base-content/70 mb-6">
+        You haven't finished any books in {{ month_name }} {{ year }} yet. <br>
+        Keep reading to see your amazing monthly wrap-up!
+      </p>
+      <div class="flex flex-wrap justify-center gap-2">
+        <a href="{{ url_for('main.add_book') }}" class="btn btn-primary">
+          ➕ Add a Book
+        </a>
+        <a href="{{ url_for('main.library') }}" class="btn btn-outline">
+          📚 View Library
+        </a>
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline btn-primary">
+          🏠 Back to Home
+        </a>
+      </div>
     </div>
+  </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="alert alert-info">
-            <h6><i class="bi bi-lightbulb"></i> Tip</h6>
-            <p class="mb-0">
-                Monthly wrap-ups generate beautiful image collages of the books you've completed. 
-                Once you finish some books this month, come back to see your personalized reading summary!
-            </p>
-        </div>
+<div class="alert alert-info mt-8 max-w-2xl mx-auto">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+  </svg>
+  <div>
+    <h4 class="font-bold">Tip</h4>
+    <div class="text-sm">
+      Monthly wrap-ups generate beautiful image collages of the books you've completed. <br>
+      Once you finish some books this month, come back to see your personalized reading summary!
     </div>
+  </div>
 </div>
 {% endblock %}
