@@ -24,6 +24,10 @@ def fetch_book_data(isbn):
             authors = ', '.join([a['name'] for a in book.get('authors', [])])
             cover_url = book.get('cover', {}).get('large') or book.get('cover', {}).get('medium') or book.get('cover', {}).get('small')
             
+            # Ensure HTTPS for native app compatibility
+            if cover_url:
+                cover_url = ensure_https_url(cover_url)
+            
             # Extract additional metadata
             description = book.get('notes', {}).get('value') if isinstance(book.get('notes'), dict) else book.get('notes')
             published_date = book.get('publish_date', '')
@@ -63,6 +67,10 @@ def get_google_books_cover(isbn, fetch_title_author=False):
             volume_info = items[0]["volumeInfo"]
             image_links = volume_info.get("imageLinks", {})
             cover_url = image_links.get("thumbnail") or image_links.get("smallThumbnail")
+            
+            # Ensure HTTPS for native app compatibility
+            if cover_url:
+                cover_url = ensure_https_url(cover_url)
             
             if fetch_title_author:
                 title = volume_info.get('title')

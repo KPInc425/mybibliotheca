@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, jsonify, flash, send_file
 from flask_login import login_required, current_user
 from .models import Book, db, ReadingLog, User, SystemSettings
-from .utils import fetch_book_data, get_reading_streak, get_google_books_cover, generate_month_review_image
+from .utils import fetch_book_data, get_reading_streak, get_google_books_cover, generate_month_review_image, ensure_https_url
 from datetime import datetime, date, timedelta
 import pytz
 import secrets
@@ -73,6 +73,11 @@ def fetch_book(isbn):
     if not book_data.get('cover'):
         book_data['cover'] = url_for('static', filename='bookshelf.png', _external=True)
         current_app.logger.info(f'[fetch_book] Using default cover for ISBN: {isbn}')
+    
+    # Ensure cover URL is HTTPS for native app compatibility
+    if book_data.get('cover'):
+        book_data['cover'] = ensure_https_url(book_data['cover'])
+        current_app.logger.info(f'[fetch_book] Ensured HTTPS cover URL: {book_data["cover"]}')
     
     current_app.logger.info(f'[fetch_book] Final book data for ISBN {isbn}: {book_data}')
     current_app.logger.info(f'[fetch_book] Has title: {bool(book_data.get("title"))}')
