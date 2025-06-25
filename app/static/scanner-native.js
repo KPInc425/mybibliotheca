@@ -118,6 +118,12 @@ async function startNativeScanner() {
       throw error; // Re-throw actual errors to trigger fallback
     }
   }
+  
+  // Always reset scanner state to idle after completion
+  if (window.scannerState) {
+    window.scannerState = 'idle';
+    console.log('[Native Scanner] Reset scanner state to idle');
+  }
 }
 
 /**
