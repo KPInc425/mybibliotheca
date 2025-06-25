@@ -55,6 +55,21 @@ async function startNativeScanner() {
       const barcode = barcodes[0];
       logScannerStatus(`✅ Barcode detected: ${barcode.rawValue}`, 'success');
       
+      // Debug: Log the barcode details to see what format is being reported
+      console.log('[Native Scanner] Barcode details:', {
+        rawValue: barcode.rawValue,
+        format: barcode.format,
+        type: barcode.type
+      });
+      
+      // Temporarily disable validation to see if that's the issue
+      // const isValidISBN = window.isValidISBNCode ? window.isValidISBNCode(barcode.rawValue, barcode.format) : true;
+      // if (!isValidISBN) {
+      //   logScannerStatus(`❌ Invalid ISBN format: ${barcode.rawValue} (${barcode.format})`, 'warning');
+      //   showNotification('Invalid ISBN format detected. Please scan a valid book barcode.', 'warning', 3000);
+      //   return;
+      // }
+      
       // Fill in the ISBN field
       const isbnField = document.getElementById('isbn');
       if (isbnField) {

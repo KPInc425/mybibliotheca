@@ -500,6 +500,15 @@ function handleSuccessfulScan(code) {
     zxingActive: window.zxingActive
   });
   
+  // Validate that this is a valid ISBN code
+  // Temporarily disable validation to see if that's the issue
+  // const isValidISBN = window.isValidISBNCode ? window.isValidISBNCode(code) : true;
+  // if (!isValidISBN) {
+  //   console.log("[handleSuccessfulScan] Invalid ISBN format:", code);
+  //   showNotification('Invalid ISBN format detected. Please scan a valid book barcode.', 'warning', 3000);
+  //   return;
+  // }
+  
   // Fill in the ISBN field
   const isbnField = document.getElementById('isbn');
   if (isbnField) {
