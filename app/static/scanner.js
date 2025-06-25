@@ -1487,9 +1487,12 @@ function handleScannerButtonClick() {
     scannerState = 'starting';
     debugLog('[handleScannerButtonClick] Starting scanner');
     startSmartScanner();
-  } else if (scannerState === 'scanning' || scannerState === 'starting') {
+  } else if (scannerState === 'scanning') {
     debugLog('[handleScannerButtonClick] Stopping scanner');
     stopScanner();
+  } else if (scannerState === 'starting') {
+    debugLog('[handleScannerButtonClick] Scanner is starting, ignoring click');
+    // Ignore clicks while starting to prevent conflicts
   } else if (scannerState === 'stopping') {
     debugLog('[handleScannerButtonClick] Scanner is stopping, ignoring click');
     // Ignore clicks while stopping to prevent conflicts
