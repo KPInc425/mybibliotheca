@@ -1781,24 +1781,6 @@ function autofetchBookData() {
       debugLog('[autofetchBookData] Fetch result:', data);
       console.log('[autofetchBookData] Fetch result:', data);
       console.log('[autofetchBookData] Available fields:', Object.keys(data));
-      console.log('[autofetchBookData] Data type:', typeof data);
-      console.log('[autofetchBookData] Has title:', !!data?.title);
-      console.log('[autofetchBookData] Title value:', data?.title);
-      console.log('[autofetchBookData] Response structure:', JSON.stringify(data, null, 2));
-      
-      // Update status for mobile debugging
-      if (statusDiv) {
-        statusDiv.innerHTML = `
-          <div style="text-align: center; padding: 15px;">
-            <h4 style="color: #0056b3; margin-bottom: 10px;">🔍 Fetching Book Data</h4>
-            <p style="margin-bottom: 15px;">
-              Received data with ${Object.keys(data || {}).length} fields<br>
-              Has title: ${!!data?.title}<br>
-              Title: ${data?.title || 'None'}
-            </p>
-          </div>
-        `;
-      }
       
       if (data && data.title) {
         // Fill in the form fields with correct field IDs
