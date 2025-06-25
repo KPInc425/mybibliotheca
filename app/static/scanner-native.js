@@ -7,48 +7,53 @@
  * Start native scanner using Capacitor MLKit
  */
 async function startNativeScanner() {
-  const statusDiv = document.getElementById('scannerStatus');
+  console.log('[Native Scanner] Starting native barcode scanner...');
+  
+  // Set scanner state to starting
+  if (window.scannerState) {
+    window.scannerState = 'starting';
+    console.log('[Native Scanner] Set scanner state to starting');
+  }
+  
+  // Check if Capacitor and BarcodeScanner are available
+  if (!isCapacitor || !Capacitor.Plugins.BarcodeScanner) {
+    logScannerStatus('Native scanner not available', 'error');
+    throw new Error('Native scanner not available');
+  }
+  
+  const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+  
+  // Check permissions
+  let permissionGranted = false;
+  try {
+    const { granted } = await BarcodeScanner.checkPermissions();
+    logScannerStatus(`Permission status: ${granted ? 'granted' : 'denied'}`, granted ? 'success' : 'warning');
+    permissionGranted = granted;
+  } catch (permError) {
+    logScannerStatus(`Permission check error: ${permError.message}`, 'warning');
+  }
+  
+  if (!permissionGranted) {
+    logScannerStatus('Requesting camera permissions...', 'info');
+    try {
+      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      logScannerStatus(`Permission request result: ${newGranted ? 'granted' : 'denied'}`, newGranted ? 'success' : 'error');
+      permissionGranted = newGranted;
+    } catch (permError) {
+      logScannerStatus(`Permission request error: ${permError.message}`, 'error');
+    }
+  }
+  
+  // Try to start scanning even if permissions appear denied
+  logScannerStatus('Starting native barcode scan...', 'info');
+  
+  // Set scanner state to scanning
+  if (window.scannerState) {
+    window.scannerState = 'scanning';
+    console.log('[Native Scanner] Set scanner state to scanning');
+  }
   
   try {
-    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
-    if (!BarcodeScanner) {
-      throw new Error('BarcodeScanner plugin not found');
-    }
-    
-    logScannerStatus('Checking native scanner support...', 'info');
-    
-    // Check if scanning is supported
-    const { supported } = await BarcodeScanner.isSupported();
-    if (!supported) {
-      throw new Error('Barcode scanning not supported on this device');
-    }
-    
-    logScannerStatus('Native scanner supported', 'success');
-    
-    // Check permissions but don't fail if denied
-    logScannerStatus('Checking camera permissions...', 'info');
-    let permissionGranted = false;
-    try {
-      const { granted } = await BarcodeScanner.checkPermissions();
-      logScannerStatus(`Permission status: ${granted ? 'granted' : 'denied'}`, granted ? 'success' : 'warning');
-      permissionGranted = granted;
-    } catch (permError) {
-      logScannerStatus(`Permission check error: ${permError.message}`, 'warning');
-    }
-    
-    if (!permissionGranted) {
-      logScannerStatus('Requesting camera permissions...', 'info');
-      try {
-        const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-        logScannerStatus(`Permission request result: ${newGranted ? 'granted' : 'denied'}`, newGranted ? 'success' : 'error');
-        permissionGranted = newGranted;
-      } catch (permError) {
-        logScannerStatus(`Permission request error: ${permError.message}`, 'error');
-      }
-    }
-    
-    // Try to start scanning even if permissions appear denied
-    logScannerStatus('Starting native barcode scan...', 'info');
     const { barcodes } = await BarcodeScanner.scan();
     
     if (barcodes && barcodes.length > 0) {
