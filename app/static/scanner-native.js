@@ -85,6 +85,11 @@ async function startNativeScanner() {
       } else {
         logScannerStatus('No autofetch function found - please click "Fetch Book Data" manually', 'warning');
         console.log('[Native Scanner] No autofetch functions available');
+        console.log('[Native Scanner] Available functions:', {
+          handleSuccessfulScan: typeof window.handleSuccessfulScan,
+          autofetchBookData: typeof window.autofetchBookData,
+          ScannerModule: typeof window.ScannerModule
+        });
       }
     } else {
       logScannerStatus('No barcode detected', 'info');

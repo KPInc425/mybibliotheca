@@ -536,6 +536,14 @@ document.addEventListener('DOMContentLoaded', function() {
   if (typeof setupMobileOptimizations === 'function') {
     setupMobileOptimizations();
   }
+  
+  // Test if scanner functions are available
+  console.log('[Page Load] Scanner functions availability:', {
+    handleSuccessfulScan: typeof window.handleSuccessfulScan,
+    autofetchBookData: typeof window.autofetchBookData,
+    ScannerModule: typeof window.ScannerModule,
+    NativeScanner: typeof window.NativeScanner
+  });
 });
 </script>
 {% endblock %}

@@ -491,13 +491,23 @@ function updateScannerStatus(message, type = 'info') {
  * Handle successful scan
  */
 function handleSuccessfulScan(code) {
-  console.log("Successful scan:", code);
+  console.log("[handleSuccessfulScan] Called with code:", code);
+  console.log("[handleSuccessfulScan] Debug info:", {
+    debugEnabled: window.debugEnabled,
+    autofetchBookData: typeof window.autofetchBookData,
+    ScannerModule: typeof window.ScannerModule,
+    scannerState: window.scannerState,
+    zxingActive: window.zxingActive
+  });
   
   // Fill in the ISBN field
   const isbnField = document.getElementById('isbn');
   if (isbnField) {
     isbnField.value = code;
     isbnField.dispatchEvent(new Event('input', { bubbles: true }));
+    console.log("[handleSuccessfulScan] ISBN field updated:", code);
+  } else {
+    console.log("[handleSuccessfulScan] ISBN field not found");
   }
   
   // Stop scanner only if we're in browser mode and scanner is active
@@ -515,6 +525,7 @@ function handleSuccessfulScan(code) {
   // Auto-fetch the book data
   setTimeout(() => {
     console.log('[handleSuccessfulScan] About to call autofetchBookData');
+    console.log('[handleSuccessfulScan] autofetchBookData available:', typeof window.autofetchBookData);
     if (window.autofetchBookData) {
       console.log('[handleSuccessfulScan] Calling autofetchBookData');
       window.autofetchBookData();

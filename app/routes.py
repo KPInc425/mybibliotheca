@@ -50,8 +50,8 @@ def fetch_book(isbn):
     google_data = get_google_books_cover(isbn, fetch_title_author=True)
     current_app.logger.info(f'[fetch_book] Google Books response: {google_data}')
     
-    if google_data and google_data.get('title') and google_data.get('author'):
-        # Use Google Books data as primary source
+    if google_data and (google_data.get('title') or google_data.get('author')):
+        # Use Google Books data if it has any useful information
         book_data = google_data
         current_app.logger.info(f'[fetch_book] Using Google Books data for ISBN {isbn}')
     else:
