@@ -1,5 +1,17 @@
 {
   "name": "bookoracle",
+  "version": "1.0.0",
+  "description": "BookOracle - Personal Library Management App",
+  "main": "index.js",
+  "scripts": {
+    "build:icons": "python generate_app_icons.py",
+    "build:sync": "npx cap sync android",
+    "build:apk": "cd android && ./gradlew assembleDebug",
+    "build:apk:clean": "cd android && ./gradlew clean && ./gradlew assembleDebug",
+    "build:full": "python build_apk.py",
+    "dev": "npx cap run android",
+    "open:android": "npx cap open android"
+  },
   "dependencies": {
     "@capacitor-mlkit/barcode-scanning": "^7.2.1",
     "@capacitor/android": "^7.4.0",
@@ -9,5 +21,15 @@
     "@capacitor/core": "^7.4.0",
     "@zxing/browser": "^0.1.5",
     "capacitor-native-settings": "^7.0.1"
-  }
+  },
+  "keywords": [
+    "capacitor",
+    "android",
+    "library",
+    "books",
+    "barcode",
+    "scanner"
+  ],
+  "author": "IL Gaming",
+  "license": "MIT"
 }
