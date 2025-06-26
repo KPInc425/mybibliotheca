@@ -282,17 +282,98 @@ def add_book():
 @login_required
 def view_book(uid):
     book = Book.query.filter_by(uid=uid, user_id=current_user.id).first_or_404()
-    cover_url = book.cover_url  # Use the saved cover_url
+    
+    # Get today's date in configured timezone
+    timezone = pytz.timezone(current_app.config.get('TIMEZONE', 'UTC'))
+    today = datetime.now(timezone).date()
+    
+    # Get reading logs for this book
+    reading_logs = ReadingLog.query.filter_by(book_id=book.id, user_id=current_user.id).order_by(ReadingLog.date.desc()).all()
+    
     if request.method == 'POST':
-        # Update start/finish dates
-        start_date_str = request.form.get('start_date')
-        finish_date_str = request.form.get('finish_date')
-        book.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else None
-        book.finish_date = datetime.strptime(finish_date_str, '%Y-%m-%d').date() if finish_date_str else None
-        db.session.commit()
-        flash('Book dates updated.')
-        return redirect(url_for('main.view_book', uid=book.uid))
-    return render_template('view_book.html', book=book, cover_url=cover_url)
+        # Handle different form submissions
+        if 'add_log' in request.form:
+            # Add reading log entry
+            log_date_str = request.form.get('log_date')
+            pages_read = request.form.get('pages_read')
+            
+            if log_date_str and pages_read:
+                try:
+                    log_date = datetime.strptime(log_date_str, '%Y-%m-%d').date()
+                    pages_read = int(pages_read)
+                    
+                    # Check if log already exists for this date
+                    existing_log = ReadingLog.query.filter_by(book_id=book.id, date=log_date, user_id=current_user.id).first()
+                    if existing_log:
+                        flash('You have already logged reading for this day.', 'warning')
+                    else:
+                        log = ReadingLog(book_id=book.id, date=log_date, user_id=current_user.id, pages_read=pages_read)
+                        db.session.add(log)
+                        db.session.commit()
+                        flash('Reading day logged successfully.', 'success')
+                        return redirect(url_for('main.view_book', uid=book.uid))
+                except (ValueError, TypeError):
+                    flash('Invalid date or pages format.', 'error')
+        
+        elif 'delete_log' in request.form:
+            # Delete reading log entry
+            log_id = request.form.get('log_id')
+            if log_id:
+                try:
+                    log = ReadingLog.query.filter_by(id=log_id, book_id=book.id, user_id=current_user.id).first()
+                    if log:
+                        db.session.delete(log)
+                        db.session.commit()
+                        flash('Reading log entry deleted.', 'success')
+                        return redirect(url_for('main.view_book', uid=book.uid))
+                except (ValueError, TypeError):
+                    flash('Invalid log entry.', 'error')
+        
+        elif 'delete_book' in request.form:
+            # Delete the book
+            ReadingLog.query.filter_by(book_id=book.id).delete()
+            db.session.delete(book)
+            db.session.commit()
+            flash('Book deleted successfully.', 'success')
+            return redirect(url_for('main.index'))
+        
+        else:
+            # Update book status and dates
+            start_date_str = request.form.get('start_date')
+            finish_date_str = request.form.get('finish_date')
+            
+            # Update status based on checkboxes
+            book.want_to_read = 'want_to_read' in request.form
+            book.library_only = 'library_only' in request.form
+            currently_reading = 'currently_reading' in request.form
+            
+            # Handle status logic
+            if currently_reading:
+                book.finish_date = None
+                book.want_to_read = False
+                book.library_only = False
+                if not book.start_date:
+                    book.start_date = today
+            elif book.want_to_read:
+                book.finish_date = None
+                book.library_only = False
+            elif book.library_only:
+                book.finish_date = None
+                book.want_to_read = False
+            
+            # Update dates
+            try:
+                book.start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else None
+                book.finish_date = datetime.strptime(finish_date_str, '%Y-%m-%d').date() if finish_date_str else None
+            except (ValueError, TypeError):
+                flash('Invalid date format.', 'error')
+                return redirect(url_for('main.view_book', uid=book.uid))
+            
+            db.session.commit()
+            flash('Book status updated successfully.', 'success')
+            return redirect(url_for('main.view_book', uid=book.uid))
+    
+    return render_template('view_book.html', book=book, today=today, reading_logs=reading_logs)
 
 @bp.route('/book/<uid>/log', methods=['POST'])
 @login_required

@@ -238,6 +238,7 @@ class ReadingLog(db.Model):
     book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
+    pages_read = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     book = db.relationship('Book', backref=db.backref('reading_logs', lazy=True))
