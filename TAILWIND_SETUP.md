@@ -2,12 +2,12 @@
 
 ## Overview
 
-MyBibliotheca has been migrated from Bootstrap to Tailwind CSS with DaisyUI for better theming, customization, and maintainability.
+BookOracle has been migrated from Bootstrap to Tailwind CSS with DaisyUI for better theming, customization, and maintainability.
 
 ## Features
 
 ### 🎨 **Custom Theme System**
-- **MyBibliotheca Theme**: Warm, book-themed color palette with browns and golds
+- **BookOracle Theme**: Warm, book-themed color palette with browns and golds
 - **Dark Mode Support**: Built-in dark theme toggle
 - **Consistent Design**: Unified color system across all components
 
@@ -36,7 +36,7 @@ templates/
 
 ## Theme Configuration
 
-### Custom Colors (MyBibliotheca Theme)
+### Custom Colors (BookOracle Theme)
 ```css
 /* Base colors - Warm, book-themed palette */
 --color-base-100: oklch(0.99 0.01 85); /* Warm white */
@@ -54,7 +54,7 @@ templates/
 ```
 
 ### Available Themes
-- `mybibliotheca` (default) - Custom book-themed palette
+- `bookoracle` (default) - Custom book-themed palette
 - `dark` - Dark mode variant
 - All DaisyUI themes available via theme toggle
 

@@ -1,8 +1,8 @@
-# Database Migration System
+# Database Migration Guide
 
 ## Overview
 
-MyBibliotheca now uses an **automatic migration system** that runs when the application starts. This ensures that your database schema is always up-to-date without requiring manual intervention.
+BookOracle now uses an **automatic migration system** that runs when the application starts. This ensures that your database schema is always up-to-date without requiring manual intervention.
 
 ## Features
 

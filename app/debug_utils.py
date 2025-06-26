@@ -1,5 +1,5 @@
 """
-Debug utilities for MyBibliotheca
+Debug utilities for BookOracle
 Provides comprehensive debugging capabilities for troubleshooting
 """
 
@@ -11,7 +11,7 @@ from flask_login import current_user
 from functools import wraps
 
 # Configure debug logger
-debug_logger = logging.getLogger('MyBibliotheca.debug')
+debug_logger = logging.getLogger('BookOracle.debug')
 
 def setup_debug_logging():
     """Setup debug logging based on configuration"""
@@ -205,7 +205,7 @@ def print_debug_banner():
         return
         
     print("=" * 60)
-    print("🐛 MyBibliotheca DEBUG MODE ENABLED")
+    print("🐛 BookOracle DEBUG MODE ENABLED")
     print("=" * 60)
     print(f"CSRF Debug: {current_app.config.get('DEBUG_CSRF', False)}")
     print(f"Session Debug: {current_app.config.get('DEBUG_SESSION', False)}")

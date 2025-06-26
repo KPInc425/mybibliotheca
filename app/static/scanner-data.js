@@ -1,5 +1,5 @@
 /**
- * MyBibliotheca Scanner Data Module
+ * BookOracle Scanner Data Module
  * Handles book data fetching and form filling functionality
  */
 

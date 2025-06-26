@@ -1,6 +1,6 @@
 # Cross-Platform Compatibility Guide
 
-This document outlines how MyBibliotheca handles differences between operating systems to ensure consistent behavior across Windows, macOS, and Linux.
+This document outlines how BookOracle handles differences between operating systems to ensure consistent behavior across Windows, macOS, and Linux.
 
 ## 🖥️ Platform-Specific Considerations
 
@@ -124,4 +124,4 @@ This cross-platform approach has been designed to work on:
 - All paths are constructed using `os.path.join()` for cross-platform compatibility
 - If you encounter path-related errors, check that the project directory structure is intact
 
-This approach ensures that whether you're running on Windows, macOS, Linux, or in Docker, MyBibliotheca behaves consistently and maintains the same directory structure and permissions appropriate for each platform.
+This approach ensures that whether you're running on Windows, macOS, Linux, or in Docker, BookOracle behaves consistently and maintains the same directory structure and permissions appropriate for each platform.

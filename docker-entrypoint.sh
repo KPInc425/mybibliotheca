@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting MyBibliotheca with setup page..."
+echo "🚀 Starting BookOracle with setup page..."
 
 # Generate a secure secret key if not provided
 if [ -z "$SECRET_KEY" ]; then

@@ -5,7 +5,7 @@ import os
 app = create_app()
 
 if __name__ == '__main__':
-    print("🚀 Starting MyBibliotheca on Windows (Production Mode)...")
+    print("🚀 Starting BookOracle on Windows (Production Mode)...")
     print("📖 Using Waitress WSGI server")
     print("🌐 Server will be available at: http://localhost:5054")
     print("⚡ Waitress is production-ready and Windows-compatible")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-MyBibliotheca Admin Tools
+BookOracle Admin Tools
 Command-line utilities for administrative tasks
 
 Available commands:
@@ -26,7 +26,7 @@ try:
     from config import Config
 except ImportError as e:
     print(f"❌ Error importing application modules: {e}")
-    print("🔧 Make sure you're running this from the MyBibliotheca directory")
+    print("🔧 Make sure you're running this from the BookOracle directory")
     sys.exit(1)
 
 def validate_password(password):
@@ -238,7 +238,7 @@ def system_stats(args):
         total_books = Book.query.count()
         total_logs = ReadingLog.query.count()
         
-        print("📊 MyBibliotheca System Statistics")
+        print("📊 BookOracle System Statistics")
         print("=" * 40)
         print(f"👥 Users:")
         print(f"   Total: {total_users}")
@@ -263,7 +263,7 @@ def system_stats(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="MyBibliotheca Admin Tools",
+        description="BookOracle Admin Tools",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

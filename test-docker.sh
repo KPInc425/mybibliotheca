@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Test script for MyBibliotheca Docker implementation
+# Test script for BookOracle Docker implementation
 # This script builds and tests the Docker container with authentication features
 
 set -e
 
-echo "🐳 MyBibliotheca Docker Testing Suite"
+echo "🐳 BookOracle Docker Testing Suite"
 echo "========================================"
 
 # Colors for output
@@ -98,7 +98,7 @@ print_status "Running migration test..."
 docker run --rm \
     -v "$(pwd)/data-test:/app/data" \
     -e DATABASE_URL=sqlite:////app/data/books.db \
-    mybibliotheca-mybibliotheca python3 migrate_to_multi_user.py
+    bookoracle-bookoracle python3 migrate_to_multi_user.py
 
 if [ $? -eq 0 ]; then
     print_success "Database migration completed successfully"
@@ -112,7 +112,7 @@ echo
 print_status "Phase 3: Testing application startup and authentication..."
 
 # Start the application
-print_status "Starting MyBibliotheca..."
+print_status "Starting BookOracle..."
 docker-compose up -d
 
 # Wait for application to start
@@ -240,7 +240,7 @@ fi
 # Phase 8: Run unit tests (if available)
 echo
 print_status "Phase 8: Running unit tests..."
-if docker-compose --profile test run --rm mybibliotheca-test; then
+if docker-compose --profile test run --rm bookoracle-test; then
     print_success "Unit tests passed"
 else
     print_warning "Unit tests failed or not available"

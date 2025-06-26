@@ -13,7 +13,7 @@ def migrate_debug_field():
     """Add debug_enabled column to user table if it doesn't exist."""
     
     # Get database path from environment or use default
-    db_path = os.environ.get('DATABASE_PATH', 'data/mybibliotheca.db')
+    db_path = os.environ.get('DATABASE_PATH', 'data/bookoracle.db')
     
     # Ensure data directory exists
     os.makedirs(os.path.dirname(db_path), exist_ok=True)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database Schema Migration Script for MyBibliotheca
+Database Schema Migration Script for BookOracle
 
 ⚠️  DEPRECATED: This manual migration script is no longer needed.
 Database migrations now run automatically when the application starts.

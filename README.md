@@ -1,12 +1,12 @@
-# 📚 MyBibliotheca
+# 📚 BookOracle
 
-**MyBibliotheca** is a self-hosted personal library and reading-tracker—your open-source alternative to Goodreads, StoryGraph, and Fable! It lets you log, organize, and visualize your reading journey. Add books by ISBN, track reading progress, log daily reading, and generate monthly wrap-up images of your finished titles.
+**BookOracle** is a self-hosted personal library and reading-tracker—your open-source alternative to Goodreads, StoryGraph, and Fable! It lets you log, organize, and visualize your reading journey. Add books by ISBN, track reading progress, log daily reading, and generate monthly wrap-up images of your finished titles.
 
 
 🆕 **Multi-User Features**: Multi-user authentication, user data isolation, admin management, and secure password handling.
 
 
-[![Documentation](https://img.shields.io/badge/Documentation-MyBibliotheca-4a90e2?style=for-the-badge&logo=read-the-docs&logoColor=white)](https://mybibliotheca.org)
+[![Documentation](https://img.shields.io/badge/Documentation-BookOracle-4a90e2?style=for-the-badge&logo=read-the-docs&logoColor=white)](https://bookoracle.org)
 
 
 [![Discord](https://img.shields.io/badge/Discord-7289DA?logo=discord&logoColor=white&labelColor=7289DA&style=for-the-badge)](https://discord.gg/Hc8C5eRm7Q)
@@ -40,7 +40,7 @@
 
 ### 📦 Run with Docker
 
-MyBibliotheca can be run completely in Docker — no need to install Python or dependencies on your machine.
+BookOracle can be run completely in Docker — no need to install Python or dependencies on your machine.
 
 #### ✅ Prerequisites
 
@@ -53,13 +53,13 @@ MyBibliotheca can be run completely in Docker — no need to install Python or d
 
 ```bash
 docker run -d \
-  --name mybibliotheca \
+  --name bookoracle \
   -p 5054:5054 \
   -v /path/to/data:/app/data \
   -e TIMEZONE=America/Chicago \
   -e WORKERS=6 \
   --restart unless-stopped \
-  pickles4evaaaa/mybibliotheca:1.1.1
+  pickles4evaaaa/bookoracle:1.1.1
 ```
 
 ---
@@ -72,9 +72,9 @@ Create a `docker-compose.yml` file:
 version: '3.8'
 
 services:
-  MyBibliotheca:
-    image: pickles4evaaaa/mybibliotheca:1.1.1
-    container_name: mybibliotheca
+  BookOracle:
+    image: pickles4evaaaa/bookoracle:1.1.1
+    container_name: bookoracle
     ports:
       - "5054:5054"
     volumes:
@@ -105,14 +105,14 @@ docker compose up -d
 
 ### First Time Setup
 
-When you first run MyBibliotheca, you'll be prompted to complete a one-time setup:
+When you first run BookOracle, you'll be prompted to complete a one-time setup:
 
 1. **Access the application** at `http://localhost:5054` (or your configured port)
 2. **Complete the setup form** to create your administrator account:
    - Choose an admin username
    - Provide an admin email address  
    - Set a secure password (must meet security requirements)
-3. **Start using MyBibliotheca** - you'll be automatically logged in after setup
+3. **Start using BookOracle** - you'll be automatically logged in after setup
 
 ✅ **Secure by Design**: No default credentials - you control your admin account from the start!
 
@@ -128,16 +128,16 @@ Use the built-in admin tools for password management:
 
 ```bash
 # Reset admin password (interactive)
-docker exec -it mybibliotheca-mybibliotheca-1 python3 admin_tools.py reset-admin-password
+docker exec -it bookoracle-bookoracle-1 python3 admin_tools.py reset-admin-password
 
 # Create additional admin user
-docker exec -it mybibliotheca-mybibliotheca-1 python3 admin_tools.py create-admin
+docker exec -it bookoracle-bookoracle-1 python3 admin_tools.py create-admin
 
 # List all users
-docker exec -it mybibliotheca-mybibliotheca-1 python3 admin_tools.py list-users
+docker exec -it bookoracle-bookoracle-1 python3 admin_tools.py list-users
 
 # System statistics
-docker exec -it mybibliotheca-mybibliotheca-1 python3 admin_tools.py system-stats
+docker exec -it bookoracle-bookoracle-1 python3 admin_tools.py system-stats
 ```
 
 ### Migration from V1.x
@@ -172,8 +172,8 @@ Existing single-user installations are **automatically migrated** to multi-user:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/pickles4evaaaa/mybibliotheca.git
-   cd mybibliotheca
+   git clone https://github.com/pickles4evaaaa/bookoracle.git
+   cd bookoracle
    ```
 
 2. **Create a Python virtual environment**
@@ -246,8 +246,8 @@ Existing single-user installations are **automatically migrated** to multi-user:
 
 1. **Clone and configure**:
 ```bash
-git clone https://github.com/your-username/mybibliotheca.git
-cd mybibliotheca
+git clone https://github.com/your-username/bookoracle.git
+cd bookoracle
 cp .env.example .env
 ```
 
@@ -294,7 +294,7 @@ For development and testing, use the development compose file:
 docker compose -f docker-compose.dev.yml up -d
 
 # Run tests
-docker compose -f docker-compose.dev.yml --profile test up mybibliotheca-test
+docker compose -f docker-compose.dev.yml --profile test up bookoracle-test
 ```
 
 ---
@@ -302,7 +302,7 @@ docker compose -f docker-compose.dev.yml --profile test up mybibliotheca-test
 ## 🗂️ Project Structure
 
 ```
-MyBibliotheca/
+BookOracle/
 ├── app/
 │   ├── __init__.py
 │   ├── models.py
@@ -326,6 +326,6 @@ Licensed under the [MIT License](LICENSE).
 
 ## ❤️ Contribute
 
-**MyBibliotheca** is open source and contributions are welcome!
+**BookOracle** is open source and contributions are welcome!
 
 Pull requests, bug reports, and feature suggestions are appreciated.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-MyBibliotheca now features a **smart barcode scanner** that automatically chooses the best available scanning method:
+BookOracle now features a **smart barcode scanner** that automatically chooses the best available scanning method:
 
 - **Native Scanner**: Uses MLKit barcode scanning via Capacitor plugin (Android/iOS)
 - **Browser Scanner**: Falls back to browser-based BarcodeDetector API (PWA/desktop)
@@ -184,8 +184,8 @@ const { barcodes } = await BarcodeScanner.scan();
 
 ```json
 {
-  "appId": "com.ilgaming.mybibliotheca",
-  "appName": "MyBibliotheca",
+  "appId": "com.ilgaming.bookoracle",
+  "appName": "BookOracle",
   "webDir": "app",
   "server": {
     "url": "https://books.ilgaming.xyz",
@@ -295,7 +295,7 @@ async function openAppSettings() {
 
 ```bash
 # Initialize Capacitor (if not already done)
-npx cap init MyBibliotheca com.ilgaming.mybibliotheca
+npx cap init BookOracle com.ilgaming.bookoracle
 
 # Add Android platform
 npx cap add android
@@ -455,7 +455,7 @@ This implementation serves as a reference for other projects implementing native
 
 ## 📄 License
 
-This implementation is part of the MyBibliotheca project. See the main project license for details.
+This implementation is part of the BookOracle project. See the main project license for details.
 
 ---
 

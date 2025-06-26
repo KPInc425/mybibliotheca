@@ -1,5 +1,5 @@
 /**
- * MyBibliotheca Scanner UI Module
+ * BookOracle Scanner UI Module
  * Handles all scanner-related UI operations, notifications, and status updates
  */
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database migration script for MyBibliotheca
+Database migration script for BookOracle
 Migrates from single-user to multi-user architecture
 
 This script:
@@ -24,7 +24,7 @@ from config import Config
 def create_default_admin():
     """Create a default admin user for migration"""
     admin_username = os.environ.get('ADMIN_USERNAME', 'admin')
-    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@MyBibliotheca.local')
+    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@BookOracle.local')
     admin_password = os.environ.get('ADMIN_PASSWORD', 'TempAdmin123!@#')
     
     # Check if admin already exists
@@ -136,7 +136,7 @@ def run_migration():
     app = create_app()
     
     with app.app_context():
-        print("🚀 Starting MyBibliotheca multi-user migration...")
+        print("🚀 Starting BookOracle multi-user migration...")
         print("=" * 50)
         
         # Check if migration is needed using raw SQL to avoid model issues

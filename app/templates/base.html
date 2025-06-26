@@ -2,13 +2,14 @@
 <html lang="en" data-theme="mybibliotheca">
 <head>
   <meta charset="utf-8">
-  <title>{% block title %}MyBibliotheca{% endblock %}</title>
+  <title>{% block title %}BookOracle{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Your personal library and reading tracker">
   
   <!-- PWA Meta Tags -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="MyBibliotheca">
+  <meta name="apple-mobile-web-app-title" content="BookOracle">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#8B4513">
   <meta name="msapplication-TileColor" content="#8B4513">
@@ -52,7 +53,7 @@
         </ul>
       </div>
       <a href="{{ url_for('main.index') }}" class="btn btn-ghost text-xl font-bold text-primary">
-        📖 MyBibliotheca
+        📖 BookOracle
       </a>
     </div>
     
@@ -115,7 +116,7 @@
   <!-- Footer -->
   <footer class="footer footer-center p-10 bg-base-300 text-base-content flex flex-col-reverse md:flex-row justify-between">
     <div>
-      <p class="font-bold text-lg">📖 MyBibliotheca</p>
+      <p class="font-bold text-lg">📖 BookOracle</p>
       <p class="text-sm opacity-75">Your personal digital library</p>
       <p class="text-xs opacity-50">© 2024 - All rights reserved</p>
     </div>

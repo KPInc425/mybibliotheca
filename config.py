@@ -56,19 +56,19 @@ class Config:
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@MyBibliotheca.local')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@BookOracle.local')
     
     # Admin settings
-    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@MyBibliotheca.local')
+    ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@BookOracle.local')
     ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'G7#xP@9zL!qR2')
     
     # Debug settings (disabled by default for security)
-    DEBUG_MODE = os.environ.get('MyBibliotheca_DEBUG', 'false').lower() in ['true', 'on', '1']
-    DEBUG_CSRF = os.environ.get('MyBibliotheca_DEBUG_CSRF', 'false').lower() in ['true', 'on', '1']
-    DEBUG_SESSION = os.environ.get('MyBibliotheca_DEBUG_SESSION', 'false').lower() in ['true', 'on', '1']
-    DEBUG_AUTH = os.environ.get('MyBibliotheca_DEBUG_AUTH', 'false').lower() in ['true', 'on', '1']
-    DEBUG_REQUESTS = os.environ.get('MyBibliotheca_DEBUG_REQUESTS', 'false').lower() in ['true', 'on', '1']
+    DEBUG_MODE = os.environ.get('BookOracle_DEBUG', 'false').lower() in ['true', 'on', '1']
+    DEBUG_CSRF = os.environ.get('BookOracle_DEBUG_CSRF', 'false').lower() in ['true', 'on', '1']
+    DEBUG_SESSION = os.environ.get('BookOracle_DEBUG_SESSION', 'false').lower() in ['true', 'on', '1']
+    DEBUG_AUTH = os.environ.get('BookOracle_DEBUG_AUTH', 'false').lower() in ['true', 'on', '1']
+    DEBUG_REQUESTS = os.environ.get('BookOracle_DEBUG_REQUESTS', 'false').lower() in ['true', 'on', '1']
     
     # Debug log level (only used if debug mode is enabled)
-    DEBUG_LOG_LEVEL = os.environ.get('MyBibliotheca_DEBUG_LOG_LEVEL', 'INFO')
+    DEBUG_LOG_LEVEL = os.environ.get('BookOracle_DEBUG_LOG_LEVEL', 'INFO')

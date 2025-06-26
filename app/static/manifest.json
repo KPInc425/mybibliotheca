@@ -1,6 +1,6 @@
 {
-  "name": "MyBibliotheca",
-  "short_name": "MyBiblio",
+  "name": "BookOracle",
+  "short_name": "BookOracle",
   "description": "Your personal digital library management system",
   "start_url": "/",
   "display": "standalone",

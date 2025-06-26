@@ -1,5 +1,5 @@
 /**
- * MyBibliotheca Core Scanner Module
+ * BookOracle Core Scanner Module
  * Main scanner orchestration and state management
  */
 

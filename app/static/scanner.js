@@ -1,5 +1,5 @@
 /**
- * MyBibliotheca Barcode Scanner Module
+ * BookOracle Barcode Scanner Module
  * Main coordinator for all scanner functionality
  * 
  * This module coordinates between:

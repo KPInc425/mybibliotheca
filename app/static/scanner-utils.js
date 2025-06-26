@@ -1,5 +1,5 @@
 /**
- * MyBibliotheca Scanner Utilities
+ * BookOracle Scanner Utilities
  * Helper functions and detection algorithms for barcode scanning
  */
 

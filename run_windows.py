@@ -3,7 +3,7 @@ from app import create_app
 app = create_app()
 
 if __name__ == '__main__':
-    print("🚀 Starting MyBibliotheca on Windows...")
+    print("🚀 Starting BookOracle on Windows...")
     print("📖 Using Flask development server")
     print("🌐 Server will be available at: http://localhost:5054")
     print("⚠️  This is a development server - not suitable for production")

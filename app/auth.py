@@ -48,7 +48,7 @@ def setup():
             # Automatically log in the new admin user
             login_user(admin_user)
             
-            flash('Setup completed successfully! Welcome to MyBibliotheca.', 'success')
+            flash('Setup completed successfully! Welcome to BookOracle.', 'success')
             return redirect(url_for('main.index'))
             
         except Exception as e:

@@ -77,7 +77,7 @@ def migrate_database(db_path='data/books.db'):
 
 def main():
     """Main migration function"""
-    print("MyBibliotheca - User Security & Privacy Migration")
+    print("BookOracle - User Security & Privacy Migration")
     print("=" * 50)
     
     # Check if running from correct directory

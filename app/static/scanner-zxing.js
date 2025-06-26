@@ -1,5 +1,5 @@
 /**
- * MyBibliotheca ZXing Scanner Module
+ * BookOracle ZXing Scanner Module
  * Handles ZXing-js browser-based barcode scanning
  */
 

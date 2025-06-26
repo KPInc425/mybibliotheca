@@ -1,5 +1,5 @@
 /**
- * MyBibliotheca Native Scanner Module
+ * BookOracle Native Scanner Module
  * Handles native barcode scanning via Capacitor and MLKit
  */
 

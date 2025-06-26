@@ -1,7 +1,9 @@
 version: '3.8'
+name: bookoracle-dev
 
 services:
-  mybibliotheca:
+  bookoracle:
+    container_name: bookoracle-dev
     build: .
     ports:
       - "5054:5054"
@@ -32,7 +34,8 @@ services:
       start_period: 40s
 
   # Test service for running automated tests
-  mybibliotheca-test:
+  bookoracle-test:
+    container_name: bookoracle-test
     build: .
     volumes:
       - ./data-test:/app/data
@@ -47,5 +50,5 @@ services:
       - test
 
 volumes:
-  mybibliotheca_data:
+  bookoracle_data:
     driver: local

@@ -1,14 +1,15 @@
 version: '3.8'
+name: bookoracle
 
 services:
-  mybibliotheca:
+  bookoracle:
+    container_name: bookoracle
     build: .
     ports:
       - "5054:5054"
     volumes:
-      # To change the data directory, change mybibliotheca_data to your desired location on your local machine
-      # and ensure the application has write permissions to that directory.
-      - mybibliotheca_data:/app/data
+      # Custom data directory on Ubuntu server
+      - ../data/bookoracle:/app/data
     environment:
       # Security - MUST be set via .env file or environment
       - SECRET_KEY=${SECRET_KEY}
@@ -18,7 +19,3 @@ services:
       - TIMEZONE=${TIMEZONE:-UTC}
       - WORKERS=${WORKERS:-4}
     restart: unless-stopped
-
-volumes:
-  mybibliotheca_data:
-    driver: local

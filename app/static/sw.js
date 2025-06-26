@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mybibliotheca-v1';
+const CACHE_NAME = 'bookoracle-v1';
 const urlsToCache = [
   '/',
   '/static/bootstrap.min.css',

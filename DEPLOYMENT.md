@@ -1,6 +1,6 @@
 # 🚀 Production Deployment Guide
 
-This guide covers deploying MyBibliotheca in a production environment with security best practices.
+This guide covers deploying BookOracle in a production environment with security best practices.
 
 ## Prerequisites
 
@@ -15,8 +15,8 @@ This guide covers deploying MyBibliotheca in a production environment with secur
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/MyBibliotheca.git
-cd MyBibliotheca
+git clone https://github.com/your-username/BookOracle.git
+cd BookOracle
 
 # Create environment configuration
 cp .env.example .env
@@ -67,7 +67,7 @@ docker compose up -d
 
 # Verify deployment
 docker compose ps
-docker compose logs MyBibliotheca
+docker compose logs BookOracle
 ```
 
 ### 4. Initial Admin Setup
@@ -107,13 +107,13 @@ server {
 ```yaml
 version: '3.8'
 services:
-  MyBibliotheca:
+  BookOracle:
     # ... existing configuration ...
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.MyBibliotheca.rule=Host(`your-domain.com`)"
-      - "traefik.http.routers.MyBibliotheca.tls.certresolver=letsencrypt"
-      - "traefik.http.services.MyBibliotheca.loadbalancer.server.port=5054"
+      - "traefik.http.routers.BookOracle.rule=Host(`your-domain.com`)"
+      - "traefik.http.routers.BookOracle.tls.certresolver=letsencrypt"
+      - "traefik.http.services.BookOracle.loadbalancer.server.port=5054"
 ```
 
 ## Production Security Hardening
@@ -156,7 +156,7 @@ The default docker-compose.yml includes health checks:
 ### Log Management
 ```bash
 # View application logs
-docker compose logs -f MyBibliotheca
+docker compose logs -f BookOracle
 
 # Rotate logs to prevent disk space issues
 docker system prune -f
@@ -167,9 +167,9 @@ docker system prune -f
 # Create backup script (backup.sh)
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-docker run --rm -v MyBibliotheca_MyBibliotheca_data:/source:ro \
+docker run --rm -v BookOracle_BookOracle_data:/source:ro \
   -v $(pwd)/backups:/backup alpine \
-  tar czf /backup/MyBibliotheca_backup_$DATE.tar.gz -C /source .
+  tar czf /backup/BookOracle_backup_$DATE.tar.gz -C /source .
 
 # Make executable and add to cron
 chmod +x backup.sh
@@ -195,7 +195,7 @@ docker compose up -d
 **Application won't start:**
 - Check environment variables in `.env`
 - Verify SECRET_KEY and SECURITY_PASSWORD_SALT are set
-- Check Docker logs: `docker compose logs MyBibliotheca`
+- Check Docker logs: `docker compose logs BookOracle`
 
 **Permission denied errors:**
 - Ensure data directory has correct permissions

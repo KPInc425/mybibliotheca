@@ -1,5 +1,5 @@
 """
-Admin functionality for MyBibliotheca multi-user platform
+Admin functionality for BookOracle multi-user platform
 Provides admin-only decorators, middleware, and management functions
 """
 
