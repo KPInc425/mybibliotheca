@@ -67,7 +67,7 @@ echo "Recent backups:"
 ls -la ../backups/bookoracle/ | head -10
 echo ""
 echo "Recent logs:"
-tail -20 ../logs/bookoracle_backup.log 2>/dev/null || echo "No backup logs found"
+tail -20 ../logs/bookoracle/bookoracle_backup.log 2>/dev/null || echo "No backup logs found"
 EOF
 
 chmod +x "$SCRIPT_DIR/bookoracle_status.sh"
