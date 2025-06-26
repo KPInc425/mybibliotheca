@@ -3,95 +3,419 @@
 {% block title %}Initial Setup - BookOracle{% endblock %}
 
 {% block content %}
-<div class="flex justify-center items-center min-h-[60vh]">
-  <div class="card bg-base-100 shadow-xl w-full max-w-lg">
-    <div class="card-body">
-      <div class="text-center mb-6">
-        <h2 class="text-2xl font-bold mb-2">📚 Welcome to BookOracle</h2>
-        <p class="text-base-content/60">Initial Setup Required</p>
-      </div>
-      <div class="alert alert-info mb-6">
-        <h4 class="font-bold mb-2">ℹ️ First Time Setup</h4>
-        <p>
-          Welcome! This appears to be your first time running BookOracle. 
-          Please create an administrator account to get started.
-        </p>
-      </div>
-      <form method="POST" class="space-y-6">
-        {{ form.hidden_tag() }}
-        <div>
-          {{ form.username.label(class="label label-text font-semibold") }}
-          {{ form.username(class="input input-bordered w-full" + (" input-error" if form.username.errors else "")) }}
-          {% if form.username.errors %}
-            <div class="text-error text-sm mt-1">
-              {% for error in form.username.errors %}
-                <span>{{ error }}</span>
-              {% endfor %}
-            </div>
-          {% endif %}
-          <label class="label">
-            <span class="label-text-alt">This will be your administrator username</span>
-          </label>
+<div class="hero min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-300">
+  <div class="hero-content flex-col lg:flex-row-reverse lg:gap-24">
+    <div class="text-center lg:text-left lg:ml-8">
+      <div class="avatar placeholder mb-4">
+        <div class="bg-primary text-primary-content rounded-full w-20 h-20 !flex justify-center items-center">
+          <span class="text-3xl">📚</span>
         </div>
-        <div>
-          {{ form.email.label(class="label label-text font-semibold") }}
-          {{ form.email(class="input input-bordered w-full" + (" input-error" if form.email.errors else "")) }}
-          {% if form.email.errors %}
-            <div class="text-error text-sm mt-1">
-              {% for error in form.email.errors %}
-                <span>{{ error }}</span>
-              {% endfor %}
+      </div>
+      <h1 class="text-3xl md:text-4xl font-bold text-primary">Welcome to BookOracle</h1>
+      <p class="py-4 text-base-content/70">Your personal digital library awaits</p>
+    </div>
+    
+    <div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
+      <div class="card-body">
+        <!-- Setup Progress -->
+        <div class="mb-6">
+          <div class="flex items-center justify-center gap-2 mb-4">
+            <div class="badge badge-primary badge-lg">1</div>
+            <span class="text-sm font-medium">Create Admin Account</span>
+          </div>
+          <div class="alert alert-info">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+              <h3 class="font-bold">First Time Setup</h3>
+              <div class="text-xs">Create your administrator account to get started</div>
             </div>
-          {% endif %}
-          <label class="label">
-            <span class="label-text-alt">Administrator email address</span>
-          </label>
-        </div>
-        <div>
-          {{ form.password.label(class="label label-text font-semibold") }}
-          {{ form.password(class="input input-bordered w-full" + (" input-error" if form.password.errors else "")) }}
-          {% if form.password.errors %}
-            <div class="text-error text-sm mt-1">
-              {% for error in form.password.errors %}
-                <span>{{ error }}</span>
-              {% endfor %}
-            </div>
-          {% endif %}
-          <div class="alert alert-info mt-2">
-            <h4 class="font-bold mb-2">🔒 Password Requirements:</h4>
-            <ul class="list-disc list-inside text-sm">
-              <li>At least 12 characters long</li>
-              <li>Contains at least one uppercase letter (A-Z)</li>
-              <li>Contains at least one lowercase letter (a-z)</li>
-              <li>Contains at least one number (0-9)</li>
-              <li>Contains at least one special character (!@#$%^&*()_+-=[]{};':"\\|,.<>/?)</li>
-            </ul>
           </div>
         </div>
-        <div>
-          {{ form.password2.label(class="label label-text font-semibold") }}
-          {{ form.password2(class="input input-bordered w-full" + (" input-error" if form.password2.errors else "")) }}
-          {% if form.password2.errors %}
-            <div class="text-error text-sm mt-1">
-              {% for error in form.password2.errors %}
-                <span>{{ error }}</span>
-              {% endfor %}
+
+        <!-- Setup Form -->
+        <form method="POST" class="space-y-4">
+          {{ form.hidden_tag() }}
+          
+          <!-- Username Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">👤 Username</span>
+            </label>
+            {{ form.username(class="input input-bordered w-full" + (" input-error" if form.username.errors else ""), placeholder="Enter your username") }}
+            {% if form.username.errors %}
+              <label class="label">
+                <span class="label-text-alt text-error">
+                  {% for error in form.username.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </span>
+              </label>
+            {% else %}
+              <label class="label">
+                <span class="label-text-alt">This will be your administrator username</span>
+              </label>
+            {% endif %}
+          </div>
+
+          <!-- Email Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">📧 Email</span>
+            </label>
+            {{ form.email(class="input input-bordered w-full" + (" input-error" if form.email.errors else ""), placeholder="your.email@example.com") }}
+            {% if form.email.errors %}
+              <label class="label">
+                <span class="label-text-alt text-error">
+                  {% for error in form.email.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </span>
+              </label>
+            {% else %}
+              <label class="label">
+                <span class="label-text-alt">Administrator email address</span>
+              </label>
+            {% endif %}
+          </div>
+
+          <!-- Password Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">🔒 Password</span>
+            </label>
+            <div class="relative">
+              {{ form.password(class="input input-bordered w-full pr-12" + (" input-error" if form.password.errors else ""), placeholder="Create a strong password", id="password") }}
+              <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center z-10" id="toggle-password">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="eye-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <svg class="w-5 h-5 text-gray-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="eye-slash-icon">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                </svg>
+              </button>
             </div>
-          {% endif %}
+            
+            <!-- Password Strength Meter -->
+            <div class="mt-2">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-medium">Strength:</span>
+                <span class="text-xs" id="strength-text">Enter password</span>
+              </div>
+              <progress class="progress progress-xs w-full" id="strength-meter" value="0" max="100"></progress>
+            </div>
+            
+            <!-- Password Requirements -->
+            <div class="collapse collapse-arrow bg-base-200 mt-3">
+              <input type="checkbox" id="password-requirements" /> 
+              <div class="collapse-title text-xs font-medium">
+                Password Requirements
+              </div>
+              <div class="collapse-content"> 
+                <div class="space-y-2 text-xs">
+                  <div class="password-requirement not-met flex items-center gap-2" id="req-length">
+                    <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <span>At least 12 characters</span>
+                  </div>
+                  <div class="password-requirement not-met flex items-center gap-2" id="req-uppercase">
+                    <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <span>One uppercase letter (A-Z)</span>
+                  </div>
+                  <div class="password-requirement not-met flex items-center gap-2" id="req-lowercase">
+                    <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <span>One lowercase letter (a-z)</span>
+                  </div>
+                  <div class="password-requirement not-met flex items-center gap-2" id="req-number">
+                    <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <span>One number (0-9)</span>
+                  </div>
+                  <div class="password-requirement not-met flex items-center gap-2" id="req-special">
+                    <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                    <span>One special character (!@#$%^&*)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {% if form.password.errors %}
+              <label class="label">
+                <span class="label-text-alt text-error">
+                  {% for error in form.password.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </span>
+              </label>
+            {% endif %}
+          </div>
+
+          <!-- Confirm Password Field -->
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text font-semibold">🔐 Confirm Password</span>
+            </label>
+            <div class="relative">
+              {{ form.password2(class="input input-bordered w-full pr-12" + (" input-error" if form.password2.errors else ""), placeholder="Confirm your password", id="password2") }}
+              <button type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center z-10" id="toggle-password2">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="eye-icon2">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                <svg class="w-5 h-5 text-gray-400 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="eye-slash-icon2">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="mt-1">
+              <div class="flex items-center gap-2">
+                <span class="text-xs" id="match-status">Passwords don't match</span>
+                <div class="w-2 h-2 rounded-full bg-error" id="match-indicator"></div>
+              </div>
+            </div>
+            {% if form.password2.errors %}
+              <label class="label">
+                <span class="label-text-alt text-error">
+                  {% for error in form.password2.errors %}
+                    {{ error }}
+                  {% endfor %}
+                </span>
+              </label>
+            {% endif %}
+          </div>
+
+				<!-- After Setup Info -->
+        <div class="mt-6">
+          <div class="alert alert-success">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 class="font-bold">What's Next?</h3>
+              <div class="text-xs">
+                After setup, you'll be logged in as administrator and can start adding books to your library. 
+                You can create additional user accounts from the admin panel.
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          {{ form.submit(class="btn btn-primary btn-lg w-full") }}
-        </div>
-      </form>
-      <div class="alert alert-success mt-6">
-        <h4 class="font-bold mb-2">✅ After Setup</h4>
-        <p>
-          Once you complete this setup, you'll be able to log in as an administrator 
-          and start adding books to your library. You can create additional user accounts 
-          from the admin panel.
-        </p>
+
+          <!-- Submit Button -->
+          <div class="form-control mt-6">
+            {{ form.submit(class="btn btn-primary", value="🚀 Complete Setup") }}
+          </div>
+        </form>
+
+
       </div>
     </div>
   </div>
 </div>
+
+<!-- Password Validation Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const password = document.getElementById('password');
+  const password2 = document.getElementById('password2');
+  const strengthMeter = document.getElementById('strength-meter');
+  const strengthText = document.getElementById('strength-text');
+  const matchStatus = document.getElementById('match-status');
+  const matchIndicator = document.getElementById('match-indicator');
+  
+  // Password toggle elements
+  const togglePassword = document.getElementById('toggle-password');
+  const togglePassword2 = document.getElementById('toggle-password2');
+  const eyeIcon = document.getElementById('eye-icon');
+  const eyeSlashIcon = document.getElementById('eye-slash-icon');
+  const eyeIcon2 = document.getElementById('eye-icon2');
+  const eyeSlashIcon2 = document.getElementById('eye-slash-icon2');
+  
+  // Password toggle functionality
+  function togglePasswordVisibility(inputField, eyeIcon, eyeSlashIcon) {
+    if (inputField.type === 'password') {
+      inputField.type = 'text';
+      eyeIcon.classList.add('hidden');
+      eyeSlashIcon.classList.remove('hidden');
+    } else {
+      inputField.type = 'password';
+      eyeIcon.classList.remove('hidden');
+      eyeSlashIcon.classList.add('hidden');
+    }
+  }
+  
+  togglePassword.addEventListener('click', () => {
+    togglePasswordVisibility(password, eyeIcon, eyeSlashIcon);
+  });
+  
+  togglePassword2.addEventListener('click', () => {
+    togglePasswordVisibility(password2, eyeIcon2, eyeSlashIcon2);
+  });
+  
+  function calculatePasswordStrength(password) {
+    let score = 0;
+    
+    // Check if all requirements are met
+    const requirements = {
+      length: password.length >= 12,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password),
+      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    };
+    
+    const metRequirements = Object.values(requirements).filter(Boolean).length;
+    
+    // If all requirements are met, give 100% score
+    if (metRequirements === 5) {
+      return { score: 100, strengthLevel: 'Very Strong', strengthColor: 'progress-success' };
+    }
+    
+    // Otherwise, calculate based on variety and length
+    if (password.length >= 12) {
+      score += 20;
+    } else if (password.length >= 8) {
+      score += 10;
+    } else if (password.length >= 6) {
+      score += 5;
+    }
+    
+    // Character variety checks
+    if (/[A-Z]/.test(password)) score += 15;
+    if (/[a-z]/.test(password)) score += 15;
+    if (/[0-9]/.test(password)) score += 15;
+    if (/[^A-Za-z0-9]/.test(password)) score += 15;
+    
+    // Bonus for length
+    if (password.length >= 16) score += 10;
+    if (password.length >= 20) score += 10;
+    
+    // Penalty for common patterns
+    if (/(.)\1{2,}/.test(password)) score -= 10; // Repeated characters
+    if (/123|abc|qwe|password|admin/i.test(password)) score -= 20; // Common patterns
+    
+    // Ensure score is within bounds
+    score = Math.max(0, Math.min(100, score));
+    
+    // Determine strength level
+    let strengthLevel, strengthColor;
+    if (score >= 80) {
+      strengthLevel = 'Very Strong';
+      strengthColor = 'progress-success';
+    } else if (score >= 60) {
+      strengthLevel = 'Strong';
+      strengthColor = 'progress-info';
+    } else if (score >= 40) {
+      strengthLevel = 'Good';
+      strengthColor = 'progress-warning';
+    } else if (score >= 20) {
+      strengthLevel = 'Weak';
+      strengthColor = 'progress-error';
+    } else {
+      strengthLevel = 'Very Weak';
+      strengthColor = 'progress-error';
+    }
+    
+    return { score, strengthLevel, strengthColor };
+  }
+  
+  function validatePassword() {
+    const value = password.value;
+    
+    // Calculate strength
+    const strength = calculatePasswordStrength(value);
+    
+    // Update strength meter
+    strengthMeter.value = strength.score;
+    strengthMeter.className = `progress progress-xs w-full ${strength.strengthColor}`;
+    strengthText.textContent = value ? strength.strengthLevel : 'Enter password';
+    
+    // Check each requirement
+    const requirements = {
+      length: value.length >= 12,
+      uppercase: /[A-Z]/.test(value),
+      lowercase: /[a-z]/.test(value),
+      number: /[0-9]/.test(value),
+      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value)
+    };
+    
+    // Update visual indicators
+    Object.keys(requirements).forEach(req => {
+      const element = document.getElementById(`req-${req}`);
+      if (element) {
+        const indicator = element.querySelector('div');
+        if (requirements[req]) {
+          element.classList.remove('not-met');
+          element.classList.add('met');
+          indicator.classList.remove('bg-gray-400');
+          indicator.classList.add('bg-success');
+        } else {
+          element.classList.remove('met');
+          element.classList.add('not-met');
+          indicator.classList.remove('bg-success');
+          indicator.classList.add('bg-gray-400');
+        }
+      }
+    });
+    
+    // Update password field styling based on strength
+    password.classList.remove('input-success', 'input-warning', 'input-error');
+    if (value) {
+      if (strength.score >= 60) {
+        password.classList.add('input-success');
+      } else if (strength.score >= 40) {
+        password.classList.add('input-warning');
+      } else {
+        password.classList.add('input-error');
+      }
+    }
+    
+    // Trigger password match validation
+    validatePasswordMatch();
+  }
+  
+  function validatePasswordMatch() {
+    const match = password.value === password2.value;
+    const hasPassword = password.value.length > 0;
+    const hasPassword2 = password2.value.length > 0;
+    
+    if (!hasPassword || !hasPassword2) {
+      matchStatus.textContent = 'Enter both passwords';
+      matchIndicator.className = 'w-2 h-2 rounded-full bg-gray-400';
+      password2.classList.remove('input-success', 'input-error');
+      return;
+    }
+    
+    if (match) {
+      matchStatus.textContent = 'Passwords match';
+      matchIndicator.className = 'w-2 h-2 rounded-full bg-success';
+      password2.classList.remove('input-error');
+      password2.classList.add('input-success');
+    } else {
+      matchStatus.textContent = 'Passwords don\'t match';
+      matchIndicator.className = 'w-2 h-2 rounded-full bg-error';
+      password2.classList.remove('input-success');
+      password2.classList.add('input-error');
+    }
+  }
+  
+  // Add event listeners
+  password.addEventListener('input', validatePassword);
+  password2.addEventListener('input', validatePasswordMatch);
+  
+  // Initial validation
+  validatePassword();
+});
+</script>
+
+<style>
+.password-requirement {
+  transition: all 0.3s ease;
+}
+.password-requirement.met {
+  color: hsl(var(--su));
+}
+.password-requirement.not-met {
+  color: hsl(var(--bc) / 0.6);
+}
+</style>
 {% endblock %}
