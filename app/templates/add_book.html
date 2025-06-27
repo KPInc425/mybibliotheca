@@ -46,6 +46,15 @@
             </button>
           </div>
           
+          <!-- Debug Button (only show in development) -->
+          {% if config.DEBUG_MODE or current_user.debug_enabled %}
+          <div class="flex justify-center mb-4">
+            <button type="button" class="btn btn-outline btn-info btn-sm" onclick="debugScanner()" id="debugBtn">
+              🔍 Debug Scanner
+            </button>
+          </div>
+          {% endif %}
+          
           <!-- Scanner Viewport -->
           <div id="scanner" class="hidden w-full max-w-md h-80 mx-auto relative bg-black rounded-box overflow-hidden">
             <video id="scanner-video" class="w-full h-full object-cover rounded-box" autoplay playsinline muted></video>
@@ -196,6 +205,25 @@
 
 <!-- Load modular scanner scripts -->
 <script src="{{ url_for('static', filename='node_modules/@zxing/browser/umd/index.min.js') }}"></script>
+
+<!-- Early environment detection setup -->
+<script>
+// Set up environment detection before loading scanner modules
+window.isCapacitor = typeof Capacitor !== 'undefined';
+window.isNative = window.isCapacitor && Capacitor.isNative;
+
+// Get the actual platform
+window.platform = window.isCapacitor ? Capacitor.getPlatform() : 'web';
+
+console.log('[Scanner] Environment detection:', {
+  isCapacitor: window.isCapacitor,
+  isNative: window.isNative,
+  platform: window.platform,
+  Capacitor: typeof Capacitor,
+  CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
+});
+</script>
+
 <script src="{{ url_for('static', filename='scanner-utils.js') }}"></script>
 <script src="{{ url_for('static', filename='scanner-native.js') }}"></script>
 <script src="{{ url_for('static', filename='scanner-core.js') }}"></script>
@@ -206,15 +234,71 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('[AddBook] DOM loaded, initializing scanner...');
+  
   // Initialize mobile optimizations if available
   if (typeof setupMobileOptimizations === 'function') {
+    console.log('[AddBook] Setting up mobile optimizations...');
     setupMobileOptimizations();
   }
   
   // Initialize scanner functions
   if (typeof importModuleFunctions === 'function') {
+    console.log('[AddBook] Importing module functions...');
     importModuleFunctions();
   }
+  
+  // Check scanner system status
+  if (typeof getScannerSystemStatus === 'function') {
+    const status = getScannerSystemStatus();
+    console.log('[AddBook] Scanner system status:', status);
+  }
+  
+  console.log('[AddBook] Scanner initialization complete');
 });
+
+// Debug function for scanner issues
+async function debugScanner() {
+  console.log('[Debug] Starting scanner debug...');
+  
+  const debugInfo = {
+    environment: {
+      isCapacitor: window.isCapacitor,
+      isNative: window.isNative,
+      platform: window.platform,
+      Capacitor: typeof Capacitor,
+      CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
+    },
+    modules: {
+      ScannerCore: !!window.ScannerCore,
+      NativeScanner: !!window.NativeScanner,
+      ScannerZXing: !!window.ScannerZXing,
+      ScannerUI: !!window.ScannerUI,
+      ScannerData: !!window.ScannerData
+    },
+    functions: {
+      handleScannerButtonClick: typeof handleScannerButtonClick,
+      startSmartScanner: typeof startSmartScanner,
+      startNativeScanner: typeof startNativeScanner,
+      startBrowserScanner: typeof startBrowserScanner
+    }
+  };
+  
+  console.log('[Debug] Scanner debug info:', debugInfo);
+  
+  // Test native scanner if available
+  if (window.NativeScanner && window.NativeScanner.debugNativeScanner) {
+    try {
+      const nativeResult = await window.NativeScanner.debugNativeScanner();
+      console.log('[Debug] Native scanner debug result:', nativeResult);
+    } catch (error) {
+      console.log('[Debug] Native scanner debug error:', error);
+    }
+  }
+  
+  // Show debug info in alert
+  const debugText = JSON.stringify(debugInfo, null, 2);
+  alert('Scanner Debug Info:\n\n' + debugText);
+}
 </script>
 {% endblock %}

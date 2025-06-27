@@ -12,32 +12,48 @@ let zxingActive = false;
  * Check if browser scanner is available
  */
 function isBrowserScannerAvailable() {
-  return typeof ZXingBrowser !== 'undefined' && 
-         typeof ZXingBrowser.BrowserMultiFormatReader !== 'undefined';
+  const hasZXingBrowser = typeof ZXingBrowser !== 'undefined';
+  const hasBrowserMultiFormatReader = hasZXingBrowser && typeof ZXingBrowser.BrowserMultiFormatReader !== 'undefined';
+  
+  console.log('[ScannerZXing] Browser scanner availability check:', {
+    hasZXingBrowser,
+    hasBrowserMultiFormatReader,
+    ZXingBrowser: typeof ZXingBrowser,
+    BrowserMultiFormatReader: hasZXingBrowser ? typeof ZXingBrowser.BrowserMultiFormatReader : 'N/A'
+  });
+  
+  return hasZXingBrowser && hasBrowserMultiFormatReader;
 }
 
 /**
  * Start browser scanner using ZXing-js
  */
 async function startBrowserScanner() {
+  console.log('[ScannerZXing] Starting browser scanner...');
+  
   if (!isBrowserScannerAvailable()) {
+    console.error('[ScannerZXing] ZXing-js library not available');
     throw new Error('ZXing-js library not available');
   }
   
   if (zxingActive) {
+    console.log('[ScannerZXing] Scanner already active, skipping');
     return;
   }
   
   try {
+    console.log('[ScannerZXing] Creating ZXing reader...');
     // Create ZXing reader
     zxingCodeReader = new ZXingBrowser.BrowserMultiFormatReader();
     
     // Get video element
     const video = document.getElementById('scanner-video');
     if (!video) {
+      console.error('[ScannerZXing] Video element not found');
       throw new Error('Video element not found');
     }
     
+    console.log('[ScannerZXing] Requesting camera permissions...');
     // Start video stream
     zxingStream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -47,6 +63,7 @@ async function startBrowserScanner() {
       }
     });
     
+    console.log('[ScannerZXing] Camera stream obtained, setting up video...');
     video.srcObject = zxingStream;
     zxingActive = true;
     
@@ -80,7 +97,7 @@ async function startBrowserScanner() {
     }
     
   } catch (error) {
-    console.error('Failed to start browser scanner:', error);
+    console.error('[ScannerZXing] Failed to start browser scanner:', error);
     zxingActive = false;
     
     // Clean up on error
@@ -151,11 +168,31 @@ function getBrowserScannerStatus() {
   };
 }
 
+/**
+ * Debug ZXing scanner availability
+ */
+function debugZXingScanner() {
+  console.log('[ScannerZXing] Debug function called');
+  
+  const debugInfo = {
+    ZXingBrowser: typeof ZXingBrowser,
+    BrowserMultiFormatReader: typeof ZXingBrowser !== 'undefined' ? typeof ZXingBrowser.BrowserMultiFormatReader : 'N/A',
+    isAvailable: isBrowserScannerAvailable(),
+    zxingActive,
+    hasStream: !!zxingStream,
+    hasCodeReader: !!zxingCodeReader
+  };
+  
+  console.log('[ScannerZXing] Debug info:', debugInfo);
+  return debugInfo;
+}
+
 // Export functions to global scope
 window.ScannerZXing = {
   startBrowserScanner,
   stopBrowserScanner,
   isBrowserScannerAvailable,
   getBrowserScannerStatus,
+  debugZXingScanner,
   zxingActive
 }; 

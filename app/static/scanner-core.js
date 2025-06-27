@@ -20,9 +20,10 @@ const SCAN_COOLDOWN = 5000; // 5 seconds between scans (increased)
 const REQUIRED_DETECTIONS = 1; // Only need 1 detection since we stop immediately
 const MAX_SCAN_ATTEMPTS = 10; // Maximum invalid scan attempts
 
-// Environment detection
-let isCapacitor = typeof Capacitor !== 'undefined';
-let isNative = isCapacitor && Capacitor.isNative;
+// Environment detection - use global variables set up earlier
+let isCapacitor = window.isCapacitor;
+let isNative = window.isNative;
+let platform = window.platform;
 
 /**
  * Smart Scanner - Main entry point that tries multiple approaches
@@ -42,9 +43,21 @@ async function startSmartScanner() {
     window.ScannerUI.updateScannerStatus('Initializing scanner...', 'info');
   }
   
+  // Debug logging
+  console.log('[ScannerCore] Starting smart scanner with environment:', {
+    isCapacitor: window.isCapacitor,
+    isNative: window.isNative,
+    platform: window.platform,
+    NativeScanner: !!window.NativeScanner,
+    ScannerZXing: !!window.ScannerZXing,
+    Capacitor: typeof Capacitor,
+    CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
+  });
+  
   try {
     // Try native scanner first if available
-    if (isNative && window.NativeScanner && window.NativeScanner.startNativeScanner) {
+    if (window.isNative && window.platform !== 'web' && window.NativeScanner && window.NativeScanner.startNativeScanner) {
+      console.log('[ScannerCore] Attempting to start native scanner...');
       if (window.ScannerUI) {
         window.ScannerUI.updateScannerStatus('Starting native scanner...', 'info');
       }
@@ -52,10 +65,18 @@ async function startSmartScanner() {
       await window.NativeScanner.startNativeScanner();
       scannerState = 'scanning';
       return;
+    } else {
+      console.log('[ScannerCore] Native scanner not available:', {
+        isNative: window.isNative,
+        platform: window.platform,
+        hasNativeScanner: !!window.NativeScanner,
+        hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner)
+      });
     }
     
     // Fallback to browser scanner
     if (window.ScannerZXing && window.ScannerZXing.startBrowserScanner) {
+      console.log('[ScannerCore] Attempting to start browser scanner...');
       if (window.ScannerUI) {
         window.ScannerUI.updateScannerStatus('Starting browser scanner...', 'info');
       }
@@ -63,12 +84,17 @@ async function startSmartScanner() {
       await window.ScannerZXing.startBrowserScanner();
       scannerState = 'scanning';
       return;
+    } else {
+      console.log('[ScannerCore] Browser scanner not available:', {
+        hasScannerZXing: !!window.ScannerZXing,
+        hasStartBrowserScanner: !!(window.ScannerZXing && window.ScannerZXing.startBrowserScanner)
+      });
     }
     
-    throw new Error('No scanner available');
+    throw new Error('No scanner available - neither native nor browser scanner detected');
     
   } catch (error) {
-    console.error('Failed to start scanner:', error);
+    console.error('[ScannerCore] Failed to start scanner:', error);
     scannerState = 'idle';
     
     if (window.ScannerUI) {
@@ -92,7 +118,7 @@ async function stopScanner() {
   
   try {
     // Stop native scanner if active
-    if (isNative && window.NativeScanner && window.NativeScanner.stopNativeScanner) {
+    if (window.isNative && window.platform !== 'web' && window.NativeScanner && window.NativeScanner.stopNativeScanner) {
       await window.NativeScanner.stopNativeScanner();
     }
     
@@ -237,7 +263,7 @@ function handleScanError(error) {
  * Check if scanner is available
  */
 function isScannerAvailable() {
-  return isNative || (window.ScannerZXing && window.ScannerZXing.isBrowserScannerAvailable);
+  return (window.isNative && window.platform !== 'web') || (window.ScannerZXing && window.ScannerZXing.isBrowserScannerAvailable);
 }
 
 /**
@@ -258,5 +284,7 @@ window.ScannerCore = {
   isScannerAvailable,
   getScannerState,
   scannerState,
-  isNative
+  isNative: window.isNative,
+  isCapacitor: window.isCapacitor,
+  platform: window.platform
 }; 

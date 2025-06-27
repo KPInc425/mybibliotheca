@@ -8,6 +8,14 @@
  */
 async function startNativeScanner() {
   console.log('[Native Scanner] Starting native barcode scanner...');
+  console.log('[Native Scanner] Environment check:', {
+    isCapacitor: window.isCapacitor,
+    isNative: window.isNative,
+    platform: window.platform,
+    Capacitor: typeof Capacitor,
+    CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A',
+    BarcodeScanner: window.isCapacitor ? !!Capacitor.Plugins.BarcodeScanner : 'N/A'
+  });
   
   // Set scanner state to starting
   if (typeof scannerState !== 'undefined') {
@@ -16,12 +24,22 @@ async function startNativeScanner() {
   }
   
   // Check if Capacitor and BarcodeScanner are available
-  if (!isCapacitor || !Capacitor.Plugins.BarcodeScanner) {
+  if (!window.isCapacitor || !Capacitor.Plugins.BarcodeScanner) {
+    const errorMsg = !window.isCapacitor ? 'Capacitor not available' : 'BarcodeScanner plugin not found';
+    console.error('[Native Scanner] Native scanner not available:', errorMsg);
     logScannerStatus('Native scanner not available', 'error');
     throw new Error('Native scanner not available');
   }
   
   const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+  const platform = Capacitor.getPlatform();
+  
+  // Check if we're actually on a native platform
+  if (platform === 'web') {
+    console.log('[Native Scanner] Running on web platform, native scanner not available');
+    logScannerStatus('Native scanner not available on web platform', 'error');
+    throw new Error('Native scanner not available on web platform');
+  }
   
   // Check permissions
   let permissionGranted = false;
@@ -168,7 +186,7 @@ function logScannerStatus(message, type = 'info') {
  * Check if native scanner is available
  */
 function isNativeScannerAvailable() {
-  return isCapacitor && Capacitor.Plugins.BarcodeScanner;
+  return window.isCapacitor && window.platform !== 'web' && Capacitor.Plugins.BarcodeScanner;
 }
 
 /**
@@ -236,11 +254,53 @@ async function testNativeScanner() {
   }
 }
 
+/**
+ * Simple test function for debugging
+ */
+async function debugNativeScanner() {
+  console.log('[Native Scanner] Debug function called');
+  
+  if (!window.isCapacitor) {
+    console.log('[Native Scanner] Capacitor not available');
+    return { available: false, reason: 'Capacitor not available' };
+  }
+  
+  if (!Capacitor.Plugins.BarcodeScanner) {
+    console.log('[Native Scanner] BarcodeScanner plugin not found');
+    return { available: false, reason: 'BarcodeScanner plugin not found' };
+  }
+  
+  const platform = Capacitor.getPlatform();
+  console.log('[Native Scanner] Platform:', platform);
+  
+  if (platform === 'web') {
+    console.log('[Native Scanner] Running on web platform');
+    return { available: false, reason: 'Running on web platform' };
+  }
+  
+  try {
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    const { supported } = await BarcodeScanner.isSupported();
+    console.log('[Native Scanner] Supported:', supported);
+    
+    if (!supported) {
+      return { available: false, reason: 'Barcode scanning not supported' };
+    }
+    
+    return { available: true, platform, supported };
+    
+  } catch (error) {
+    console.log('[Native Scanner] Error checking support:', error.message);
+    return { available: false, reason: error.message };
+  }
+}
+
 // Export functions for use in other modules
 window.NativeScanner = {
   startNativeScanner,
   logScannerStatus,
   isNativeScannerAvailable,
   getNativeScannerCapabilities,
-  testNativeScanner
+  testNativeScanner,
+  debugNativeScanner
 }; 
