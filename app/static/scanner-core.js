@@ -56,18 +56,40 @@ async function startSmartScanner() {
   
   try {
     // Try native scanner first if available
-    if (window.isNative && window.platform !== 'web' && window.NativeScanner && window.NativeScanner.startNativeScanner) {
+    // For hybrid apps, we should try native scanner if Capacitor is available and we're not on web
+    const shouldTryNative = window.isCapacitor && 
+                           window.platform !== 'web' && 
+                           window.NativeScanner && 
+                           window.NativeScanner.startNativeScanner;
+    
+    console.log('[ScannerCore] Native scanner check:', {
+      isCapacitor: window.isCapacitor,
+      platform: window.platform,
+      hasNativeScanner: !!window.NativeScanner,
+      hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner),
+      shouldTryNative: shouldTryNative
+    });
+    
+    if (shouldTryNative) {
       console.log('[ScannerCore] Attempting to start native scanner...');
       if (window.ScannerUI) {
         window.ScannerUI.updateScannerStatus('Starting native scanner...', 'info');
       }
       
-      await window.NativeScanner.startNativeScanner();
-      scannerState = 'scanning';
-      return;
+      try {
+        await window.NativeScanner.startNativeScanner();
+        scannerState = 'scanning';
+        return;
+      } catch (nativeError) {
+        console.error('[ScannerCore] Native scanner failed:', nativeError);
+        // Don't throw here, fall back to browser scanner
+        if (window.ScannerUI) {
+          window.ScannerUI.updateScannerStatus('Native scanner failed, trying browser scanner...', 'warning');
+        }
+      }
     } else {
       console.log('[ScannerCore] Native scanner not available:', {
-        isNative: window.isNative,
+        isCapacitor: window.isCapacitor,
         platform: window.platform,
         hasNativeScanner: !!window.NativeScanner,
         hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner)
@@ -118,7 +140,7 @@ async function stopScanner() {
   
   try {
     // Stop native scanner if active
-    if (window.isNative && window.platform !== 'web' && window.NativeScanner && window.NativeScanner.stopNativeScanner) {
+    if (window.isCapacitor && window.platform !== 'web' && window.NativeScanner && window.NativeScanner.stopNativeScanner) {
       await window.NativeScanner.stopNativeScanner();
     }
     
@@ -263,7 +285,22 @@ function handleScanError(error) {
  * Check if scanner is available
  */
 function isScannerAvailable() {
-  return (window.isNative && window.platform !== 'web') || (window.ScannerZXing && window.ScannerZXing.isBrowserScannerAvailable);
+  const nativeAvailable = window.isCapacitor && 
+                         window.platform !== 'web' && 
+                         window.NativeScanner && 
+                         window.NativeScanner.startNativeScanner;
+  const browserAvailable = window.ScannerZXing && window.ScannerZXing.isBrowserScannerAvailable;
+  
+  console.log('[ScannerCore] Scanner availability check:', {
+    nativeAvailable,
+    browserAvailable,
+    isCapacitor: window.isCapacitor,
+    platform: window.platform,
+    hasNativeScanner: !!window.NativeScanner,
+    hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner)
+  });
+  
+  return nativeAvailable || browserAvailable;
 }
 
 /**

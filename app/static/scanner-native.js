@@ -14,7 +14,8 @@ async function startNativeScanner() {
     platform: window.platform,
     Capacitor: typeof Capacitor,
     CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A',
-    BarcodeScanner: window.isCapacitor ? !!Capacitor.Plugins.BarcodeScanner : 'N/A'
+    BarcodeScanner: window.isCapacitor ? !!Capacitor.Plugins.BarcodeScanner : 'N/A',
+    CapacitorIsNative: window.isCapacitor ? Capacitor.isNative : 'N/A'
   });
   
   // Set scanner state to starting
@@ -24,15 +25,26 @@ async function startNativeScanner() {
   }
   
   // Check if Capacitor and BarcodeScanner are available
-  if (!window.isCapacitor || !Capacitor.Plugins.BarcodeScanner) {
-    const errorMsg = !window.isCapacitor ? 'Capacitor not available' : 'BarcodeScanner plugin not found';
+  if (!window.isCapacitor) {
+    const errorMsg = 'Capacitor not available';
     console.error('[Native Scanner] Native scanner not available:', errorMsg);
+    logScannerStatus('Native scanner not available', 'error');
+    throw new Error('Native scanner not available');
+  }
+  
+  if (!Capacitor.Plugins.BarcodeScanner) {
+    const errorMsg = 'BarcodeScanner plugin not found';
+    console.error('[Native Scanner] Native scanner not available:', errorMsg);
+    console.log('[Native Scanner] Available plugins:', Object.keys(Capacitor.Plugins || {}));
     logScannerStatus('Native scanner not available', 'error');
     throw new Error('Native scanner not available');
   }
   
   const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
   const platform = Capacitor.getPlatform();
+  
+  console.log('[Native Scanner] Platform detected:', platform);
+  console.log('[Native Scanner] Capacitor.isNative:', Capacitor.isNative);
   
   // Check if we're actually on a native platform
   if (platform === 'web') {
@@ -41,28 +53,53 @@ async function startNativeScanner() {
     throw new Error('Native scanner not available on web platform');
   }
   
+  // Check if scanning is supported
+  try {
+    console.log('[Native Scanner] Checking if barcode scanning is supported...');
+    const { supported } = await BarcodeScanner.isSupported();
+    console.log('[Native Scanner] Barcode scanning supported:', supported);
+    
+    if (!supported) {
+      const errorMsg = 'Barcode scanning not supported on this device';
+      console.error('[Native Scanner] Native scanner not available:', errorMsg);
+      logScannerStatus('Native scanner not available', 'error');
+      throw new Error('Native scanner not available');
+    }
+  } catch (supportError) {
+    console.error('[Native Scanner] Error checking support:', supportError);
+    logScannerStatus('Error checking scanner support', 'error');
+    throw supportError;
+  }
+  
   // Check permissions
   let permissionGranted = false;
   try {
+    console.log('[Native Scanner] Checking camera permissions...');
     const { granted } = await BarcodeScanner.checkPermissions();
+    console.log(`[Native Scanner] Initial permission status: ${granted ? 'granted' : 'denied'}`);
     logScannerStatus(`Permission status: ${granted ? 'granted' : 'denied'}`, granted ? 'success' : 'warning');
     permissionGranted = granted;
   } catch (permError) {
+    console.log(`[Native Scanner] Permission check error: ${permError.message}`, 'warning');
     logScannerStatus(`Permission check error: ${permError.message}`, 'warning');
   }
   
   if (!permissionGranted) {
+    console.log('[Native Scanner] Permission not granted, attempting to request...');
     logScannerStatus('Requesting camera permissions...', 'info');
     try {
       const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      console.log(`[Native Scanner] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
       logScannerStatus(`Permission request result: ${newGranted ? 'granted' : 'denied'}`, newGranted ? 'success' : 'error');
       permissionGranted = newGranted;
     } catch (permError) {
+      console.log(`[Native Scanner] Permission request error: ${permError.message}`, 'warning');
       logScannerStatus(`Permission request error: ${permError.message}`, 'error');
     }
   }
   
   // Try to start scanning even if permissions appear denied
+  console.log('[Native Scanner] Attempting to start barcode scan...');
   logScannerStatus('Starting native barcode scan...', 'info');
   
   // Set scanner state to scanning
@@ -76,6 +113,7 @@ async function startNativeScanner() {
     
     if (barcodes && barcodes.length > 0) {
       const barcode = barcodes[0];
+      console.log(`[Native Scanner] Barcode detected: ${barcode.rawValue} (${barcode.format})`);
       logScannerStatus(`✅ Barcode detected: ${barcode.rawValue}`, 'success');
       
       // Fill in the ISBN field
@@ -83,10 +121,12 @@ async function startNativeScanner() {
       if (isbnField) {
         isbnField.value = barcode.rawValue;
         isbnField.dispatchEvent(new Event('input', { bubbles: true }));
+        console.log('[Native Scanner] ISBN field updated with scanned barcode');
         logScannerStatus('ISBN field updated with scanned barcode', 'success');
       }
       
       // Auto-fetch book data after successful scan
+      console.log('[Native Scanner] Auto-fetching book data...');
       logScannerStatus('Auto-fetching book data...', 'info');
       console.log('[Native Scanner] Debug info:', {
         debugEnabled: window.debugEnabled,
@@ -96,18 +136,19 @@ async function startNativeScanner() {
       });
       
       if (window.debugEnabled) {
+        console.log('[Native Scanner] Debug mode enabled - auto-fetch skipped');
         logScannerStatus('Debug mode enabled - auto-fetch skipped. Click "Fetch Book Data" manually when ready.', 'info');
       } else if (window.handleSuccessfulScan) {
-        logScannerStatus('Calling handleSuccessfulScan for unified behavior', 'success');
         console.log('[Native Scanner] Calling handleSuccessfulScan with code:', barcode.rawValue);
+        logScannerStatus('Calling handleSuccessfulScan for unified behavior', 'success');
         window.handleSuccessfulScan(barcode.rawValue);
       } else if (window.autofetchBookData) {
-        logScannerStatus('Calling autofetchBookData directly (fallback)', 'success');
         console.log('[Native Scanner] Calling autofetchBookData directly');
+        logScannerStatus('Calling autofetchBookData directly (fallback)', 'success');
         window.autofetchBookData();
       } else {
-        logScannerStatus('No autofetch function found - please click "Fetch Book Data" manually', 'warning');
         console.log('[Native Scanner] No autofetch functions available');
+        logScannerStatus('No autofetch function found - please click "Fetch Book Data" manually', 'warning');
         console.log('[Native Scanner] Available functions:', {
           handleSuccessfulScan: typeof window.handleSuccessfulScan,
           autofetchBookData: typeof window.autofetchBookData,
@@ -115,6 +156,7 @@ async function startNativeScanner() {
         });
       }
     } else {
+      console.log('[Native Scanner] No barcode detected');
       logScannerStatus('No barcode detected', 'info');
     }
     
@@ -133,12 +175,23 @@ async function startNativeScanner() {
                           errorMessage.includes('Dismiss');
     
     if (isCancellation) {
+      console.log('[Native Scanner] Scan cancelled by user');
       logScannerStatus('Scan cancelled by user', 'info');
       // Don't throw error for cancellation - just return normally
       return;
     } else {
+      console.error('[Native Scanner] Scan error:', error);
       logScannerStatus(`Native scanner error: ${error.message}`, 'error');
-      throw error; // Re-throw actual errors to trigger fallback
+      
+      // Check if it's a permission error
+      if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
+        console.log('[Native Scanner] Permission error detected');
+        logScannerStatus('Camera permission error during scanning. Please check device settings.', 'error');
+        // Don't throw here, let the user know about the permission issue
+        return;
+      } else {
+        throw error; // Re-throw actual errors to trigger fallback
+      }
     }
   }
   
@@ -186,7 +239,18 @@ function logScannerStatus(message, type = 'info') {
  * Check if native scanner is available
  */
 function isNativeScannerAvailable() {
-  return window.isCapacitor && window.platform !== 'web' && Capacitor.Plugins.BarcodeScanner;
+  const available = window.isCapacitor && 
+                   window.platform !== 'web' && 
+                   Capacitor.Plugins.BarcodeScanner;
+  
+  console.log('[Native Scanner] Availability check:', {
+    available,
+    isCapacitor: window.isCapacitor,
+    platform: window.platform,
+    hasBarcodeScanner: window.isCapacitor ? !!Capacitor.Plugins.BarcodeScanner : false
+  });
+  
+  return available;
 }
 
 /**
@@ -295,6 +359,51 @@ async function debugNativeScanner() {
   }
 }
 
+/**
+ * Request camera permissions directly
+ */
+async function requestCameraPermissions() {
+  console.log('[Native Scanner] Requesting camera permissions directly...');
+  
+  if (!window.isCapacitor) {
+    console.error('[Native Scanner] Capacitor not available');
+    throw new Error('Capacitor not available');
+  }
+  
+  const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+  if (!BarcodeScanner) {
+    console.error('[Native Scanner] BarcodeScanner plugin not found');
+    throw new Error('BarcodeScanner plugin not found');
+  }
+  
+  try {
+    // Check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    console.log('[Native Scanner] Barcode scanning supported:', supported);
+    
+    if (!supported) {
+      throw new Error('Barcode scanning not supported on this device');
+    }
+    
+    // Request permissions directly
+    console.log('[Native Scanner] Requesting camera permissions...');
+    const { granted } = await BarcodeScanner.requestPermissions();
+    console.log(`[Native Scanner] Permission request result: ${granted ? 'GRANTED' : 'DENIED'}`);
+    
+    if (granted) {
+      console.log('[Native Scanner] Camera permissions granted successfully!');
+      return { success: true, granted: true };
+    } else {
+      console.log('[Native Scanner] Camera permissions denied');
+      return { success: false, granted: false, reason: 'Permission denied' };
+    }
+    
+  } catch (error) {
+    console.error('[Native Scanner] Permission request error:', error);
+    return { success: false, granted: false, reason: error.message };
+  }
+}
+
 // Export functions for use in other modules
 window.NativeScanner = {
   startNativeScanner,
@@ -302,5 +411,6 @@ window.NativeScanner = {
   isNativeScannerAvailable,
   getNativeScannerCapabilities,
   testNativeScanner,
-  debugNativeScanner
+  debugNativeScanner,
+  requestCameraPermissions
 }; 

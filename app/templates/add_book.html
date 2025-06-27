@@ -48,9 +48,15 @@
           
           <!-- Debug Button (only show in development) -->
           {% if config.DEBUG_MODE or current_user.debug_enabled %}
-          <div class="flex justify-center mb-4">
+          <div class="flex justify-center mb-4 gap-2">
             <button type="button" class="btn btn-outline btn-info btn-sm" onclick="debugScanner()" id="debugBtn">
               🔍 Debug Scanner
+            </button>
+            <button type="button" class="btn btn-outline btn-warning btn-sm" onclick="testNativeScanner()" id="testNativeBtn">
+              📱 Test Native Scanner
+            </button>
+            <button type="button" class="btn btn-outline btn-success btn-sm" onclick="requestPermissions()" id="requestPermBtn">
+              🔐 Request Permissions
             </button>
           </div>
           {% endif %}
@@ -203,7 +209,7 @@
   </div>
 </div>
 
-<!-- Load modular scanner scripts -->
+<!-- Load ZXing library first -->
 <script src="{{ url_for('static', filename='node_modules/@zxing/browser/umd/index.min.js') }}"></script>
 
 <!-- Early environment detection setup -->
@@ -220,10 +226,22 @@ console.log('[Scanner] Environment detection:', {
   isNative: window.isNative,
   platform: window.platform,
   Capacitor: typeof Capacitor,
+  CapacitorIsNative: window.isCapacitor ? Capacitor.isNative : 'N/A',
   CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
 });
+
+// Check if ZXing library loaded correctly
+console.log('[Scanner] ZXing library check:', {
+  ZXingBrowser: typeof ZXingBrowser,
+  BrowserMultiFormatReader: typeof ZXingBrowser !== 'undefined' ? typeof ZXingBrowser.BrowserMultiFormatReader : 'N/A'
+});
+
+if (typeof ZXingBrowser === 'undefined') {
+  console.error('[Scanner] ZXing library failed to load!');
+}
 </script>
 
+<!-- Load modular scanner scripts -->
 <script src="{{ url_for('static', filename='scanner-utils.js') }}"></script>
 <script src="{{ url_for('static', filename='scanner-native.js') }}"></script>
 <script src="{{ url_for('static', filename='scanner-core.js') }}"></script>
@@ -267,6 +285,7 @@ async function debugScanner() {
       isNative: window.isNative,
       platform: window.platform,
       Capacitor: typeof Capacitor,
+      CapacitorIsNative: window.isCapacitor ? Capacitor.isNative : 'N/A',
       CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
     },
     modules: {
@@ -291,14 +310,133 @@ async function debugScanner() {
     try {
       const nativeResult = await window.NativeScanner.debugNativeScanner();
       console.log('[Debug] Native scanner debug result:', nativeResult);
+      debugInfo.nativeScannerDebug = nativeResult;
     } catch (error) {
       console.log('[Debug] Native scanner debug error:', error);
+      debugInfo.nativeScannerError = error.message;
     }
+  }
+  
+  // Test ZXing scanner if available
+  if (window.ScannerZXing && window.ScannerZXing.debugZXingScanner) {
+    try {
+      const zxingResult = window.ScannerZXing.debugZXingScanner();
+      console.log('[Debug] ZXing scanner debug result:', zxingResult);
+      debugInfo.zxingScannerDebug = zxingResult;
+    } catch (error) {
+      console.log('[Debug] ZXing scanner debug error:', error);
+      debugInfo.zxingScannerError = error.message;
+    }
+  }
+  
+  // Test scanner availability
+  if (window.ScannerCore && window.ScannerCore.isScannerAvailable) {
+    const available = window.ScannerCore.isScannerAvailable();
+    console.log('[Debug] Scanner available:', available);
+    debugInfo.scannerAvailable = available;
   }
   
   // Show debug info in alert
   const debugText = JSON.stringify(debugInfo, null, 2);
   alert('Scanner Debug Info:\n\n' + debugText);
+}
+
+// Direct test of native scanner
+async function testNativeScanner() {
+  console.log('[Debug] Testing native scanner directly...');
+  
+  if (!window.isCapacitor) {
+    alert('Capacitor not available - cannot test native scanner');
+    return;
+  }
+  
+  if (!Capacitor.Plugins.BarcodeScanner) {
+    alert('BarcodeScanner plugin not found - cannot test native scanner');
+    return;
+  }
+  
+  try {
+    console.log('[Debug] Starting native scanner test...');
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    
+    // Check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    console.log('[Debug] Barcode scanning supported:', supported);
+    
+    if (!supported) {
+      alert('Barcode scanning not supported on this device');
+      return;
+    }
+    
+    // Try to start scanning
+    console.log('[Debug] Attempting to start barcode scan...');
+    const { barcodes } = await BarcodeScanner.scan();
+    
+    if (barcodes && barcodes.length > 0) {
+      const barcode = barcodes[0];
+      const result = `✅ Native Scanner Test Successful!
+Format: ${barcode.format}
+Value: ${barcode.rawValue}
+Type: ${barcode.type}
+Confidence: ${barcode.confidence || 'N/A'}`;
+      
+      console.log('[Debug] Native scanner test successful:', barcode);
+      alert(result);
+    } else {
+      console.log('[Debug] No barcode detected in test');
+      alert('No barcode detected during test');
+    }
+    
+  } catch (error) {
+    console.error('[Debug] Native scanner test failed:', error);
+    alert(`Native scanner test failed: ${error.message}`);
+  }
+}
+
+// Request camera permissions
+async function requestPermissions() {
+  console.log('[Debug] Requesting camera permissions...');
+  
+  if (!window.isCapacitor) {
+    alert('Capacitor not available - cannot request permissions');
+    return;
+  }
+  
+  if (!Capacitor.Plugins.BarcodeScanner) {
+    alert('BarcodeScanner plugin not found - cannot request permissions');
+    return;
+  }
+  
+  try {
+    console.log('[Debug] Starting permission request...');
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    
+    // Check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    console.log('[Debug] Barcode scanning supported:', supported);
+    
+    if (!supported) {
+      alert('Barcode scanning not supported on this device');
+      return;
+    }
+    
+    // Request permissions directly
+    console.log('[Debug] Requesting camera permissions...');
+    const { granted } = await BarcodeScanner.requestPermissions();
+    console.log(`[Debug] Permission request result: ${granted ? 'GRANTED' : 'DENIED'}`);
+    
+    if (granted) {
+      console.log('[Debug] Camera permissions granted successfully!');
+      alert('✅ Camera permissions granted successfully! You can now use the barcode scanner.');
+    } else {
+      console.log('[Debug] Camera permissions denied');
+      alert('❌ Camera permissions were denied. Please grant camera permissions in your device settings.');
+    }
+    
+  } catch (error) {
+    console.error('[Debug] Permission request error:', error);
+    alert(`Permission request error: ${error.message}`);
+  }
 }
 </script>
 {% endblock %}
