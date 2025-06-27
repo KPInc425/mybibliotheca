@@ -2,147 +2,248 @@
 
 ## Overview
 
-BookOracle now features a **smart barcode scanner** that automatically chooses the best available scanning method:
-
-- **Native Scanner**: Uses MLKit barcode scanning via Capacitor plugin (Android/iOS)
-- **Browser Scanner**: Falls back to browser-based BarcodeDetector API (PWA/desktop)
-
-The app provides a single "📷 Scan Barcode" button that intelligently detects the environment and uses the most appropriate scanner, with automatic fallback and user notifications.
+The BookOracle app includes a native barcode scanner implementation using Capacitor's MLKit Barcode Scanner plugin. This provides a superior scanning experience on mobile devices compared to browser-based scanning.
 
 ## Features
 
-### Smart Scanner Detection
-- **Automatic Environment Detection**: Detects Capacitor native environment vs browser
-- **Plugin Availability Check**: Verifies MLKit barcode scanner plugin is available
-- **Graceful Fallback**: Automatically falls back to browser scanner if native fails
-- **User Notifications**: Clear status messages and notifications about scanner choice
+- **Native Performance**: Uses device's native camera and MLKit for fast, accurate scanning
+- **Permission Management**: Proper permission checking and user guidance
+- **Fallback Support**: Gracefully falls back to browser scanner if native scanner is unavailable
+- **Error Handling**: Comprehensive error handling and user feedback
+- **Auto-fetch**: Automatically fetches book data after successful scans
 
-### Native Scanner (Android/iOS)
-- **MLKit Integration**: Uses Google's MLKit for fast, accurate barcode detection
-- **Permission Management**: Handles camera permissions with user-friendly prompts
-- **Error Recovery**: Attempts scanning even if permission status is unclear
-- **Auto-fill**: Automatically populates ISBN field with scanned barcode
+## Permission Handling
 
-### Browser Scanner (PWA/Desktop)
-- **BarcodeDetector API**: Uses modern browser barcode detection
-- **Enhanced UI**: Improved camera controls, tap-to-focus, and visual feedback
-- **Error Handling**: Robust error handling with retry mechanisms
-- **Cross-platform**: Works on desktop and mobile browsers
+### Improved Permission Flow
+
+The native scanner now implements a robust permission handling system:
+
+1. **Pre-scan Permission Check**: Before starting the scanner, the app checks if camera permissions are already granted
+2. **Permission Request**: If permissions are not granted, the app requests them explicitly
+3. **User Denial Handling**: If the user denies permissions, the app shows helpful guidance instead of opening the scanner
+4. **Settings Integration**: Provides easy access to device settings for permission management
+
+### Permission States
+
+- **Granted**: Scanner proceeds normally
+- **Denied**: Shows permission help modal with instructions
+- **Error**: Displays error message and guidance
+
+### User Experience
+
+- No more scanner opening when permissions are denied
+- Clear feedback about permission status
+- Easy access to device settings
+- Graceful handling of permission changes
 
 ## Implementation Details
 
-### Smart Scanner Function
+### Core Files
+
+- `app/static/scanner-native.js`: Main native scanner implementation
+- `app/static/scanner-core.js`: Scanner orchestration and state management
+- `app/static/scanner-ui.js`: UI components and notifications
+- `app/templates/add_book.html`: Scanner interface and permission modal
+
+### Key Functions
+
+#### `startNativeScanner()`
+Main entry point for native scanning. Implements the complete permission flow:
+
 ```javascript
-async function startSmartScanner() {
-  // Check for native scanner availability
-  if (isCapacitor && Capacitor.Plugins.BarcodeScanner) {
-    try {
-      await startNativeScanner();
-      return; // Success
-    } catch (error) {
-      // Fallback to browser scanner
-      showNotification('Native scanner unavailable, using browser scanner', 'info');
-    }
-  }
-  
-  // Use browser scanner
-  await startBrowserScanner();
+async function startNativeScanner() {
+  // 1. Environment checks
+  // 2. Permission verification
+  // 3. Permission request if needed
+  // 4. Scanner activation
+  // 5. Result handling
 }
 ```
 
-### Status System
-- **Real-time Feedback**: Status messages show current scanner state
-- **Color-coded Messages**: Success (green), warning (yellow), error (red), info (blue)
-- **Console Logging**: Detailed logging for debugging
+#### `requestCameraPermissions()`
+Direct permission request function:
 
-## User Experience
-
-### Single Button Interface
-- **One Button**: Single "📷 Scan Barcode" button for all scanning needs
-- **Smart Detection**: Automatically chooses best scanner without user input
-- **Clear Feedback**: Status messages inform user about scanner choice and progress
-
-### Fallback Behavior
-1. **Native Scanner Attempt**: Tries MLKit scanner first (if available)
-2. **Error Handling**: Catches and logs any native scanner errors
-3. **Fallback Notification**: Brief notification about using browser scanner
-4. **Browser Scanner**: Seamlessly switches to browser-based scanning
-5. **Status Updates**: Clear status messages throughout the process
-
-### Permission Handling
-- **Automatic Requests**: Requests camera permissions when needed
-- **Graceful Degradation**: Continues scanning even with permission issues
-- **User Guidance**: Clear error messages and status updates
-
-## Technical Implementation
-
-### Environment Detection
 ```javascript
-let isCapacitor = typeof Capacitor !== 'undefined';
-let isNative = isCapacitor && Capacitor.isNative;
+async function requestCameraPermissions() {
+  const { granted } = await BarcodeScanner.requestPermissions();
+  return { success: true, granted };
+}
 ```
 
-### Plugin Integration
+#### `showPermissionHelp()`
+Displays permission guidance modal:
+
 ```javascript
-const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
-const { barcodes } = await BarcodeScanner.scan();
+function showPermissionHelp() {
+  const modal = document.getElementById('permissionModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
 ```
+
+### Permission Modal
+
+The permission modal (`permissionModal`) provides:
+
+- Clear explanation of why camera access is needed
+- Step-by-step instructions for enabling permissions
+- Direct link to device settings (where supported)
+- Manual instructions as fallback
+
+## Testing
+
+### Test Page
+
+Use `test_permission_handling.html` to test the permission system:
+
+1. **Environment Check**: Verify Capacitor and plugin availability
+2. **Permission Check**: Test current permission status
+3. **Permission Request**: Test permission request flow
+4. **Scanner Test**: Test complete scanner flow with permission handling
+
+### Test Scenarios
+
+1. **First-time Use**: No permissions → Request → Grant → Scan
+2. **Permission Denied**: No permissions → Request → Deny → Show help
+3. **Already Granted**: Permissions exist → Direct scan
+4. **Permission Revoked**: Permissions revoked → Request → Handle result
+
+## Error Handling
+
+### Common Error Scenarios
+
+1. **Permission Denied**: Shows help modal, doesn't open scanner
+2. **Plugin Unavailable**: Falls back to browser scanner
+3. **Device Not Supported**: Shows appropriate error message
+4. **Scan Cancelled**: Graceful handling, no error thrown
 
 ### Error Recovery
-- **Permission Issues**: Attempts scanning despite permission status
-- **Plugin Errors**: Falls back to browser scanner
-- **Network Issues**: Continues with local scanning capabilities
 
-## Benefits
+- Automatic fallback to browser scanner
+- Clear error messages for users
+- Logging for debugging
+- State reset on errors
 
-### For Users
-- **Simplified Interface**: Single button for all scanning needs
-- **Automatic Optimization**: Always uses the best available scanner
-- **Reliable Fallback**: Works even when native scanner fails
-- **Clear Feedback**: Knows exactly what's happening at each step
+## Configuration
 
-### For Developers
-- **Maintainable Code**: Single entry point for scanner functionality
-- **Robust Error Handling**: Comprehensive error recovery
-- **Extensible Design**: Easy to add new scanner types
-- **Debugging Support**: Detailed logging and status messages
+### Capacitor Configuration
+
+Ensure the MLKit Barcode Scanner plugin is properly configured in `capacitor.config.json`:
+
+```json
+{
+  "plugins": {
+    "BarcodeScanner": {
+      "permissions": ["camera"]
+    }
+  }
+}
+```
+
+### Platform-Specific Settings
+
+#### Android
+- Camera permission in `android/app/src/main/AndroidManifest.xml`
+- MLKit dependencies in `android/app/build.gradle`
+
+#### iOS
+- Camera usage description in `ios/App/App/Info.plist`
+- Privacy permissions configuration
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### Native Scanner Not Available
-- **Symptom**: Falls back to browser scanner immediately
-- **Cause**: Capacitor not detected or plugin not installed
-- **Solution**: Ensure app is running in Capacitor environment with MLKit plugin
+1. **Scanner Opens Despite Permission Denial**
+   - Fixed: Now checks permissions before opening scanner
+   - Shows help modal instead of scanner
 
-#### Permission Denied
-- **Symptom**: Native scanner fails with permission error
-- **Behavior**: Automatically falls back to browser scanner
-- **User Action**: Check device settings for camera permissions
+2. **Permission Modal Not Showing**
+   - Ensure `permissionModal` element exists in template
+   - Check that `showPermissionHelp()` is called
 
-#### Browser Scanner Not Supported
-- **Symptom**: Error about BarcodeDetector not supported
-- **Cause**: Browser doesn't support BarcodeDetector API
-- **Solution**: Use a modern browser or native app
+3. **Scanner Not Starting**
+   - Verify Capacitor environment
+   - Check plugin availability
+   - Review console logs for errors
 
 ### Debug Information
-- **Console Logs**: Check browser console for detailed error messages
-- **Status Messages**: UI shows current scanner state and errors
-- **Network Tab**: Monitor for any network-related issues
+
+Enable debug mode to see detailed logs:
+
+```javascript
+window.debugEnabled = true;
+```
+
+### Log Categories
+
+- `[Native Scanner]`: Core scanner operations
+- `[ScannerCore]`: Orchestration and state management
+- `[ScannerUI]`: UI operations and notifications
 
 ## Future Enhancements
 
-### Potential Improvements
-- **Scanner Preference**: Allow users to choose preferred scanner
-- **Performance Metrics**: Track scanner success rates
-- **Offline Support**: Enhanced offline scanning capabilities
-- **Multiple Formats**: Support for additional barcode formats
+### Planned Improvements
 
-### Platform Expansion
-- **iOS Support**: Full iOS native scanner implementation
-- **Desktop Apps**: Electron integration for desktop applications
-- **Progressive Enhancement**: Additional scanner features for capable devices
+1. **Permission Persistence**: Remember user's permission preferences
+2. **Advanced Settings**: More granular permission controls
+3. **Analytics**: Track permission grant/denial rates
+4. **A/B Testing**: Test different permission request strategies
+
+### Integration Opportunities
+
+1. **Settings Page**: Add scanner settings to app settings
+2. **Onboarding**: Include scanner permission in first-time setup
+3. **Help System**: Integrate with app help documentation
+
+## Security Considerations
+
+### Permission Best Practices
+
+1. **Minimal Permissions**: Only request camera access when needed
+2. **Clear Purpose**: Explain why camera access is required
+3. **User Control**: Allow users to revoke permissions
+4. **Graceful Degradation**: Work without permissions when possible
+
+### Data Protection
+
+- No camera data is stored or transmitted
+- Scanner only processes barcode data
+- Temporary camera access only during scanning
+
+## Performance Optimization
+
+### Scanning Performance
+
+- Native MLKit implementation for fast processing
+- Optimized camera settings for barcode detection
+- Efficient error handling to minimize delays
+
+### Memory Management
+
+- Proper cleanup of camera resources
+- State management to prevent memory leaks
+- Automatic fallback to prevent hanging
+
+## Support
+
+### Getting Help
+
+1. Check console logs for detailed error information
+2. Use the test page to isolate issues
+3. Review this documentation for common solutions
+4. Check Capacitor and MLKit documentation for plugin-specific issues
+
+### Reporting Issues
+
+When reporting scanner issues, include:
+
+1. Device platform and version
+2. App version
+3. Console logs
+4. Steps to reproduce
+5. Expected vs actual behavior
 
 ## 🎯 Key Achievements
 

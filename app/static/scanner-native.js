@@ -260,32 +260,100 @@ async function startNativeScanner() {
     throw supportError;
   }
   
-  // Check permissions with enhanced flow
+  // Check permissions BEFORE starting the scan
   let permissionGranted = false;
   try {
     console.log('[Native Scanner] Checking camera permissions...');
     const { granted } = await BarcodeScanner.checkPermissions();
     console.log(`[Native Scanner] Initial permission status: ${granted ? 'granted' : 'denied'}`);
-    // Don't show permission status to user - just log it
     permissionGranted = granted;
   } catch (permError) {
     console.log(`[Native Scanner] Permission check error: ${permError.message}`, 'warning');
-    // Don't show permission check errors to user
+    permissionGranted = false;
   }
   
-  // Don't request permissions here - let the native scanner handle it
-  // This ensures the native permission modal appears properly
+  // If permissions are not granted, request them first
   if (!permissionGranted) {
-    console.log('[Native Scanner] Permission not granted, but proceeding with scan to trigger native permission modal...');
-    logScannerStatus('Starting native scanner...', 'info');
-  } else {
-    console.log('[Native Scanner] Permissions already granted, proceeding with scan...');
-    logScannerStatus('Starting native scanner...', 'info');
+    console.log('[Native Scanner] Permission not granted, requesting permissions...');
+    logScannerStatus('Requesting camera permissions...', 'info');
+    
+    try {
+      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      console.log(`[Native Scanner] Permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
+      
+      if (!newGranted) {
+        console.log('[Native Scanner] Camera permissions denied by user');
+        logScannerStatus('Camera permissions denied. Please enable camera access in device settings.', 'error');
+        
+        // Show permission help
+        showPermissionHelp();
+        
+        // Reset scanner state
+        if (typeof scannerState !== 'undefined') {
+          scannerState = 'idle';
+          console.log('[Native Scanner] Reset scanner state to idle due to permission denial');
+        }
+        
+        // Update UI
+        if (window.ScannerUI) {
+          window.ScannerUI.updateScannerButton(false);
+          window.ScannerUI.hideScannerViewport();
+          window.ScannerUI.hideScannerStatus();
+        }
+        
+        // Don't throw an error, just return gracefully
+        return;
+      }
+      
+      permissionGranted = true;
+      console.log('[Native Scanner] Camera permissions granted successfully!');
+      logScannerStatus('Camera permissions granted!', 'success');
+      
+    } catch (requestError) {
+      console.error('[Native Scanner] Permission request error:', requestError);
+      logScannerStatus('Error requesting camera permissions', 'error');
+      
+      // Reset scanner state
+      if (typeof scannerState !== 'undefined') {
+        scannerState = 'idle';
+        console.log('[Native Scanner] Reset scanner state to idle due to permission request error');
+      }
+      
+      // Update UI
+      if (window.ScannerUI) {
+        window.ScannerUI.updateScannerButton(false);
+        window.ScannerUI.hideScannerViewport();
+        window.ScannerUI.hideScannerStatus();
+      }
+      
+      throw new Error('Failed to request camera permissions');
+    }
   }
   
-  // Try to start scanning
-  console.log('[Native Scanner] Attempting to start barcode scan...');
-  // Don't show duplicate status messages
+  // Only proceed with scanning if permissions are granted
+  if (!permissionGranted) {
+    console.log('[Native Scanner] Cannot proceed without camera permissions');
+    logScannerStatus('Camera permissions required for scanning', 'error');
+    
+    // Reset scanner state
+    if (typeof scannerState !== 'undefined') {
+      scannerState = 'idle';
+      console.log('[Native Scanner] Reset scanner state to idle due to missing permissions');
+    }
+    
+    // Update UI
+    if (window.ScannerUI) {
+      window.ScannerUI.updateScannerButton(false);
+      window.ScannerUI.hideScannerViewport();
+      window.ScannerUI.hideScannerStatus();
+    }
+    
+    return;
+  }
+  
+  // Now start the actual scanning
+  console.log('[Native Scanner] Permissions confirmed, starting barcode scan...');
+  logScannerStatus('Starting native scanner...', 'info');
   
   // Set scanner state to scanning
   if (typeof scannerState !== 'undefined') {
@@ -597,9 +665,53 @@ async function requestCameraPermissions() {
   }
 }
 
+/**
+ * Stop native scanner
+ */
+async function stopNativeScanner() {
+  console.log('[Native Scanner] Stopping native scanner...');
+  
+  if (!window.isCapacitor) {
+    console.log('[Native Scanner] Not in Capacitor environment, nothing to stop');
+    return;
+  }
+  
+  const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+  if (!BarcodeScanner) {
+    console.log('[Native Scanner] BarcodeScanner plugin not available for stopping');
+    return;
+  }
+  
+  try {
+    // The MLKit BarcodeScanner plugin doesn't have a stop method,
+    // but we can try to close any active scanning session
+    console.log('[Native Scanner] Native scanner stop requested (MLKit handles this automatically)');
+    
+    // Reset scanner state
+    if (typeof scannerState !== 'undefined') {
+      scannerState = 'idle';
+      console.log('[Native Scanner] Reset scanner state to idle');
+    }
+    
+    // Update UI
+    if (window.ScannerUI) {
+      window.ScannerUI.updateScannerButton(false);
+      window.ScannerUI.hideScannerViewport();
+      window.ScannerUI.hideScannerStatus();
+    }
+    
+    console.log('[Native Scanner] Native scanner stopped successfully');
+    
+  } catch (error) {
+    console.error('[Native Scanner] Error stopping native scanner:', error);
+    // Don't throw error, just log it
+  }
+}
+
 // Export functions for use in other modules
 window.NativeScanner = {
   startNativeScanner,
+  stopNativeScanner,
   logScannerStatus,
   isNativeScannerAvailable,
   getNativeScannerCapabilities,
