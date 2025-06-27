@@ -420,6 +420,10 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize scanner modules
   if (window.ScannerCore) {
     console.log('[AddBook] ScannerCore available');
+    // Make handleScannerButtonClick globally available
+    window.handleScannerButtonClick = window.ScannerCore.handleScannerButtonClick;
+    window.stopScanner = window.ScannerCore.stopScanner;
+    
     // Initialize scanner system and request permissions early
     if (window.ScannerCore.initializeScannerSystem) {
       window.ScannerCore.initializeScannerSystem().catch(error => {
@@ -433,6 +437,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[AddBook] ScannerUI available');
     window.ScannerUI.setupMobileOptimizations();
     window.ScannerUI.setupMobileFocusDetection();
+    // Initialize scanner button with proper click handlers
+    window.ScannerUI.updateScannerButton(false);
   }
   
   // Update debug buttons
