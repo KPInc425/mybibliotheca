@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Cleanup Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        video {
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>📷 Camera Cleanup Test</h1>
+    <p>This page tests the camera cleanup functionality to ensure the camera is properly released after use.</p>
+
+    <div class="test-section">
+        <h3>Camera Status</h3>
+        <div id="cameraStatus" class="status info">Checking camera status...</div>
+        <button class="btn-primary" onclick="checkCameraStatus()">🔄 Refresh Status</button>
+    </div>
+
+    <div class="test-section">
+        <h3>Camera Test</h3>
+        <video id="testVideo" autoplay muted playsinline></video>
+        <br>
+        <button class="btn-primary" onclick="startCamera()">📹 Start Camera</button>
+        <button class="btn-warning" onclick="stopCamera()">🛑 Stop Camera</button>
+        <button class="btn-danger" onclick="forceCleanup()">🧹 Force Cleanup</button>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Results</h3>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        let currentStream = null;
+
+        async function checkCameraStatus() {
+            const statusDiv = document.getElementById('cameraStatus');
+            
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                statusDiv.innerHTML = `
+                    <strong>Camera Status:</strong><br>
+                    • Available video devices: ${videoDevices.length}<br>
+                    • Current stream active: ${currentStream ? 'Yes' : 'No'}<br>
+                    • MediaDevices API: ${navigator.mediaDevices ? 'Available' : 'Not Available'}<br>
+                    • User Media API: ${navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? 'Available' : 'Not Available'}
+                `;
+                statusDiv.className = 'status success';
+                
+                addTestResult('Camera status check completed successfully');
+                
+            } catch (error) {
+                statusDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                statusDiv.className = 'status error';
+                addTestResult(`Camera status check failed: ${error.message}`);
+            }
+        }
+
+        async function startCamera() {
+            const video = document.getElementById('testVideo');
+            
+            try {
+                addTestResult('Starting camera...');
+                
+                currentStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                video.srcObject = currentStream;
+                addTestResult('Camera started successfully');
+                
+                // Update status
+                checkCameraStatus();
+                
+            } catch (error) {
+                addTestResult(`Failed to start camera: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopCamera() {
+            try {
+                addTestResult('Stopping camera...');
+                
+                if (currentStream) {
+                    const tracks = currentStream.getTracks();
+                    console.log('Stopping', tracks.length, 'tracks');
+                    
+                    tracks.forEach((track, index) => {
+                        console.log('Stopping track', index, ':', track.kind, track.label);
+                        track.stop();
+                    });
+                    
+                    currentStream = null;
+                }
+                
+                const video = document.getElementById('testVideo');
+                video.srcObject = null;
+                video.pause();
+                
+                addTestResult('Camera stopped successfully');
+                
+                // Update status
+                checkCameraStatus();
+                
+            } catch (error) {
+                addTestResult(`Failed to stop camera: ${error.message}`, 'error');
+            }
+        }
+
+        async function forceCleanup() {
+            try {
+                addTestResult('Performing force cleanup...');
+                
+                // Stop current stream
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                    currentStream = null;
+                }
+                
+                // Clear all video elements
+                const allVideos = document.querySelectorAll('video');
+                allVideos.forEach((video, index) => {
+                    if (video.srcObject) {
+                        console.log('Force stopping video', index, 'stream...');
+                        const stream = video.srcObject;
+                        if (stream && stream.getTracks) {
+                            stream.getTracks().forEach(track => track.stop());
+                        }
+                        video.srcObject = null;
+                        video.pause();
+                    }
+                });
+                
+                addTestResult('Force cleanup completed');
+                
+                // Update status
+                checkCameraStatus();
+                
+            } catch (error) {
+                addTestResult(`Force cleanup failed: ${error.message}`, 'error');
+            }
+        }
+
+        function addTestResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `status ${type}`;
+            resultDiv.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            
+            // Keep only last 10 results
+            while (resultsDiv.children.length > 10) {
+                resultsDiv.removeChild(resultsDiv.firstChild);
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            addTestResult('Camera cleanup test page loaded');
+            checkCameraStatus();
+        });
+
+        // Ensure cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (currentStream) {
+                console.log('Page unloading - stopping camera stream');
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        // Ensure cleanup on page visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && currentStream) {
+                console.log('Page hidden - stopping camera stream');
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+        });
+    </script>
+</body>
+</html> 

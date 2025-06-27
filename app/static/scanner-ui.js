@@ -252,22 +252,77 @@ function showBarcodeDetectorDiagnostics(browser, version, features) {
  */
 function updateScannerButton(isScanning = false) {
   const scannerBtn = document.getElementById('scannerBtn');
-  if (!scannerBtn) return;
+  const cleanupBtn = document.getElementById('cleanupBtn');
+  const nuclearBtn = document.getElementById('nuclearBtn');
   
-  if (isScanning) {
-    scannerBtn.innerHTML = '🛑 Stop Scanner';
-    scannerBtn.className = 'btn btn-error btn-lg';
-    scannerBtn.onclick = () => {
-      if (typeof stopScanner === 'function') {
-        stopScanner();
+  if (scannerBtn) {
+    if (isScanning) {
+      scannerBtn.innerHTML = '🛑 Stop Scanner';
+      scannerBtn.className = 'btn btn-error btn-lg';
+      scannerBtn.onclick = (event) => {
+        // Prevent form submission
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        if (typeof stopScanner === 'function') {
+          stopScanner();
+        }
+      };
+    } else {
+      scannerBtn.innerHTML = '📷 Scan Barcode';
+      scannerBtn.className = 'btn btn-primary btn-lg';
+      scannerBtn.onclick = (event) => {
+        // Prevent form submission
+        if (event) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        if (typeof handleScannerButtonClick === 'function') {
+          handleScannerButtonClick(event);
+        }
+      };
+    }
+  }
+  
+  // Show cleanup button when scanner is active or if there might be lingering camera access
+  if (cleanupBtn) {
+    cleanupBtn.style.display = isScanning ? 'block' : 'block'; // Always show for manual cleanup
+  }
+  
+  // Show nuclear cleanup button - always available for stubborn camera connections
+  if (nuclearBtn) {
+    nuclearBtn.style.display = 'block';
+    nuclearBtn.onclick = async (event) => {
+      // Prevent form submission
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
       }
-    };
-  } else {
-    scannerBtn.innerHTML = '📷 Scan Barcode';
-    scannerBtn.className = 'btn btn-primary btn-lg';
-    scannerBtn.onclick = () => {
-      if (typeof handleScannerButtonClick === 'function') {
-        handleScannerButtonClick();
+      
+      // Show confirmation dialog
+      if (confirm('⚠️ Nuclear Cleanup\n\nThis will force release all camera connections by:\n• Stopping all video streams\n• Removing all video elements\n• Recreating scanner elements\n• Force garbage collection\n\nThis is a last resort for stubborn camera connections. Continue?')) {
+        try {
+          nuclearBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Nuclear Cleanup...';
+          nuclearBtn.disabled = true;
+          
+          // Call nuclear cleanup
+          if (window.nuclearCameraRelease) {
+            await window.nuclearCameraRelease();
+          } else if (window.ScannerCore && window.ScannerCore.nuclearCleanup) {
+            await window.ScannerCore.nuclearCleanup();
+          } else {
+            showNotification('Nuclear cleanup function not available', 'error');
+          }
+          
+          showNotification('Nuclear cleanup completed', 'success');
+        } catch (error) {
+          console.error('Nuclear cleanup error:', error);
+          showNotification('Nuclear cleanup failed: ' + error.message, 'error');
+        } finally {
+          nuclearBtn.innerHTML = '☢️ Nuclear Cleanup';
+          nuclearBtn.disabled = false;
+        }
       }
     };
   }
@@ -285,7 +340,7 @@ function showScannerViewport() {
 }
 
 /**
- * Hide scanner viewport
+ * Hide scanner viewport and ensure camera cleanup
  */
 function hideScannerViewport() {
   const scanner = document.getElementById('scanner');

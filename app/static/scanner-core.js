@@ -56,8 +56,7 @@ async function startSmartScanner() {
   });
   
   try {
-    // Try native scanner first if available
-    // For hybrid apps, we should try native scanner if Capacitor is available and we're not on web
+    // Check if we should try native scanner first
     const shouldTryNative = window.isCapacitor && 
                            window.platform !== 'web' && 
                            window.NativeScanner && 
@@ -71,6 +70,7 @@ async function startSmartScanner() {
       shouldTryNative: shouldTryNative
     });
     
+    // Try native scanner if available
     if (shouldTryNative) {
       console.log('[ScannerCore] === ATTEMPTING NATIVE SCANNER ===');
       if (window.ScannerUI) {
@@ -80,20 +80,19 @@ async function startSmartScanner() {
       try {
         console.log('[ScannerCore] Calling NativeScanner.startNativeScanner()...');
         await window.NativeScanner.startNativeScanner();
-        // Native scanner completed successfully - don't fall back to browser scanner
+        // Native scanner completed successfully
         console.log('[ScannerCore] === NATIVE SCANNER COMPLETED SUCCESSFULLY ===');
-        console.log('[ScannerCore] Resetting scanner state to idle');
-        scannerState = 'idle'; // Reset to idle since native scanner handles its own state
+        scannerState = 'idle';
         if (window.ScannerUI) {
           window.ScannerUI.updateScannerButton(false);
           window.ScannerUI.hideScannerViewport();
           window.ScannerUI.hideScannerStatus();
         }
-        console.log('[ScannerCore] === NATIVE SCANNER COMPLETE - RETURNING ===');
         return;
       } catch (nativeError) {
         console.error('[ScannerCore] === NATIVE SCANNER FAILED ===', nativeError);
-        // Only fall back to browser scanner if it's not a cancellation
+        
+        // Check if it's a cancellation
         const errorMessage = nativeError.message || nativeError.toString();
         const isCancellation = errorMessage.includes('cancel') || 
                               errorMessage.includes('Cancel') ||
@@ -114,50 +113,32 @@ async function startSmartScanner() {
             window.ScannerUI.hideScannerViewport();
             window.ScannerUI.hideScannerStatus();
           }
-          console.log('[ScannerCore] === NATIVE SCANNER CANCELLED - RETURNING ===');
           return;
         }
         
-        // Don't fall back to browser scanner for other errors
-        console.log('[ScannerCore] === NATIVE SCANNER FAILED WITH NON-CANCELLATION ERROR - NOT FALLING BACK ===');
-        throw nativeError;
+        // For non-cancellation errors, fall back to browser scanner
+        console.log('[ScannerCore] === NATIVE SCANNER FAILED - FALLING BACK TO BROWSER SCANNER ===');
       }
-    } else {
-      console.log('[ScannerCore] Native scanner not available:', {
-        isCapacitor: window.isCapacitor,
-        platform: window.platform,
-        hasNativeScanner: !!window.NativeScanner,
-        hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner)
-      });
     }
     
-    // Only try browser scanner if native scanner is not available
-    // This should never happen if native scanner is working properly
-    if (!shouldTryNative && window.ScannerZXing && window.ScannerZXing.startBrowserScanner) {
-      console.log('[ScannerCore] === ATTEMPTING BROWSER SCANNER (NATIVE NOT AVAILABLE) ===');
+    // Try browser scanner (either because native is not available or native failed)
+    if (window.ScannerZXing && window.ScannerZXing.startBrowserScanner) {
+      console.log('[ScannerCore] === ATTEMPTING BROWSER SCANNER ===');
       
-      // Only show viewport when we're actually going to use browser scanner
+      // Show viewport for browser scanner
       if (window.ScannerUI) {
         window.ScannerUI.showScannerViewport();
         window.ScannerUI.updateScannerStatus('Starting browser scanner...', 'info');
       }
       
-      await window.ScannerZXing.startBrowserScanner();
-      scannerState = 'scanning';
-      console.log('[ScannerCore] === BROWSER SCANNER STARTED ===');
-      return;
-    } else if (shouldTryNative) {
-      console.log('[ScannerCore] Native scanner is available, skipping browser scanner initialization');
-      // Double-check that ZXing is not active
-      if (window.ScannerZXing && window.ScannerZXing.zxingActive) {
-        console.log('[ScannerCore] WARNING: ZXing scanner is active despite native scanner being available!');
-        console.log('[ScannerCore] Stopping ZXing scanner...');
-        try {
-          await window.ScannerZXing.stopBrowserScanner();
-          console.log('[ScannerCore] ZXing scanner stopped successfully');
-        } catch (error) {
-          console.error('[ScannerCore] Error stopping ZXing scanner:', error);
-        }
+      try {
+        await window.ScannerZXing.startBrowserScanner();
+        scannerState = 'scanning';
+        console.log('[ScannerCore] === BROWSER SCANNER STARTED SUCCESSFULLY ===');
+        return;
+      } catch (browserError) {
+        console.error('[ScannerCore] === BROWSER SCANNER FAILED ===', browserError);
+        throw browserError;
       }
     } else {
       console.log('[ScannerCore] Browser scanner not available:', {
@@ -166,6 +147,7 @@ async function startSmartScanner() {
       });
     }
     
+    // If we get here, no scanner is available
     throw new Error('No scanner available - neither native nor browser scanner detected');
     
   } catch (error) {
@@ -182,7 +164,7 @@ async function startSmartScanner() {
 }
 
 /**
- * Stop scanner function
+ * Stop scanner and ensure proper cleanup
  */
 async function stopScanner() {
   console.log('[ScannerCore] === STOP SCANNER CALLED ===');
@@ -193,8 +175,8 @@ async function stopScanner() {
     return;
   }
   
+  console.log('[ScannerCore] === STOPPING SCANNER ===');
   scannerState = 'stopping';
-  console.log('[ScannerCore] Setting scanner state to stopping');
   
   try {
     // Stop native scanner if active
@@ -215,6 +197,9 @@ async function stopScanner() {
       console.log('[ScannerCore] Browser scanner not available for stopping');
     }
     
+    // Force cleanup of any remaining video streams directly
+    await forceCameraCleanup();
+    
     // Reset state
     console.log('[ScannerCore] Resetting scanner state to idle');
     scannerState = 'idle';
@@ -222,6 +207,7 @@ async function stopScanner() {
     detectionCount = 0;
     scanAttempts = 0;
     isProcessingScan = false;
+    hasNotifiedScan = false;
     
     // Update UI
     if (window.ScannerUI) {
@@ -236,6 +222,13 @@ async function stopScanner() {
     console.error('[ScannerCore] === ERROR STOPPING SCANNER ===', error);
     scannerState = 'idle';
     
+    // Force cleanup even on error
+    try {
+      await forceCameraCleanup();
+    } catch (cleanupError) {
+      console.warn('[ScannerCore] Error during forced cleanup:', cleanupError);
+    }
+    
     if (window.ScannerUI) {
       window.ScannerUI.updateScannerButton(false);
       window.ScannerUI.hideScannerViewport();
@@ -245,9 +238,110 @@ async function stopScanner() {
 }
 
 /**
+ * Force cleanup of any remaining camera streams
+ */
+async function forceCameraCleanup() {
+  console.log('[ScannerCore] === FORCE CAMERA CLEANUP ===');
+  
+  try {
+    // Stop any video streams that might still be active
+    const video = document.getElementById('scanner-video');
+    if (video && video.srcObject) {
+      console.log('[ScannerCore] Force stopping video stream...');
+      const stream = video.srcObject;
+      if (stream && stream.getTracks) {
+        const tracks = stream.getTracks();
+        console.log('[ScannerCore] Found', tracks.length, 'tracks to force stop');
+        tracks.forEach((track, index) => {
+          console.log('[ScannerCore] Force stopping track', index, ':', track.kind);
+          track.stop();
+        });
+      }
+      video.srcObject = null;
+      video.pause();
+    }
+    
+    // Clear any other video elements that might have streams
+    const allVideos = document.querySelectorAll('video');
+    allVideos.forEach((video, index) => {
+      if (video.srcObject) {
+        console.log('[ScannerCore] Force stopping video', index, 'stream...');
+        const stream = video.srcObject;
+        if (stream && stream.getTracks) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        video.srcObject = null;
+        video.pause();
+      }
+    });
+    
+    // Force stop any remaining media streams using MediaDevices API
+    try {
+      console.log('[ScannerCore] Checking for any remaining media streams...');
+      
+      // Get all media streams that might be active
+      const mediaStreams = [];
+      
+      // Check if there are any global streams we can access
+      if (window.currentMediaStream) {
+        mediaStreams.push(window.currentMediaStream);
+      }
+      
+      // Stop all found streams
+      mediaStreams.forEach((stream, index) => {
+        console.log('[ScannerCore] Force stopping global stream', index);
+        if (stream && stream.getTracks) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+      });
+      
+      // Clear any global stream references
+      window.currentMediaStream = null;
+      
+    } catch (streamError) {
+      console.warn('[ScannerCore] Error checking global streams:', streamError);
+    }
+    
+    // Additional cleanup for any remaining media streams
+    try {
+      const mediaDevices = navigator.mediaDevices;
+      if (mediaDevices && mediaDevices.enumerateDevices) {
+        const devices = await mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        console.log('[ScannerCore] Available video devices after force cleanup:', videoDevices.length);
+        
+        // Log device details for debugging
+        videoDevices.forEach((device, index) => {
+          console.log('[ScannerCore] Video device', index, ':', device.label || 'Unknown device');
+        });
+      }
+    } catch (enumError) {
+      console.warn('[ScannerCore] Error enumerating devices during force cleanup:', enumError);
+    }
+    
+    // Force garbage collection hint (if available)
+    if (window.gc) {
+      console.log('[ScannerCore] Requesting garbage collection...');
+      window.gc();
+    }
+    
+    console.log('[ScannerCore] === FORCE CAMERA CLEANUP COMPLETED ===');
+    
+  } catch (error) {
+    console.error('[ScannerCore] === ERROR DURING FORCE CAMERA CLEANUP ===', error);
+  }
+}
+
+/**
  * Handle scanner button click
  */
-function handleScannerButtonClick() {
+function handleScannerButtonClick(event) {
+  // Prevent form submission if this is called from a form button
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
   if (scannerState === 'idle') {
     startSmartScanner();
   } else {
@@ -266,6 +360,7 @@ function resetToIdle() {
   isProcessingScan = false;
   hasNotifiedScan = false;
   
+  // Only update UI elements, don't call cleanup functions to avoid circular dependency
   if (window.ScannerUI) {
     window.ScannerUI.updateScannerButton(false);
     window.ScannerUI.hideScannerViewport();
@@ -393,6 +488,130 @@ function getScannerState() {
   return scannerState;
 }
 
+/**
+ * Debug scanner system and diagnose issues
+ */
+function debugScannerSystem() {
+  console.log('[ScannerCore] === SCANNER SYSTEM DEBUG ===');
+  
+  const debugInfo = {
+    // Environment
+    isCapacitor: window.isCapacitor,
+    isNative: window.isNative,
+    platform: window.platform,
+    userAgent: navigator.userAgent,
+    
+    // Scanner state
+    scannerState: scannerState,
+    hasNotifiedScan: hasNotifiedScan,
+    isProcessingScan: isProcessingScan,
+    
+    // Native scanner
+    hasNativeScanner: !!window.NativeScanner,
+    nativeScannerMethods: window.NativeScanner ? Object.keys(window.NativeScanner) : [],
+    hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner),
+    
+    // Browser scanner
+    hasScannerZXing: !!window.ScannerZXing,
+    zxingMethods: window.ScannerZXing ? Object.keys(window.ScannerZXing) : [],
+    hasStartBrowserScanner: !!(window.ScannerZXing && window.ScannerZXing.startBrowserScanner),
+    zxingActive: window.ScannerZXing ? window.ScannerZXing.zxingActive : 'N/A',
+    
+    // ZXing library
+    hasZXingBrowser: typeof ZXingBrowser !== 'undefined',
+    hasBrowserMultiFormatReader: typeof ZXingBrowser !== 'undefined' && typeof ZXingBrowser.BrowserMultiFormatReader !== 'undefined',
+    
+    // UI
+    hasScannerUI: !!window.ScannerUI,
+    uiMethods: window.ScannerUI ? Object.keys(window.ScannerUI) : [],
+    
+    // Media devices
+    hasMediaDevices: !!navigator.mediaDevices,
+    hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+    
+    // DOM elements
+    hasScannerVideo: !!document.getElementById('scanner-video'),
+    hasScannerBtn: !!document.getElementById('scannerBtn'),
+    
+    // Capacitor
+    hasCapacitor: typeof Capacitor !== 'undefined',
+    capacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
+  };
+  
+  console.log('[ScannerCore] Debug info:', debugInfo);
+  
+  // Test scanner availability
+  const nativeAvailable = window.isCapacitor && 
+                         window.platform !== 'web' && 
+                         window.NativeScanner && 
+                         window.NativeScanner.startNativeScanner;
+  
+  const browserAvailable = window.ScannerZXing && 
+                          window.ScannerZXing.isBrowserScannerAvailable && 
+                          window.ScannerZXing.isBrowserScannerAvailable();
+  
+  console.log('[ScannerCore] Scanner availability:', {
+    nativeAvailable,
+    browserAvailable,
+    shouldTryNative: debugInfo.isCapacitor && debugInfo.platform !== 'web' && debugInfo.hasStartNativeScanner
+  });
+  
+  // Show debug info in UI if available
+  if (window.ScannerUI && window.ScannerUI.showNotification) {
+    const availableScanners = [];
+    if (nativeAvailable) availableScanners.push('Native');
+    if (browserAvailable) availableScanners.push('Browser');
+    
+    window.ScannerUI.showNotification(
+      `Debug: ${availableScanners.length} scanner(s) available (${availableScanners.join(', ')})`, 
+      availableScanners.length > 0 ? 'success' : 'error'
+    );
+  }
+  
+  return debugInfo;
+}
+
+/**
+ * Nuclear cleanup - last resort for stubborn camera connections
+ */
+async function nuclearCleanup() {
+  console.log('[ScannerCore] === NUCLEAR CLEANUP CALLED ===');
+  
+  try {
+    // Call ZXing nuclear cleanup if available
+    if (window.ScannerZXing && window.ScannerZXing.nuclearCameraCleanup) {
+      console.log('[ScannerCore] Calling ZXing nuclear cleanup...');
+      await window.ScannerZXing.nuclearCameraCleanup();
+    }
+    
+    // Additional core-level cleanup
+    console.log('[ScannerCore] Performing core-level nuclear cleanup...');
+    
+    // Reset all scanner state
+    scannerState = 'idle';
+    lastDetectedCode = null;
+    detectionCount = 0;
+    scanAttempts = 0;
+    isProcessingScan = false;
+    hasNotifiedScan = false;
+    
+    // Clear any remaining global references
+    window.currentMediaStream = null;
+    
+    // Force UI reset
+    if (window.ScannerUI) {
+      window.ScannerUI.updateScannerButton(false);
+      window.ScannerUI.hideScannerViewport();
+      window.ScannerUI.hideScannerStatus();
+    }
+    
+    console.log('[ScannerCore] === NUCLEAR CLEANUP COMPLETED ===');
+    
+  } catch (error) {
+    console.error('[ScannerCore] === ERROR DURING NUCLEAR CLEANUP ===', error);
+  }
+}
+
 // Export functions to global scope
 window.ScannerCore = {
   startSmartScanner,
@@ -401,10 +620,34 @@ window.ScannerCore = {
   resetToIdle,
   handleScanDetection,
   handleScanError,
+  forceCameraCleanup,
+  debugScannerSystem,
   isScannerAvailable,
   getScannerState,
   scannerState,
   isNative: window.isNative,
   isCapacitor: window.isCapacitor,
-  platform: window.platform
-}; 
+  platform: window.platform,
+  nuclearCleanup
+};
+
+// Ensure camera cleanup on page unload
+window.addEventListener('beforeunload', function() {
+  console.log('[ScannerCore] Page unloading - ensuring camera cleanup...');
+  if (scannerState !== 'idle') {
+    console.log('[ScannerCore] Scanner active during page unload - forcing cleanup');
+    forceCameraCleanup().catch(error => {
+      console.warn('[ScannerCore] Error during page unload cleanup:', error);
+    });
+  }
+});
+
+// Ensure camera cleanup on page visibility change (tab switching)
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden && scannerState !== 'idle') {
+    console.log('[ScannerCore] Page hidden - ensuring camera cleanup...');
+    forceCameraCleanup().catch(error => {
+      console.warn('[ScannerCore] Error during visibility change cleanup:', error);
+    });
+  }
+}); 
