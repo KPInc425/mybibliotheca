@@ -36,8 +36,10 @@ async function initializeScannerSystem() {
     console.log('[ScannerCore] Requesting camera permissions early...');
     try {
       await window.NativeScanner.requestCameraPermissionsEarly();
+      // Don't show any status messages here - let the early request handle it silently
     } catch (error) {
       console.log('[ScannerCore] Early permission request failed:', error.message);
+      // Don't show error messages for early permission requests
     }
   }
   

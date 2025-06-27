@@ -39,8 +39,8 @@
           </div>
           
           <!-- Scanner Controls -->
-          <div class="flex flex-wrap gap-2 mt-4">
-            <button id="scannerBtn" type="button" class="btn btn-primary btn-lg">
+          <div class="flex flex-wrap gap-2 mt-4 justify-center">
+            <button id="scannerBtn" type="button" class="btn btn-primary btn-lg w-full sm:w-auto">
               📷 Scan Barcode
             </button>
             
@@ -424,6 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.ScannerCore.initializeScannerSystem) {
       window.ScannerCore.initializeScannerSystem().catch(error => {
         console.log('[AddBook] Early scanner initialization failed:', error.message);
+        // Don't show error messages to user for early initialization
       });
     }
   }

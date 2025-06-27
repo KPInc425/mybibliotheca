@@ -158,6 +158,7 @@ function initializeScanner() {
     console.log('[Scanner] Initializing scanner system and requesting permissions early...');
     window.ScannerCore.initializeScannerSystem().catch(error => {
       console.log('[Scanner] Early scanner initialization failed:', error.message);
+      // Don't show error messages to user for early initialization
     });
   }
   

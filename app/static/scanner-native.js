@@ -45,9 +45,7 @@ async function requestCameraPermissionsEarly() {
         if (granted) {
           permissionGranted = true;
           console.log('[Native Scanner] ✅ Camera permissions confirmed as granted', 'success');
-          if (window.ScannerUI) {
-            window.ScannerUI.updateScannerStatus('Camera permissions granted!', 'success');
-          }
+          // Don't show status message if permissions are already granted
           return;
         }
         
@@ -75,9 +73,7 @@ async function requestCameraPermissionsEarly() {
       
       if (newGranted) {
         console.log('[Native Scanner] ✅ Camera permissions granted successfully during early request!', 'success');
-        if (window.ScannerUI) {
-          window.ScannerUI.updateScannerStatus('Camera permissions granted!', 'success');
-        }
+        // Don't show status message if permissions are granted
       } else {
         console.log('[Native Scanner] ❌ Camera permissions denied during early request', 'error');
         if (window.ScannerUI) {
@@ -279,32 +275,14 @@ async function startNativeScanner() {
     logScannerStatus(`Permission check error: ${permError.message}`, 'warning');
   }
   
-  // Request permissions if not granted
+  // Don't request permissions here - let the native scanner handle it
+  // This ensures the native permission modal appears properly
   if (!permissionGranted) {
-    console.log('[Native Scanner] Permission not granted, attempting to request...');
-    logScannerStatus('Requesting camera permissions...', 'info');
-    try {
-      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-      console.log(`[Native Scanner] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
-      logScannerStatus(`Permission request result: ${newGranted ? 'granted' : 'denied'}`, newGranted ? 'success' : 'error');
-      permissionGranted = newGranted;
-      
-      if (!newGranted) {
-        console.log('[Native Scanner] Camera permissions denied, showing help');
-        logScannerStatus('Camera permissions denied. Please grant camera permissions in device settings.', 'error');
-        showPermissionHelp();
-        throw new Error('Camera permissions denied');
-      }
-    } catch (permError) {
-      console.log(`[Native Scanner] Permission request error: ${permError.message}`, 'warning');
-      logScannerStatus(`Permission request error: ${permError.message}`, 'error');
-      
-      // Show permission help for permission-related errors
-      if (permError.message.includes('permission') || permError.message.includes('denied')) {
-        showPermissionHelp();
-      }
-      throw permError;
-    }
+    console.log('[Native Scanner] Permission not granted, but proceeding with scan to trigger native permission modal...');
+    logScannerStatus('Starting native scanner (permissions will be requested if needed)...', 'info');
+  } else {
+    console.log('[Native Scanner] Permissions already granted, proceeding with scan...');
+    logScannerStatus('Starting native scanner...', 'info');
   }
   
   // Try to start scanning
