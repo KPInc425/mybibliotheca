@@ -148,14 +148,26 @@ def login():
 @auth.route('/logout')
 @login_required
 def logout():
-    username = current_user.username
-    logout_user()
-    
-    # Clear the session to ensure CSRF tokens are regenerated
-    session.clear()
-    
-    flash(f'Goodbye, {username}!', 'info')
-    return redirect(url_for('main.index'))
+    try:
+        username = current_user.username
+        logout_user()
+        
+        # Clear the session to ensure CSRF tokens are regenerated
+        session.clear()
+        
+        flash(f'Goodbye, {username}!', 'info')
+        return redirect(url_for('main.index'))
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Logout error: {e}")
+        # Still try to logout even if there's an error
+        try:
+            logout_user()
+            session.clear()
+        except:
+            pass
+        flash('You have been logged out.', 'info')
+        return redirect(url_for('main.index'))
 
 @auth.route('/register', methods=['GET', 'POST'])
 @login_required

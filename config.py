@@ -45,10 +45,31 @@ class Config:
     TIMEZONE = os.environ.get('TIMEZONE') or 'UTC'
     
     # Authentication settings
-    REMEMBER_COOKIE_DURATION = 86400 * 7  # 7 days
-    # Use FLASK_DEBUG environment variable (FLASK_ENV is deprecated in Flask 2.3+)
-    REMEMBER_COOKIE_SECURE = os.environ.get('FLASK_DEBUG', 'false').lower() == 'false'
+    REMEMBER_COOKIE_DURATION = 86400 * 30  # 30 days (increased from 7 days)
+    
+    # Environment-specific cookie settings
+    # For hybrid apps and development, we need to allow HTTP cookies
+    # For production, we can use secure cookies
+    is_development = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true' or \
+                    os.environ.get('BookOracle_DEBUG', 'false').lower() == 'true'
+    
+    # Check if this is a hybrid app environment (Capacitor)
+    # The JavaScript in base.html sets a cookie when Capacitor is detected
+    # For now, we'll use development mode as a proxy for hybrid app compatibility
+    is_hybrid_app = is_development  # Assume hybrid apps are in development mode
+    
+    # Use secure cookies only in production (not development or hybrid apps)
+    # This ensures hybrid apps can use HTTP cookies for session persistence
+    REMEMBER_COOKIE_SECURE = not (is_development or is_hybrid_app)
+    SESSION_COOKIE_SECURE = not (is_development or is_hybrid_app)
+    
     REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_REFRESH_EACH_REQUEST = True  # Refresh cookie on each request
+    
+    # Session configuration for hybrid apps
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'  # More permissive for hybrid apps
+    PERMANENT_SESSION_LIFETIME = 86400 * 30  # 30 days
     
     # Email settings (for password reset)
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
