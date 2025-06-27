@@ -71,7 +71,7 @@ async function startNativeScanner() {
     throw supportError;
   }
   
-  // Check permissions
+  // Check permissions but don't fail if denied
   let permissionGranted = false;
   try {
     console.log('[Native Scanner] Checking camera permissions...');
@@ -84,6 +84,8 @@ async function startNativeScanner() {
     logScannerStatus(`Permission check error: ${permError.message}`, 'warning');
   }
   
+  // Note: On Android, permissions might show as "denied" even when they're granted for "only when using app"
+  // So we'll try to scan regardless of the permission check result
   if (!permissionGranted) {
     console.log('[Native Scanner] Permission not granted, attempting to request...');
     logScannerStatus('Requesting camera permissions...', 'info');
@@ -99,6 +101,7 @@ async function startNativeScanner() {
   }
   
   // Try to start scanning even if permissions appear denied
+  // This handles the "only when using app" permission scenario
   console.log('[Native Scanner] Attempting to start barcode scan...');
   logScannerStatus('Starting native barcode scan...', 'info');
   

@@ -58,6 +58,9 @@
             <button type="button" class="btn btn-outline btn-success btn-sm" onclick="requestPermissions()" id="requestPermBtn">
               🔐 Request Permissions
             </button>
+            <button type="button" class="btn btn-outline btn-error btn-sm" onclick="testScannerWithPermissionBypass()" id="testBypassBtn">
+              🚀 Test with Bypass
+            </button>
           </div>
           {% endif %}
           
@@ -336,9 +339,41 @@ async function debugScanner() {
     debugInfo.scannerAvailable = available;
   }
   
-  // Show debug info in alert
+  // Create a modal with the debug info that can be copied
   const debugText = JSON.stringify(debugInfo, null, 2);
-  alert('Scanner Debug Info:\n\n' + debugText);
+  
+  // Create modal HTML
+  const modalHTML = `
+    <div id="debugModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+      <div style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; max-height: 90%; overflow: auto;">
+        <h3>Scanner Debug Information</h3>
+        <textarea id="debugTextArea" style="width: 100%; height: 400px; font-family: monospace; font-size: 12px; margin: 10px 0;" readonly>${debugText}</textarea>
+        <div style="text-align: center; margin-top: 10px;">
+          <button onclick="copyDebugInfo()" style="margin: 5px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">📋 Copy to Clipboard</button>
+          <button onclick="closeDebugModal()" style="margin: 5px; padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">❌ Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Add modal to page
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// Copy debug info to clipboard
+function copyDebugInfo() {
+  const textArea = document.getElementById('debugTextArea');
+  textArea.select();
+  document.execCommand('copy');
+  alert('Debug information copied to clipboard!');
+}
+
+// Close debug modal
+function closeDebugModal() {
+  const modal = document.getElementById('debugModal');
+  if (modal) {
+    modal.remove();
+  }
 }
 
 // Direct test of native scanner
@@ -420,6 +455,22 @@ async function requestPermissions() {
       return;
     }
     
+    // Check current permissions first
+    console.log('[Debug] Checking current permissions...');
+    let currentGranted = false;
+    try {
+      const { granted } = await BarcodeScanner.checkPermissions();
+      currentGranted = granted;
+      console.log(`[Debug] Current permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
+    } catch (error) {
+      console.log('[Debug] Error checking current permissions:', error);
+    }
+    
+    if (currentGranted) {
+      alert('✅ Camera permissions are already granted! The scanner should work.');
+      return;
+    }
+    
     // Request permissions directly
     console.log('[Debug] Requesting camera permissions...');
     const { granted } = await BarcodeScanner.requestPermissions();
@@ -430,12 +481,79 @@ async function requestPermissions() {
       alert('✅ Camera permissions granted successfully! You can now use the barcode scanner.');
     } else {
       console.log('[Debug] Camera permissions denied');
-      alert('❌ Camera permissions were denied. Please grant camera permissions in your device settings.');
+      alert('❌ Camera permissions were denied.\n\nNote: On Android, you may need to:\n1. Go to Settings > Apps > BookOracle > Permissions\n2. Enable Camera permission\n3. Make sure it\'s set to "Allow while using app" or "Allow all the time"');
     }
     
   } catch (error) {
     console.error('[Debug] Permission request error:', error);
     alert(`Permission request error: ${error.message}`);
+  }
+}
+
+// Test scanner with permission bypass (for "only when using app" scenario)
+async function testScannerWithPermissionBypass() {
+  console.log('[Debug] Testing scanner with permission bypass...');
+  
+  if (!window.isCapacitor) {
+    alert('Capacitor not available - cannot test scanner');
+    return;
+  }
+  
+  if (!Capacitor.Plugins.BarcodeScanner) {
+    alert('BarcodeScanner plugin not found - cannot test scanner');
+    return;
+  }
+  
+  try {
+    console.log('[Debug] Starting scanner test with permission bypass...');
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    
+    // Check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    console.log('[Debug] Barcode scanning supported:', supported);
+    
+    if (!supported) {
+      alert('Barcode scanning not supported on this device');
+      return;
+    }
+    
+    // Check permissions but don't fail if denied
+    let permissionGranted = false;
+    try {
+      const { granted } = await BarcodeScanner.checkPermissions();
+      permissionGranted = granted;
+      console.log(`[Debug] Permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
+    } catch (error) {
+      console.log('[Debug] Error checking permissions:', error);
+    }
+    
+    if (!permissionGranted) {
+      console.log('[Debug] Permissions appear denied, but trying to scan anyway...');
+      alert('Permissions appear denied, but trying to scan anyway (this handles "only when using app" scenario)...');
+    }
+    
+    // Try to start scanning regardless of permission status
+    console.log('[Debug] Attempting to start barcode scan...');
+    const { barcodes } = await BarcodeScanner.scan();
+    
+    if (barcodes && barcodes.length > 0) {
+      const barcode = barcodes[0];
+      const result = `✅ Scanner Test Successful (with permission bypass)!
+Format: ${barcode.format}
+Value: ${barcode.rawValue}
+Type: ${barcode.type}
+Confidence: ${barcode.confidence || 'N/A'}`;
+      
+      console.log('[Debug] Scanner test successful:', barcode);
+      alert(result);
+    } else {
+      console.log('[Debug] No barcode detected in test');
+      alert('No barcode detected during test');
+    }
+    
+  } catch (error) {
+    console.error('[Debug] Scanner test failed:', error);
+    alert(`Scanner test failed: ${error.message}`);
   }
 }
 </script>
