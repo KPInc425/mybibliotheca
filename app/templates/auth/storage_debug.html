@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Storage Debug - BookOracle{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="max-w-2xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+      <div class="card-body">
+        <h2 class="card-title text-2xl font-bold mb-6">🔍 Authentication Storage Debug</h2>
+        
+        <div class="alert alert-info mb-6">
+          <div>
+            <h3 class="font-bold">Storage Information</h3>
+            <div class="text-sm">This page shows what authentication data is stored locally on your device.</div>
+          </div>
+        </div>
+
+        <div id="storageInfo" class="space-y-4">
+          <div class="loading loading-spinner loading-lg"></div>
+          <p class="text-center">Loading storage information...</p>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold">Storage Options</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="card bg-base-200">
+              <div class="card-body">
+                <h4 class="card-title text-sm">Clear All Stored Data</h4>
+                <p class="text-xs text-base-content/60 mb-3">Remove all stored credentials and preferences</p>
+                <button class="btn btn-error btn-sm w-full" onclick="clearAllData()">
+                  🗑️ Clear All Data
+                </button>
+              </div>
+            </div>
+            
+            <div class="card bg-base-200">
+              <div class="card-body">
+                <h4 class="card-title text-sm">Refresh Information</h4>
+                <p class="text-xs text-base-content/60 mb-3">Reload storage information</p>
+                <button class="btn btn-primary btn-sm w-full" onclick="refreshStorageInfo()">
+                  🔄 Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="space-y-4">
+          <h3 class="text-lg font-semibold">Security Information</h3>
+          
+          <div class="alert alert-warning">
+            <div>
+              <h4 class="font-bold">⚠️ Important Security Notes</h4>
+              <ul class="text-sm mt-2 space-y-1">
+                <li>• Stored passwords are encrypted using device security</li>
+                <li>• Data is only stored on your personal device</li>
+                <li>• You can clear stored data at any time</li>
+                <li>• Only enable password storage on trusted devices</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-actions justify-end mt-6">
+          <a href="{{ url_for('auth.login') }}" class="btn btn-primary">
+            ← Back to Login
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function loadStorageInfo() {
+    const storageInfoDiv = document.getElementById('storageInfo');
+    
+    try {
+        if (window.AuthStorage) {
+            const info = await window.AuthStorage.getStorageInfo();
+            
+            let html = '';
+            
+            if (info.error) {
+                html = `
+                    <div class="alert alert-error">
+                        <div>
+                            <h4 class="font-bold">Error</h4>
+                            <p>${info.error}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html = `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="stat bg-base-200 rounded-lg">
+                                <div class="stat-title">Storage Type</div>
+                                <div class="stat-value text-lg">${info.storageType}</div>
+                            </div>
+                            
+                            <div class="stat bg-base-200 rounded-lg">
+                                <div class="stat-title">Has Credentials</div>
+                                <div class="stat-value text-lg">${info.hasCredentials ? '✅ Yes' : '❌ No'}</div>
+                            </div>
+                        </div>
+                        
+                        ${info.hasCredentials ? `
+                            <div class="card bg-base-200">
+                                <div class="card-body">
+                                    <h4 class="card-title text-sm">Stored Information</h4>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span>Username:</span>
+                                            <span class="font-mono">${info.username || 'Not stored'}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Remember Me:</span>
+                                            <span>${info.rememberMe ? '✅ Enabled' : '❌ Disabled'}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Remember Password:</span>
+                                            <span>${info.rememberPassword ? '✅ Enabled' : '❌ Disabled'}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Password Stored:</span>
+                                            <span>${info.hasPassword ? '✅ Yes' : '❌ No'}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Last Login:</span>
+                                            <span class="text-xs">${info.lastLogin ? new Date(info.lastLogin).toLocaleString() : 'Unknown'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="alert alert-info">
+                                <div>
+                                    <h4 class="font-bold">No Stored Data</h4>
+                                    <p>No authentication credentials are currently stored locally.</p>
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }
+            
+            storageInfoDiv.innerHTML = html;
+        } else {
+            storageInfoDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <div>
+                        <h4 class="font-bold">AuthStorage Not Available</h4>
+                        <p>The authentication storage module is not loaded.</p>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        storageInfoDiv.innerHTML = `
+            <div class="alert alert-error">
+                <div>
+                    <h4 class="font-bold">Error Loading Storage Info</h4>
+                    <p>${error.message}</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+async function clearAllData() {
+    if (confirm('Are you sure you want to clear all stored authentication data? This will remove your saved username and password.')) {
+        try {
+            if (window.AuthStorage) {
+                await window.AuthStorage.clearCredentials();
+                alert('All stored authentication data has been cleared.');
+                await loadStorageInfo();
+            } else {
+                alert('AuthStorage not available.');
+            }
+        } catch (error) {
+            alert(`Error clearing data: ${error.message}`);
+        }
+    }
+}
+
+async function refreshStorageInfo() {
+    await loadStorageInfo();
+}
+
+// Load storage info when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadStorageInfo();
+});
+</script>
+{% endblock %} 

@@ -115,7 +115,7 @@ def login():
                 # Use remember me functionality
                 remember_me = form.remember_me.data
                 login_user(user, remember=remember_me)
-                debug_auth(f"User logged in successfully: {user.username} (remember_me: {remember_me})")
+                debug_auth(f"User logged in successfully: {user.username} (remember_me: {remember_me}, remember_password: {form.remember_password.data})")
                 
                 # Ensure session is committed before checking password requirements
                 db.session.commit()
@@ -134,7 +134,10 @@ def login():
                 
                 # Enhanced success message for Capacitor apps
                 if request.cookies.get('CAPACITOR_ENV') == 'true':
-                    flash(f'Welcome back, {user.username}! You are now signed in.', 'success')
+                    if form.remember_password.data:
+                        flash(f'Welcome back, {user.username}! You are now signed in with password saved for faster login.', 'success')
+                    else:
+                        flash(f'Welcome back, {user.username}! You are now signed in.', 'success')
                 else:
                     flash(f'Welcome back, {user.username}!', 'success')
                 
@@ -413,3 +416,8 @@ def toggle_debug_mode():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@auth.route('/storage-debug')
+def storage_debug():
+    """Debug page to show what authentication data is stored locally"""
+    return render_template('auth/storage_debug.html', title='Storage Debug')

@@ -31,14 +31,36 @@
             </div>
           {% endif %}
         </div>
-        <div class="flex items-center gap-2">
-          {{ form.remember_me(class="checkbox checkbox-primary") }}
-          {{ form.remember_me.label(class="label-text") }}
+        
+        <!-- Remember Me Options -->
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            {{ form.remember_me(class="checkbox checkbox-primary") }}
+            {{ form.remember_me.label(class="label-text") }}
+          </div>
+          
+          <div class="flex items-start gap-2">
+            {{ form.remember_password(class="checkbox checkbox-secondary mt-1") }}
+            <div class="flex-1">
+              {{ form.remember_password.label(class="label-text font-medium") }}
+              <div class="text-xs text-base-content/60 mt-1">
+                Stores your password locally for faster login. Only enable on your personal device.
+              </div>
+            </div>
+          </div>
         </div>
+        
         <div>
           {{ form.submit(class="btn btn-primary w-full") }}
         </div>
       </form>
+      
+      <!-- Storage Debug Link -->
+      <div class="text-center mt-4">
+        <a href="{{ url_for('auth.storage_debug') }}" class="link link-primary text-sm">
+          🔍 View Stored Data
+        </a>
+      </div>
     </div>
   </div>
 </div>
@@ -50,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const usernameField = document.querySelector('input[name="username"]');
     const passwordField = document.querySelector('input[name="password"]');
     const rememberMeField = document.querySelector('input[name="remember_me"]');
+    const rememberPasswordField = document.querySelector('input[name="remember_password"]');
     const submitButton = document.querySelector('input[type="submit"]');
 
     // Auto-fill form with stored credentials
@@ -59,9 +82,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle form submission
     loginForm.addEventListener('submit', async function(e) {
-        // Store credentials if "Remember Me" is checked
-        if (window.AuthStorage && rememberMeField.checked) {
-            await window.AuthStorage.storeCredentials(usernameField.value, true);
+        // Store credentials based on user preferences
+        if (window.AuthStorage) {
+            const rememberMe = rememberMeField.checked;
+            const rememberPassword = rememberPasswordField.checked;
+            
+            if (rememberMe) {
+                await window.AuthStorage.storeCredentials(
+                    usernameField.value, 
+                    rememberMe, 
+                    rememberPassword ? passwordField.value : null
+                );
+            }
         }
 
         // Show loading state
@@ -80,7 +112,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.location.pathname !== '/auth/login' && window.location.pathname !== '/login') {
             // We've been redirected away from login, likely successful
             if (window.AuthStorage && rememberMeField && rememberMeField.checked) {
-                window.AuthStorage.onLoginSuccess(usernameField.value, true);
+                window.AuthStorage.onLoginSuccess(
+                    usernameField.value, 
+                    rememberMeField.checked,
+                    rememberPasswordField && rememberPasswordField.checked ? passwordField.value : null
+                );
             }
         }
     };
