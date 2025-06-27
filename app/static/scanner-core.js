@@ -137,19 +137,6 @@ async function startSmartScanner() {
           return;
         }
         
-        // Check if it's a permission error
-        if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
-          console.log('[ScannerCore] === NATIVE SCANNER PERMISSION ERROR ===');
-          scannerState = 'idle';
-          if (window.ScannerUI) {
-            window.ScannerUI.updateScannerButton(false);
-            window.ScannerUI.hideScannerViewport();
-            window.ScannerUI.updateScannerStatus('Camera permissions required for native scanner', 'error');
-            window.ScannerUI.showNotification('Camera permissions needed. Please grant camera access in device settings.', 'error');
-          }
-          return;
-        }
-        
         // For other errors, fall back to browser scanner
         console.log('[ScannerCore] === NATIVE SCANNER FAILED - FALLING BACK TO BROWSER SCANNER ===');
       }

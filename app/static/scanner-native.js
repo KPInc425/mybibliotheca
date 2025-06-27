@@ -76,9 +76,7 @@ async function requestCameraPermissionsEarly() {
         // Don't show status message if permissions are granted
       } else {
         console.log('[Native Scanner] ❌ Camera permissions denied during early request', 'error');
-        if (window.ScannerUI) {
-          window.ScannerUI.updateScannerStatus('Camera permissions needed for barcode scanning', 'warning');
-        }
+        // Don't show status message for early permission requests - let the user try scanning first
       }
     }
     
@@ -268,18 +266,18 @@ async function startNativeScanner() {
     console.log('[Native Scanner] Checking camera permissions...');
     const { granted } = await BarcodeScanner.checkPermissions();
     console.log(`[Native Scanner] Initial permission status: ${granted ? 'granted' : 'denied'}`);
-    logScannerStatus(`Permission status: ${granted ? 'granted' : 'denied'}`, granted ? 'success' : 'warning');
+    // Don't show permission status to user - just log it
     permissionGranted = granted;
   } catch (permError) {
     console.log(`[Native Scanner] Permission check error: ${permError.message}`, 'warning');
-    logScannerStatus(`Permission check error: ${permError.message}`, 'warning');
+    // Don't show permission check errors to user
   }
   
   // Don't request permissions here - let the native scanner handle it
   // This ensures the native permission modal appears properly
   if (!permissionGranted) {
     console.log('[Native Scanner] Permission not granted, but proceeding with scan to trigger native permission modal...');
-    logScannerStatus('Starting native scanner (permissions will be requested if needed)...', 'info');
+    logScannerStatus('Starting native scanner...', 'info');
   } else {
     console.log('[Native Scanner] Permissions already granted, proceeding with scan...');
     logScannerStatus('Starting native scanner...', 'info');
@@ -287,7 +285,7 @@ async function startNativeScanner() {
   
   // Try to start scanning
   console.log('[Native Scanner] Attempting to start barcode scan...');
-  logScannerStatus('Starting native barcode scan...', 'info');
+  // Don't show duplicate status messages
   
   // Set scanner state to scanning
   if (typeof scannerState !== 'undefined') {
