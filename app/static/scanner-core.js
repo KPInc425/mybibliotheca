@@ -38,10 +38,9 @@ async function startSmartScanner() {
   scannerState = 'starting';
   hasNotifiedScan = false; // Reset notification flag
   
-  // Update UI
+  // Update UI - but don't show viewport yet, we'll show it only if needed
   if (window.ScannerUI) {
     window.ScannerUI.updateScannerButton(true);
-    window.ScannerUI.showScannerViewport();
     window.ScannerUI.updateScannerStatus('Initializing scanner...', 'info');
   }
   
@@ -136,7 +135,10 @@ async function startSmartScanner() {
     // This should never happen if native scanner is working properly
     if (!shouldTryNative && window.ScannerZXing && window.ScannerZXing.startBrowserScanner) {
       console.log('[ScannerCore] === ATTEMPTING BROWSER SCANNER (NATIVE NOT AVAILABLE) ===');
+      
+      // Only show viewport when we're actually going to use browser scanner
       if (window.ScannerUI) {
+        window.ScannerUI.showScannerViewport();
         window.ScannerUI.updateScannerStatus('Starting browser scanner...', 'info');
       }
       
