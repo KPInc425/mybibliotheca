@@ -260,99 +260,9 @@ async function startNativeScanner() {
     throw supportError;
   }
   
-  // Check permissions BEFORE starting the scan
-  let permissionGranted = false;
-  try {
-    console.log('[Native Scanner] Checking camera permissions...');
-    const { granted } = await BarcodeScanner.checkPermissions();
-    console.log(`[Native Scanner] Initial permission status: ${granted ? 'granted' : 'denied'}`);
-    permissionGranted = granted;
-  } catch (permError) {
-    console.log(`[Native Scanner] Permission check error: ${permError.message}`, 'warning');
-    permissionGranted = false;
-  }
-  
-  // If permissions are not granted, request them first
-  if (!permissionGranted) {
-    console.log('[Native Scanner] Permission not granted, requesting permissions...');
-    logScannerStatus('Requesting camera permissions...', 'info');
-    
-    try {
-      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-      console.log(`[Native Scanner] Permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
-      
-      if (!newGranted) {
-        console.log('[Native Scanner] Camera permissions denied by user');
-        logScannerStatus('Camera permissions denied. Please enable camera access in device settings.', 'error');
-        
-        // Show permission help
-        showPermissionHelp();
-        
-        // Reset scanner state
-        if (typeof scannerState !== 'undefined') {
-          scannerState = 'idle';
-          console.log('[Native Scanner] Reset scanner state to idle due to permission denial');
-        }
-        
-        // Update UI
-        if (window.ScannerUI) {
-          window.ScannerUI.updateScannerButton(false);
-          window.ScannerUI.hideScannerViewport();
-          window.ScannerUI.hideScannerStatus();
-        }
-        
-        // Don't throw an error, just return gracefully
-        return;
-      }
-      
-      permissionGranted = true;
-      console.log('[Native Scanner] Camera permissions granted successfully!');
-      logScannerStatus('Camera permissions granted!', 'success');
-      
-    } catch (requestError) {
-      console.error('[Native Scanner] Permission request error:', requestError);
-      logScannerStatus('Error requesting camera permissions', 'error');
-      
-      // Reset scanner state
-      if (typeof scannerState !== 'undefined') {
-        scannerState = 'idle';
-        console.log('[Native Scanner] Reset scanner state to idle due to permission request error');
-      }
-      
-      // Update UI
-      if (window.ScannerUI) {
-        window.ScannerUI.updateScannerButton(false);
-        window.ScannerUI.hideScannerViewport();
-        window.ScannerUI.hideScannerStatus();
-      }
-      
-      throw new Error('Failed to request camera permissions');
-    }
-  }
-  
-  // Only proceed with scanning if permissions are granted
-  if (!permissionGranted) {
-    console.log('[Native Scanner] Cannot proceed without camera permissions');
-    logScannerStatus('Camera permissions required for scanning', 'error');
-    
-    // Reset scanner state
-    if (typeof scannerState !== 'undefined') {
-      scannerState = 'idle';
-      console.log('[Native Scanner] Reset scanner state to idle due to missing permissions');
-    }
-    
-    // Update UI
-    if (window.ScannerUI) {
-      window.ScannerUI.updateScannerButton(false);
-      window.ScannerUI.hideScannerViewport();
-      window.ScannerUI.hideScannerStatus();
-    }
-    
-    return;
-  }
-  
-  // Now start the actual scanning
-  console.log('[Native Scanner] Permissions confirmed, starting barcode scan...');
+  // Let the native scanner handle permissions naturally
+  // Don't pre-check or pre-request permissions - let the native system do it
+  console.log('[Native Scanner] Starting native scanner - letting native system handle permissions...');
   logScannerStatus('Starting native scanner...', 'info');
   
   // Set scanner state to scanning
@@ -440,7 +350,6 @@ async function startNativeScanner() {
       if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
         console.log('[Native Scanner] Permission error detected');
         logScannerStatus('Camera permission error during scanning. Please check device settings.', 'error');
-        showPermissionHelp();
         // Don't throw here, let the user know about the permission issue
         return;
       } else {
