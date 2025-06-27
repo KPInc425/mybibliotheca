@@ -178,6 +178,26 @@ def create_app():
     login_manager.login_message_category = 'info'
     csrf.init_app(app)
 
+    # Dynamic cookie security configuration for Capacitor apps
+    @app.before_request
+    def configure_cookies_for_capacitor():
+        """Configure cookie security settings based on request source"""
+        from flask import request
+        
+        # Check if this is a Capacitor app request
+        is_capacitor = Config.is_hybrid_app_request(request)
+        
+        if is_capacitor:
+            # For Capacitor apps, use less restrictive cookie settings
+            app.config['SESSION_COOKIE_SECURE'] = False
+            app.config['REMEMBER_COOKIE_SECURE'] = False
+            app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+        else:
+            # For web browsers, use secure cookies in production
+            app.config['SESSION_COOKIE_SECURE'] = not app.config.get('is_development', True)
+            app.config['REMEMBER_COOKIE_SECURE'] = not app.config.get('is_development', True)
+            app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
     # DATABASE MIGRATION SECTION
     with app.app_context():
         db_path = app.config.get('SQLALCHEMY_DATABASE_URI', '').replace('sqlite:///', '')

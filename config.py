@@ -55,13 +55,29 @@ class Config:
     
     # Check if this is a hybrid app environment (Capacitor)
     # The JavaScript in base.html sets a cookie when Capacitor is detected
-    # For now, we'll use development mode as a proxy for hybrid app compatibility
-    is_hybrid_app = is_development  # Assume hybrid apps are in development mode
+    # We'll also check for mobile user agents as a fallback
+    def is_hybrid_app_request(request):
+        """Check if the current request is from a Capacitor hybrid app"""
+        if not request:
+            return False
+        
+        # Check for Capacitor environment cookie
+        capacitor_cookie = request.cookies.get('CAPACITOR_ENV')
+        if capacitor_cookie == 'true':
+            return True
+        
+        # Check user agent for mobile apps
+        user_agent = request.headers.get('User-Agent', '').lower()
+        mobile_indicators = ['capacitor', 'cordova', 'phonegap', 'mobile']
+        if any(indicator in user_agent for indicator in mobile_indicators):
+            return True
+        
+        return False
     
     # Use secure cookies only in production (not development or hybrid apps)
     # This ensures hybrid apps can use HTTP cookies for session persistence
-    REMEMBER_COOKIE_SECURE = not (is_development or is_hybrid_app)
-    SESSION_COOKIE_SECURE = not (is_development or is_hybrid_app)
+    REMEMBER_COOKIE_SECURE = not is_development
+    SESSION_COOKIE_SECURE = not is_development
     
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_REFRESH_EACH_REQUEST = True  # Refresh cookie on each request

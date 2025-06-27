@@ -7,7 +7,7 @@
   <div class="card bg-base-100 shadow-xl w-full max-w-md">
     <div class="card-body">
       <h2 class="card-title text-center text-2xl font-bold mb-6">Sign In</h2>
-      <form method="post" class="space-y-6">
+      <form method="post" class="space-y-6" id="loginForm">
         {{ form.hidden_tag() }}
         <div>
           {{ form.username.label(class="label label-text font-semibold") }}
@@ -42,4 +42,51 @@
     </div>
   </div>
 </div>
+
+<script>
+// Enhanced login form handling for Capacitor apps
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    const usernameField = document.querySelector('input[name="username"]');
+    const passwordField = document.querySelector('input[name="password"]');
+    const rememberMeField = document.querySelector('input[name="remember_me"]');
+    const submitButton = document.querySelector('input[type="submit"]');
+
+    // Auto-fill form with stored credentials
+    if (window.AuthStorage) {
+        window.AuthStorage.autoFillLoginForm();
+    }
+
+    // Handle form submission
+    loginForm.addEventListener('submit', async function(e) {
+        // Store credentials if "Remember Me" is checked
+        if (window.AuthStorage && rememberMeField.checked) {
+            await window.AuthStorage.storeCredentials(usernameField.value, true);
+        }
+
+        // Show loading state
+        if (submitButton) {
+            submitButton.value = 'Signing In...';
+            submitButton.disabled = true;
+        }
+
+        // Let the form submit normally
+        // The server will handle authentication and redirect
+    });
+
+    // Handle successful login (this will be called after successful authentication)
+    // We'll detect this by checking if we're redirected away from login page
+    const checkLoginSuccess = function() {
+        if (window.location.pathname !== '/auth/login' && window.location.pathname !== '/login') {
+            // We've been redirected away from login, likely successful
+            if (window.AuthStorage && rememberMeField && rememberMeField.checked) {
+                window.AuthStorage.onLoginSuccess(usernameField.value, true);
+            }
+        }
+    };
+
+    // Check after a short delay to allow for redirect
+    setTimeout(checkLoginSuccess, 1000);
+});
+</script>
 {% endblock %}

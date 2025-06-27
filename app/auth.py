@@ -110,8 +110,12 @@ def login():
                 debug_auth("Password check passed")
                 # Successful login
                 user.reset_failed_login()
-                login_user(user, remember=form.remember_me.data)
-                debug_auth(f"User logged in successfully: {user.username}")
+                user.last_login = datetime.now(timezone.utc)
+                
+                # Use remember me functionality
+                remember_me = form.remember_me.data
+                login_user(user, remember=remember_me)
+                debug_auth(f"User logged in successfully: {user.username} (remember_me: {remember_me})")
                 
                 # Ensure session is committed before checking password requirements
                 db.session.commit()
@@ -127,7 +131,13 @@ def login():
                 if not next_page or not next_page.startswith('/'):
                     next_page = url_for('main.index')
                 debug_auth(f"Redirecting to: {next_page}")
-                flash(f'Welcome back, {user.username}!', 'success')
+                
+                # Enhanced success message for Capacitor apps
+                if request.cookies.get('CAPACITOR_ENV') == 'true':
+                    flash(f'Welcome back, {user.username}! You are now signed in.', 'success')
+                else:
+                    flash(f'Welcome back, {user.username}!', 'success')
+                
                 return redirect(next_page)
             else:
                 debug_auth("Password check failed")
@@ -155,7 +165,12 @@ def logout():
         # Clear the session to ensure CSRF tokens are regenerated
         session.clear()
         
-        flash(f'Goodbye, {username}!', 'info')
+        # Enhanced logout message for Capacitor apps
+        if request.cookies.get('CAPACITOR_ENV') == 'true':
+            flash(f'Goodbye, {username}! You have been signed out.', 'info')
+        else:
+            flash(f'Goodbye, {username}!', 'info')
+        
         return redirect(url_for('main.index'))
     except Exception as e:
         # Log the error for debugging

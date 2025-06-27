@@ -8,20 +8,20 @@ import os
 import sys
 import subprocess
 import shutil
+import argparse
 from pathlib import Path
 
-def run_command(command, description, check=True):
-    """Run a shell command and handle errors."""
-    print(f"\n🔄 {description}")
-    print(f"Running: {command}")
-    
+def run_command(command, cwd=None, check=True):
+    """Run a command and return the result"""
+    print(f"🔄 Running: {command}")
     try:
-        result = subprocess.run(command, shell=True, check=check, capture_output=True, text=True)
+        result = subprocess.run(command, shell=True, cwd=cwd, check=check, 
+                              capture_output=True, text=True)
         if result.stdout:
             print(result.stdout)
         return result
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error: {e}")
+        print(f"❌ Command failed: {e}")
         if e.stderr:
             print(f"Error output: {e.stderr}")
         if check:
@@ -78,58 +78,58 @@ def find_npm_executable():
     return None
 
 def check_requirements():
-    """Check if all required tools are installed."""
+    """Check if all required tools are installed"""
     print("🔍 Checking build requirements...")
     
-    # Check if Node.js and npm are installed
+    # Check Node.js
     node_path = find_node_executable()
-    npm_path = find_npm_executable()
-    
-    if node_path and npm_path:
-        print(f"✅ Node.js found at: {node_path}")
-        print(f"✅ npm found at: {npm_path}")
-        
-        # Test versions
+    if node_path:
         try:
-            node_version = subprocess.run([node_path, "--version"], capture_output=True, text=True, timeout=10)
-            npm_version = subprocess.run([npm_path, "--version"], capture_output=True, text=True, timeout=10)
-            print(f"✅ Node.js version: {node_version.stdout.strip()}")
-            print(f"✅ npm version: {npm_version.stdout.strip()}")
-        except subprocess.TimeoutExpired:
-            print("⚠️  Could not verify Node.js/npm versions")
+            result = subprocess.run([node_path, '--version'], capture_output=True, text=True)
+            print(f"✅ Node.js: {result.stdout.strip()}")
+        except FileNotFoundError:
+            print("❌ Node.js not found. Please install Node.js.")
+            sys.exit(1)
     else:
-        print("❌ Node.js and npm are required but not found")
-        print("Please install Node.js from https://nodejs.org/")
-        print("Make sure to add Node.js to your PATH during installation")
+        print("❌ Node.js not found. Please install Node.js.")
         sys.exit(1)
     
-    # Check if Android SDK is available
-    android_home = os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT')
-    if not android_home:
-        print("❌ ANDROID_HOME or ANDROID_SDK_ROOT environment variable not set")
-        print("Please install Android SDK and set the environment variable")
-        sys.exit(1)
-    else:
-        print(f"✅ Android SDK found at: {android_home}")
-    
-    # Check if Java is available
-    try:
-        subprocess.run(["java", "-version"], check=True, capture_output=True)
-        print("✅ Java is available")
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("❌ Java is required but not found")
-        sys.exit(1)
-    
-    print("✅ All requirements met")
-
-def install_dependencies():
-    """Install npm dependencies."""
-    print("\n📦 Installing npm dependencies...")
+    # Check npm
     npm_path = find_npm_executable()
     if npm_path:
-        run_command(f'"{npm_path}" install', "Installing npm packages")
+        try:
+            result = subprocess.run([npm_path, '--version'], capture_output=True, text=True)
+            print(f"✅ npm: {result.stdout.strip()}")
+        except FileNotFoundError:
+            print("❌ npm not found. Please install npm.")
+            sys.exit(1)
     else:
-        run_command("npm install", "Installing npm packages")
+        print("❌ npm not found. Please install npm.")
+        sys.exit(1)
+    
+    # Check Capacitor CLI
+    try:
+        result = subprocess.run(['npx', 'cap', '--version'], capture_output=True, text=True)
+        print(f"✅ Capacitor CLI: {result.stdout.strip()}")
+    except FileNotFoundError:
+        print("❌ Capacitor CLI not found. Installing...")
+        run_command("npm install -g @capacitor/cli")
+    
+    # Check Android SDK
+    android_home = os.environ.get('ANDROID_HOME') or os.environ.get('ANDROID_SDK_ROOT')
+    if not android_home:
+        print("❌ ANDROID_HOME not set. Please set ANDROID_HOME environment variable.")
+        sys.exit(1)
+    print(f"✅ Android SDK: {android_home}")
+
+def install_dependencies():
+    """Install npm dependencies"""
+    print("📦 Installing npm dependencies...")
+    run_command("npm install")
+    
+    # Install Capacitor Preferences plugin for auth persistence
+    print("🔌 Installing Capacitor Preferences plugin...")
+    run_command("npm install @capacitor/preferences@7.0.1")
 
 def generate_icons():
     """Generate Android app icons from the logo."""
@@ -142,86 +142,110 @@ def generate_icons():
     except ImportError:
         print("❌ PIL/Pillow is required for icon generation")
         print("Installing Pillow...")
-        run_command("pip install Pillow", "Installing Pillow")
+        run_command("pip install Pillow")
     
-    # Run icon generation script
-    run_command("python generate_app_icons.py", "Generating Android app icons")
+    # Check if the icon generation script exists
+    if os.path.exists("prepare_capacitor_assets.py"):
+        print("🔄 Running icon generation script...")
+        run_command("python prepare_capacitor_assets.py")
+    else:
+        print("⚠️ prepare_capacitor_assets.py not found, skipping icon generation")
 
 def sync_capacitor():
-    """Sync the web app with Capacitor."""
-    print("\n🔄 Syncing with Capacitor...")
-    node_path = find_node_executable()
-    if node_path:
-        run_command(f'"{node_path}" npx cap sync android', "Syncing web app with Android project")
-    else:
-        run_command("npx cap sync android", "Syncing web app with Android project")
+    """Sync Capacitor with web assets"""
+    print("🔄 Syncing Capacitor...")
+    run_command("npx cap sync android")
 
-def build_apk():
-    """Build the Android APK."""
-    print("\n🔨 Building Android APK...")
+def build_android():
+    """Build the Android APK"""
+    print("🏗️ Building Android APK...")
     
     # Change to android directory
-    os.chdir("android")
+    android_dir = Path("android")
+    if not android_dir.exists():
+        print("❌ Android directory not found. Run 'npx cap add android' first.")
+        sys.exit(1)
     
-    # Clean previous builds
-    run_command("./gradlew clean", "Cleaning previous builds", check=False)
+    # Clean previous build
+    print("🧹 Cleaning previous build...")
+    run_command("gradlew clean", cwd="android")
     
-    # Build debug APK (suitable for side-loading)
-    result = run_command("./gradlew assembleDebug", "Building debug APK")
+    # Build debug APK
+    print("🔨 Building debug APK...")
+    result = run_command("gradlew assembleDebug", cwd="android")
     
-    # Check if build was successful
     if result.returncode == 0:
-        apk_path = "app/build/outputs/apk/debug/app-debug.apk"
-        if os.path.exists(apk_path):
-            # Copy APK to project root with a better name
-            output_path = "../BookOracle-debug.apk"
-            shutil.copy2(apk_path, output_path)
-            print(f"\n✅ APK built successfully!")
-            print(f"📱 APK location: {os.path.abspath(output_path)}")
-            print(f"📏 APK size: {os.path.getsize(output_path) / (1024*1024):.1f} MB")
+        print("✅ APK built successfully!")
+        
+        # Find the APK file
+        apk_path = None
+        for root, dirs, files in os.walk("android/app/build/outputs/apk/debug"):
+            for file in files:
+                if file.endswith(".apk"):
+                    apk_path = os.path.join(root, file)
+                    break
+            if apk_path:
+                break
+        
+        if apk_path:
+            print(f"📱 APK location: {apk_path}")
+            
+            # Copy to project root for easy access with proper name
+            apk_name = "BookOracle-debug.apk"
+            shutil.copy2(apk_path, apk_name)
+            print(f"📋 APK copied to: {apk_name}")
         else:
-            print("❌ APK file not found after build")
-            sys.exit(1)
+            print("⚠️ APK file not found in expected location")
     else:
         print("❌ APK build failed")
         sys.exit(1)
-    
-    # Return to project root
-    os.chdir("..")
 
 def main():
-    """Main build process."""
-    print("🚀 BookOracle APK Build Script")
-    print("=" * 40)
+    """Main build process"""
+    parser = argparse.ArgumentParser(description='Build BookOracle Android APK')
+    parser.add_argument('--check-only', action='store_true', 
+                       help='Only check requirements without building')
+    parser.add_argument('--skip-icons', action='store_true',
+                       help='Skip icon generation step')
+    parser.add_argument('--skip-deps', action='store_true',
+                       help='Skip dependency installation')
+    parser.add_argument('--skip-sync', action='store_true',
+                       help='Skip Capacitor sync step')
     
-    # Check if we're in the right directory
-    if not os.path.exists("package.json"):
-        print("❌ Please run this script from the project root directory")
-        sys.exit(1)
+    args = parser.parse_args()
+    
+    print("🚀 Starting BookOracle APK build process...")
+    print("=" * 50)
     
     # Check requirements
     check_requirements()
+    print()
+    
+    if args.check_only:
+        print("✅ Requirements check completed successfully!")
+        return
     
     # Install dependencies
-    install_dependencies()
+    if not args.skip_deps:
+        install_dependencies()
+        print()
     
-    # Generate app icons
-    generate_icons()
+    # Generate icons
+    if not args.skip_icons:
+        generate_icons()
+        print()
     
-    # Sync with Capacitor
-    sync_capacitor()
+    # Sync Capacitor
+    if not args.skip_sync:
+        sync_capacitor()
+        print()
     
-    # Build APK
-    build_apk()
+    # Build Android APK
+    build_android()
+    print()
     
-    print("\n🎉 Build process completed successfully!")
-    print("\n📋 Next steps:")
-    print("1. Transfer the APK to your Android device")
-    print("2. Enable 'Install from unknown sources' in device settings")
-    print("3. Install the APK on your device")
-    print("4. Test the app functionality")
-    print("\n⚠️  Note: This is a debug build for testing purposes.")
-    print("   For Play Store release, you'll need to create a release build with proper signing.")
+    print("🎉 Build process completed successfully!")
+    print("📱 You can now install the APK on your Android device")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main() 

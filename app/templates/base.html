@@ -153,13 +153,19 @@
     </button>
   </div>
 
-  <!-- Theme Toggle Script -->
+  <!-- Custom JavaScript -->
+  <script src="{{ url_for('static', filename='auth-storage.js') }}"></script>
   <script>
     // Detect if we're running in a Capacitor hybrid app
     if (typeof Capacitor !== 'undefined') {
       // Set a flag that can be used by the server
       document.cookie = 'CAPACITOR_ENV=true; path=/; max-age=86400';
       console.log('[App] Capacitor detected - hybrid app environment');
+      
+      // Initialize auth storage for Capacitor
+      if (window.AuthStorage) {
+        console.log('[App] AuthStorage initialized for Capacitor app');
+      }
     }
     
     document.getElementById('themeToggle').addEventListener('click', function() {
