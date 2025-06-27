@@ -7,7 +7,7 @@
   <div class="hero-content text-center">
     <div>
       <h1 class="text-5xl font-bold mb-4">📚 Add New Book</h1>
-      <p class="text-xl opacity-90">Scan, search, or manually add books to your library</p>
+      <p class="text-xl opacity-90">Scan or search for books to add to your library</p>
     </div>
   </div>
 </div>
@@ -34,7 +34,6 @@
               <div class="text-sm">
                 <p><strong>Native App:</strong> Best experience with automatic scanning</p>
                 <p><strong>Browser:</strong> Works but may be slower on mobile devices</p>
-                <p><strong>Manual Mode:</strong> Use camera to view barcode, then enter ISBN manually</p>
               </div>
             </div>
           </div>
@@ -214,69 +213,93 @@
 
 <!-- Early environment detection setup -->
 <script>
-// Set up environment detection before loading scanner modules
-window.isCapacitor = typeof Capacitor !== 'undefined';
-window.isNative = window.isCapacitor && Capacitor.isNative;
+// Function to check native scanner availability
+function checkNativeScannerAvailability() {
+  // Set up environment detection
+  window.isCapacitor = typeof Capacitor !== 'undefined';
+  window.isNative = window.isCapacitor && Capacitor.isNative;
+  window.platform = window.isCapacitor ? Capacitor.getPlatform() : 'web';
 
-// Get the actual platform
-window.platform = window.isCapacitor ? Capacitor.getPlatform() : 'web';
+  console.log('[Scanner] Environment detection:', {
+    isCapacitor: window.isCapacitor,
+    isNative: window.isNative,
+    platform: window.platform,
+    Capacitor: typeof Capacitor,
+    CapacitorIsNative: window.isCapacitor ? Capacitor.isNative : 'N/A',
+    CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
+  });
 
-console.log('[Scanner] Environment detection:', {
-  isCapacitor: window.isCapacitor,
-  isNative: window.isNative,
-  platform: window.platform,
-  Capacitor: typeof Capacitor,
-  CapacitorIsNative: window.isCapacitor ? Capacitor.isNative : 'N/A',
-  CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
-});
+  // Check if native scanner is available
+  const nativeScannerAvailable = window.isCapacitor && 
+                                window.platform !== 'web' && 
+                                typeof Capacitor !== 'undefined' && 
+                                Capacitor.Plugins && 
+                                Capacitor.Plugins.BarcodeScanner;
 
-// Check if native scanner is available
-const nativeScannerAvailable = window.isCapacitor && 
-                              window.platform !== 'web' && 
-                              typeof Capacitor !== 'undefined' && 
-                              Capacitor.Plugins && 
-                              Capacitor.Plugins.BarcodeScanner;
+  console.log('[Scanner] Native scanner availability:', {
+    nativeScannerAvailable,
+    shouldLoadZXing: !nativeScannerAvailable
+  });
 
-console.log('[Scanner] Native scanner availability:', {
-  nativeScannerAvailable,
-  shouldLoadZXing: !nativeScannerAvailable
-});
-
-// Only load ZXing if native scanner is not available
-if (!nativeScannerAvailable) {
-  console.log('[Scanner] Native scanner not available, loading ZXing library...');
-  
-  // Dynamically load ZXing library
-  const zxingScript = document.createElement('script');
-  zxingScript.src = "{{ url_for('static', filename='node_modules/@zxing/browser/umd/index.min.js') }}";
-  zxingScript.onload = function() {
-    console.log('[Scanner] ZXing library loaded successfully');
+  // Only load ZXing if native scanner is not available
+  if (!nativeScannerAvailable) {
+    console.log('[Scanner] Native scanner not available, loading ZXing library...');
     
-    // Check if ZXing library loaded correctly
-    console.log('[Scanner] ZXing library check:', {
-      ZXingBrowser: typeof ZXingBrowser,
-      BrowserMultiFormatReader: typeof ZXingBrowser !== 'undefined' ? typeof ZXingBrowser.BrowserMultiFormatReader : 'N/A'
-    });
-    
-    if (typeof ZXingBrowser === 'undefined') {
-      console.error('[Scanner] ZXing library failed to load!');
-    }
-    
-    // Load ZXing scanner module after library is loaded
-    const zxingModuleScript = document.createElement('script');
-    zxingModuleScript.src = "{{ url_for('static', filename='scanner-zxing.js') }}";
-    zxingModuleScript.onload = function() {
-      console.log('[Scanner] ZXing scanner module loaded');
+    // Dynamically load ZXing library
+    const zxingScript = document.createElement('script');
+    zxingScript.src = "{{ url_for('static', filename='node_modules/@zxing/browser/umd/index.min.js') }}";
+    zxingScript.onload = function() {
+      console.log('[Scanner] ZXing library loaded successfully');
+      
+      // Check if ZXing library loaded correctly
+      console.log('[Scanner] ZXing library check:', {
+        ZXingBrowser: typeof ZXingBrowser,
+        BrowserMultiFormatReader: typeof ZXingBrowser !== 'undefined' ? typeof ZXingBrowser.BrowserMultiFormatReader : 'N/A'
+      });
+      
+      if (typeof ZXingBrowser === 'undefined') {
+        console.error('[Scanner] ZXing library failed to load!');
+      }
+      
+      // Load ZXing scanner module after library is loaded
+      const zxingModuleScript = document.createElement('script');
+      zxingModuleScript.src = "{{ url_for('static', filename='scanner-zxing.js') }}";
+      zxingModuleScript.onload = function() {
+        console.log('[Scanner] ZXing scanner module loaded');
+      };
+      document.head.appendChild(zxingModuleScript);
     };
-    document.head.appendChild(zxingModuleScript);
-  };
-  zxingScript.onerror = function() {
-    console.error('[Scanner] Failed to load ZXing library');
-  };
-  document.head.appendChild(zxingScript);
-} else {
-  console.log('[Scanner] Native scanner available, skipping ZXing library load');
+    zxingScript.onerror = function() {
+      console.error('[Scanner] Failed to load ZXing library');
+    };
+    document.head.appendChild(zxingScript);
+  } else {
+    console.log('[Scanner] Native scanner available, skipping ZXing library load');
+  }
 }
+
+// Wait for Capacitor to be available, with multiple attempts
+function waitForCapacitor() {
+  if (typeof Capacitor !== 'undefined') {
+    console.log('[Scanner] Capacitor detected immediately');
+    checkNativeScannerAvailability();
+  } else {
+    console.log('[Scanner] Capacitor not detected, waiting...');
+    // Try again after a short delay
+    setTimeout(() => {
+      if (typeof Capacitor !== 'undefined') {
+        console.log('[Scanner] Capacitor detected after delay');
+        checkNativeScannerAvailability();
+      } else {
+        console.log('[Scanner] Capacitor still not detected, assuming web environment');
+        checkNativeScannerAvailability();
+      }
+    }, 100);
+  }
+}
+
+// Start the detection process
+waitForCapacitor();
 </script>
 
 <!-- Load modular scanner scripts (always load core modules) -->

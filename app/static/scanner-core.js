@@ -146,6 +146,17 @@ async function startSmartScanner() {
       return;
     } else if (shouldTryNative) {
       console.log('[ScannerCore] Native scanner is available, skipping browser scanner initialization');
+      // Double-check that ZXing is not active
+      if (window.ScannerZXing && window.ScannerZXing.zxingActive) {
+        console.log('[ScannerCore] WARNING: ZXing scanner is active despite native scanner being available!');
+        console.log('[ScannerCore] Stopping ZXing scanner...');
+        try {
+          await window.ScannerZXing.stopBrowserScanner();
+          console.log('[ScannerCore] ZXing scanner stopped successfully');
+        } catch (error) {
+          console.error('[ScannerCore] Error stopping ZXing scanner:', error);
+        }
+      }
     } else {
       console.log('[ScannerCore] Browser scanner not available:', {
         hasScannerZXing: !!window.ScannerZXing,
@@ -193,7 +204,7 @@ async function stopScanner() {
       console.log('[ScannerCore] Native scanner not available for stopping');
     }
     
-    // Stop browser scanner if active
+    // Stop browser scanner if active (always try to stop it if it exists)
     if (window.ScannerZXing && window.ScannerZXing.stopBrowserScanner) {
       console.log('[ScannerCore] Stopping browser scanner...');
       await window.ScannerZXing.stopBrowserScanner();

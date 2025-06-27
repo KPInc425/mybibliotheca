@@ -32,6 +32,12 @@ async function startBrowserScanner() {
   console.log('[ScannerZXing] === START BROWSER SCANNER CALLED ===');
   console.log('[ScannerZXing] Current zxingActive state:', zxingActive);
   
+  // Check if native scanner is available - if so, don't start ZXing
+  if (window.isCapacitor && window.platform !== 'web' && window.NativeScanner) {
+    console.log('[ScannerZXing] WARNING: Native scanner is available, refusing to start ZXing scanner');
+    throw new Error('Native scanner is available - ZXing scanner should not be used');
+  }
+  
   if (!isBrowserScannerAvailable()) {
     console.error('[ScannerZXing] ZXing-js library not available');
     throw new Error('ZXing-js library not available');
