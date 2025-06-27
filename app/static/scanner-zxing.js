@@ -29,7 +29,8 @@ function isBrowserScannerAvailable() {
  * Start browser scanner using ZXing-js
  */
 async function startBrowserScanner() {
-  console.log('[ScannerZXing] Starting browser scanner...');
+  console.log('[ScannerZXing] === START BROWSER SCANNER CALLED ===');
+  console.log('[ScannerZXing] Current zxingActive state:', zxingActive);
   
   if (!isBrowserScannerAvailable()) {
     console.error('[ScannerZXing] ZXing-js library not available');
@@ -40,6 +41,8 @@ async function startBrowserScanner() {
     console.log('[ScannerZXing] Scanner already active, skipping');
     return;
   }
+  
+  console.log('[ScannerZXing] === INITIALIZING ZXING SCANNER ===');
   
   try {
     console.log('[ScannerZXing] Creating ZXing reader...');
@@ -96,8 +99,10 @@ async function startBrowserScanner() {
       window.ScannerUI.updateScannerStatus('Scanner active - point camera at barcode', 'success');
     }
     
+    console.log('[ScannerZXing] === ZXING SCANNER STARTED SUCCESSFULLY ===');
+    
   } catch (error) {
-    console.error('[ScannerZXing] Failed to start browser scanner:', error);
+    console.error('[ScannerZXing] === FAILED TO START ZXING SCANNER ===', error);
     zxingActive = false;
     
     // Clean up on error
@@ -114,13 +119,20 @@ async function startBrowserScanner() {
  * Stop browser scanner
  */
 async function stopBrowserScanner() {
+  console.log('[ScannerZXing] === STOP BROWSER SCANNER CALLED ===');
+  console.log('[ScannerZXing] Current zxingActive state:', zxingActive);
+  
   if (!zxingActive) {
+    console.log('[ScannerZXing] Browser scanner not active, nothing to stop');
     return;
   }
+  
+  console.log('[ScannerZXing] === STOPPING ZXING SCANNER ===');
   
   try {
     // Stop ZXing reader - handle different API versions
     if (zxingCodeReader) {
+      console.log('[ScannerZXing] Stopping ZXing code reader...');
       try {
         // Try the newer API first
         if (typeof zxingCodeReader.reset === 'function') {
@@ -130,8 +142,9 @@ async function stopBrowserScanner() {
         } else if (typeof zxingCodeReader.stop === 'function') {
           zxingCodeReader.stop();
         }
+        console.log('[ScannerZXing] ZXing code reader stopped');
       } catch (resetError) {
-        console.warn('Error resetting ZXing reader:', resetError);
+        console.warn('[ScannerZXing] Error resetting ZXing reader:', resetError);
         // Continue with cleanup even if reset fails
       }
       zxingCodeReader = null;
@@ -139,20 +152,24 @@ async function stopBrowserScanner() {
     
     // Stop video stream
     if (zxingStream) {
+      console.log('[ScannerZXing] Stopping video stream...');
       zxingStream.getTracks().forEach(track => track.stop());
       zxingStream = null;
+      console.log('[ScannerZXing] Video stream stopped');
     }
     
     // Clear video element
     const video = document.getElementById('scanner-video');
     if (video) {
+      console.log('[ScannerZXing] Clearing video element...');
       video.srcObject = null;
     }
     
     zxingActive = false;
+    console.log('[ScannerZXing] === ZXING SCANNER STOPPED SUCCESSFULLY ===');
     
   } catch (error) {
-    console.error('Error stopping browser scanner:', error);
+    console.error('[ScannerZXing] === ERROR STOPPING ZXING SCANNER ===', error);
     zxingActive = false;
   }
 }

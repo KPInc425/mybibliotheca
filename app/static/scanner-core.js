@@ -30,9 +30,11 @@ let platform = window.platform;
  */
 async function startSmartScanner() {
   if (scannerState !== 'idle') {
+    console.log('[ScannerCore] Scanner not idle, current state:', scannerState);
     return;
   }
   
+  console.log('[ScannerCore] === STARTING SMART SCANNER ===');
   scannerState = 'starting';
   hasNotifiedScan = false; // Reset notification flag
   
@@ -71,24 +73,27 @@ async function startSmartScanner() {
     });
     
     if (shouldTryNative) {
-      console.log('[ScannerCore] Attempting to start native scanner...');
+      console.log('[ScannerCore] === ATTEMPTING NATIVE SCANNER ===');
       if (window.ScannerUI) {
         window.ScannerUI.updateScannerStatus('Starting native scanner...', 'info');
       }
       
       try {
+        console.log('[ScannerCore] Calling NativeScanner.startNativeScanner()...');
         await window.NativeScanner.startNativeScanner();
         // Native scanner completed successfully - don't fall back to browser scanner
-        console.log('[ScannerCore] Native scanner completed successfully');
+        console.log('[ScannerCore] === NATIVE SCANNER COMPLETED SUCCESSFULLY ===');
+        console.log('[ScannerCore] Resetting scanner state to idle');
         scannerState = 'idle'; // Reset to idle since native scanner handles its own state
         if (window.ScannerUI) {
           window.ScannerUI.updateScannerButton(false);
           window.ScannerUI.hideScannerViewport();
           window.ScannerUI.hideScannerStatus();
         }
+        console.log('[ScannerCore] === NATIVE SCANNER COMPLETE - RETURNING ===');
         return;
       } catch (nativeError) {
-        console.error('[ScannerCore] Native scanner failed:', nativeError);
+        console.error('[ScannerCore] === NATIVE SCANNER FAILED ===', nativeError);
         // Only fall back to browser scanner if it's not a cancellation
         const errorMessage = nativeError.message || nativeError.toString();
         const isCancellation = errorMessage.includes('cancel') || 
@@ -103,18 +108,19 @@ async function startSmartScanner() {
                               errorMessage.includes('Dismiss');
         
         if (isCancellation) {
-          console.log('[ScannerCore] Native scanner cancelled by user');
+          console.log('[ScannerCore] === NATIVE SCANNER CANCELLED BY USER ===');
           scannerState = 'idle';
           if (window.ScannerUI) {
             window.ScannerUI.updateScannerButton(false);
             window.ScannerUI.hideScannerViewport();
             window.ScannerUI.hideScannerStatus();
           }
+          console.log('[ScannerCore] === NATIVE SCANNER CANCELLED - RETURNING ===');
           return;
         }
         
         // Don't fall back to browser scanner for other errors
-        console.log('[ScannerCore] Native scanner failed with non-cancellation error, not falling back');
+        console.log('[ScannerCore] === NATIVE SCANNER FAILED WITH NON-CANCELLATION ERROR - NOT FALLING BACK ===');
         throw nativeError;
       }
     } else {
@@ -127,15 +133,19 @@ async function startSmartScanner() {
     }
     
     // Only try browser scanner if native scanner is not available
-    if (window.ScannerZXing && window.ScannerZXing.startBrowserScanner) {
-      console.log('[ScannerCore] Attempting to start browser scanner...');
+    // This should never happen if native scanner is working properly
+    if (!shouldTryNative && window.ScannerZXing && window.ScannerZXing.startBrowserScanner) {
+      console.log('[ScannerCore] === ATTEMPTING BROWSER SCANNER (NATIVE NOT AVAILABLE) ===');
       if (window.ScannerUI) {
         window.ScannerUI.updateScannerStatus('Starting browser scanner...', 'info');
       }
       
       await window.ScannerZXing.startBrowserScanner();
       scannerState = 'scanning';
+      console.log('[ScannerCore] === BROWSER SCANNER STARTED ===');
       return;
+    } else if (shouldTryNative) {
+      console.log('[ScannerCore] Native scanner is available, skipping browser scanner initialization');
     } else {
       console.log('[ScannerCore] Browser scanner not available:', {
         hasScannerZXing: !!window.ScannerZXing,
@@ -146,7 +156,7 @@ async function startSmartScanner() {
     throw new Error('No scanner available - neither native nor browser scanner detected');
     
   } catch (error) {
-    console.error('[ScannerCore] Failed to start scanner:', error);
+    console.error('[ScannerCore] === FAILED TO START SCANNER ===', error);
     scannerState = 'idle';
     
     if (window.ScannerUI) {
@@ -162,24 +172,38 @@ async function startSmartScanner() {
  * Stop scanner function
  */
 async function stopScanner() {
+  console.log('[ScannerCore] === STOP SCANNER CALLED ===');
+  console.log('[ScannerCore] Current scanner state:', scannerState);
+  
   if (scannerState === 'idle') {
+    console.log('[ScannerCore] Scanner already idle, nothing to stop');
     return;
   }
   
   scannerState = 'stopping';
+  console.log('[ScannerCore] Setting scanner state to stopping');
   
   try {
     // Stop native scanner if active
     if (window.isCapacitor && window.platform !== 'web' && window.NativeScanner && window.NativeScanner.stopNativeScanner) {
+      console.log('[ScannerCore] Stopping native scanner...');
       await window.NativeScanner.stopNativeScanner();
+      console.log('[ScannerCore] Native scanner stopped');
+    } else {
+      console.log('[ScannerCore] Native scanner not available for stopping');
     }
     
     // Stop browser scanner if active
     if (window.ScannerZXing && window.ScannerZXing.stopBrowserScanner) {
+      console.log('[ScannerCore] Stopping browser scanner...');
       await window.ScannerZXing.stopBrowserScanner();
+      console.log('[ScannerCore] Browser scanner stopped');
+    } else {
+      console.log('[ScannerCore] Browser scanner not available for stopping');
     }
     
     // Reset state
+    console.log('[ScannerCore] Resetting scanner state to idle');
     scannerState = 'idle';
     lastDetectedCode = null;
     detectionCount = 0;
@@ -193,8 +217,10 @@ async function stopScanner() {
       window.ScannerUI.hideScannerStatus();
     }
     
+    console.log('[ScannerCore] === SCANNER STOPPED SUCCESSFULLY ===');
+    
   } catch (error) {
-    console.error('Error stopping scanner:', error);
+    console.error('[ScannerCore] === ERROR STOPPING SCANNER ===', error);
     scannerState = 'idle';
     
     if (window.ScannerUI) {
@@ -330,7 +356,20 @@ function isScannerAvailable() {
     hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner)
   });
   
-  return nativeAvailable || browserAvailable;
+  // Prioritize native scanner - if native is available, we don't need browser scanner
+  if (nativeAvailable) {
+    console.log('[ScannerCore] Native scanner available - browser scanner not needed');
+    return true;
+  }
+  
+  // Only return true for browser scanner if native is not available
+  if (browserAvailable) {
+    console.log('[ScannerCore] Browser scanner available (native not available)');
+    return true;
+  }
+  
+  console.log('[ScannerCore] No scanner available');
+  return false;
 }
 
 /**
