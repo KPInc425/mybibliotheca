@@ -40,20 +40,12 @@
           
           <!-- Scanner Controls -->
           <div class="flex flex-wrap gap-2 mt-4">
-            <button id="scannerBtn" type="button" class="btn btn-primary btn-lg" onclick="handleScannerButtonClick(event)">
+            <button id="scannerBtn" type="button" class="btn btn-primary btn-lg">
               📷 Scan Barcode
             </button>
             
             <button id="debugBtn" type="button" class="btn btn-secondary btn-sm" onclick="debugScanner()" style="display: none;">
               🔍 Debug Scanner
-            </button>
-            
-            <button id="cleanupBtn" type="button" class="btn btn-warning btn-sm" onclick="manualCameraCleanup()" style="display: none;">
-              🛑 Release Camera
-            </button>
-            
-            <button id="nuclearBtn" type="button" class="btn btn-error btn-sm" onclick="nuclearCameraRelease()" style="display: none;">
-              ☢️ Nuclear Release
             </button>
           </div>
           
@@ -205,6 +197,122 @@
   </div>
 </div>
 
+<!-- Permission Modal Dialog -->
+<div id="permissionModal" class="modal-overlay" style="display: none;">
+  <div class="modal-dialog">
+    <div class="modal-title">📱 Camera Permissions Required</div>
+    <div class="modal-content">
+      <p>The barcode scanner needs camera access to work.</p>
+      <p>I'll try to open your device settings automatically. If that doesn't work, follow the manual steps below.</p>
+    </div>
+    <div class="modal-buttons">
+      <button id="confirmOpenSettings" class="modal-button primary">
+        🔧 Try to Open Settings
+      </button>
+      <button id="cancelSettings" class="modal-button secondary">
+        ❌ Cancel
+      </button>
+    </div>
+    <div class="modal-path">
+      <strong>📋 Manual Steps (if automatic doesn't work):</strong><br>
+      1. <strong>Open Settings</strong> on your device<br>
+      2. <strong>Find "Apps"</strong> or "Applications"<br>
+      3. <strong>Search for "BookOracle"</strong> in the app list<br>
+      4. <strong>Tap on "BookOracle"</strong><br>
+      5. <strong>Tap "Permissions"</strong><br>
+      6. <strong>Enable "Camera"</strong> permission<br>
+      7. <strong>Return to this app</strong> and try again
+    </div>
+    <button id="closeModal" class="modal-button secondary" style="margin-top: 15px; width: 100%;">
+      ✖️ Close Modal
+    </button>
+  </div>
+</div>
+
+<style>
+  /* Modal Dialog Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+  }
+  
+  .modal-dialog {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    position: relative;
+    z-index: 1001;
+    pointer-events: auto;
+  }
+  
+  .modal-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  
+  .modal-content {
+    margin-bottom: 20px;
+    line-height: 1.5;
+    color: #666;
+  }
+  
+  .modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+  
+  .modal-button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+    max-width: 150px;
+  }
+  
+  .modal-button.primary {
+    background: #17a2b8;
+    color: white;
+  }
+  
+  .modal-button.secondary {
+    background: #6c757d;
+    color: white;
+  }
+  
+  .modal-button:hover {
+    opacity: 0.9;
+  }
+  
+  .modal-path {
+    font-size: 12px;
+    color: #999;
+    margin-top: 15px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #17a2b8;
+  }
+</style>
+
 <!-- Early environment detection setup -->
 <script>
 // Function to check native scanner availability
@@ -312,6 +420,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize scanner modules
   if (window.ScannerCore) {
     console.log('[AddBook] ScannerCore available');
+    // Initialize scanner system and request permissions early
+    if (window.ScannerCore.initializeScannerSystem) {
+      window.ScannerCore.initializeScannerSystem().catch(error => {
+        console.log('[AddBook] Early scanner initialization failed:', error.message);
+      });
+    }
   }
   
   if (window.ScannerUI) {
@@ -323,25 +437,18 @@ document.addEventListener('DOMContentLoaded', function() {
   // Update debug buttons
   updateDebugButtons();
   
+  // Setup permission modal event handlers
+  setupPermissionModal();
+  
   console.log('[AddBook] Scanner initialization complete');
 });
 
 // Show/hide debug buttons based on environment
 function updateDebugButtons() {
   const debugBtn = document.getElementById('debugBtn');
-  const cleanupBtn = document.getElementById('cleanupBtn');
-  const nuclearBtn = document.getElementById('nuclearBtn');
   
   if (debugBtn) {
     debugBtn.style.display = '{{ "block" if config.DEBUG_MODE or current_user.debug_enabled else "none" }}';
-  }
-  
-  if (cleanupBtn) {
-    cleanupBtn.style.display = 'block'; // Always show cleanup button
-  }
-  
-  if (nuclearBtn) {
-    nuclearBtn.style.display = 'block'; // Always show nuclear button
   }
 }
 
@@ -372,438 +479,6 @@ function debugScanner() {
   }
 }
 
-// Manual camera cleanup function
-async function manualCameraCleanup() {
-  console.log('[AddBook] Manual camera cleanup requested...');
-  
-  try {
-    // Stop scanner if active
-    if (window.ScannerCore && window.ScannerCore.stopScanner) {
-      await window.ScannerCore.stopScanner();
-    }
-    
-    // Force camera cleanup
-    if (window.ScannerCore && window.ScannerCore.forceCameraCleanup) {
-      await window.ScannerCore.forceCameraCleanup();
-    }
-    
-    // Additional aggressive cleanup
-    await aggressiveCameraCleanup();
-    
-    // Show success message
-    if (window.ScannerUI && window.ScannerUI.showNotification) {
-      window.ScannerUI.showNotification('Camera released successfully', 'success');
-    }
-    
-    console.log('[AddBook] Manual camera cleanup completed');
-    
-  } catch (error) {
-    console.error('[AddBook] Error during manual camera cleanup:', error);
-    
-    if (window.ScannerUI && window.ScannerUI.showNotification) {
-      window.ScannerUI.showNotification('Error releasing camera: ' + error.message, 'error');
-    }
-  }
-}
-
-// Aggressive camera cleanup function
-async function aggressiveCameraCleanup() {
-  console.log('[AddBook] Performing aggressive camera cleanup...');
-  
-  try {
-    // Stop all video elements
-    const allVideos = document.querySelectorAll('video');
-    allVideos.forEach((video, index) => {
-      console.log('[AddBook] Aggressive cleanup - stopping video', index);
-      if (video.srcObject) {
-        const stream = video.srcObject;
-        if (stream && stream.getTracks) {
-          stream.getTracks().forEach(track => {
-            console.log('[AddBook] Stopping track:', track.kind, track.label);
-            track.stop();
-          });
-        }
-        video.srcObject = null;
-      }
-      video.pause();
-    });
-    
-    // Clear global stream references
-    if (window.currentMediaStream) {
-      console.log('[AddBook] Clearing global media stream reference');
-      if (window.currentMediaStream.getTracks) {
-        window.currentMediaStream.getTracks().forEach(track => track.stop());
-      }
-      window.currentMediaStream = null;
-    }
-    
-    // Force camera release by temporarily removing video element from DOM
-    console.log('[ScannerZXing] Temporarily removing video element from DOM to force camera release...');
-    const video = document.getElementById('scanner-video');
-    if (video) {
-      const parent = video.parentNode;
-      if (parent) {
-        parent.removeChild(video);
-        
-        // Wait longer for browser to process the removal
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Don't re-add the video element immediately - let it stay removed
-        // The scanner viewport will be hidden anyway
-        console.log('[ScannerZXing] Video element removed from DOM - keeping it removed');
-      }
-    }
-    
-    // Browser-specific cleanup
-    await browserSpecificCameraCleanup();
-    
-    console.log('[AddBook] Aggressive camera cleanup completed');
-    
-  } catch (error) {
-    console.error('[AddBook] Error during aggressive cleanup:', error);
-  }
-}
-
-// Browser-specific camera cleanup
-async function browserSpecificCameraCleanup() {
-  console.log('[AddBook] Performing browser-specific camera cleanup...');
-  
-  const userAgent = navigator.userAgent;
-  let browser = 'Unknown';
-  
-  if (userAgent.includes('Chrome')) {
-    browser = 'Chrome';
-  } else if (userAgent.includes('Firefox')) {
-    browser = 'Firefox';
-  } else if (userAgent.includes('Safari')) {
-    browser = 'Safari';
-  } else if (userAgent.includes('Edge')) {
-    browser = 'Edge';
-  }
-  
-  console.log('[AddBook] Detected browser:', browser);
-  
-  try {
-    if (browser === 'Chrome') {
-      // Chrome-specific cleanup
-      console.log('[AddBook] Chrome-specific cleanup...');
-      
-      // Force stop any remaining getUserMedia streams
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try {
-          // Create a temporary stream and immediately stop it to force camera release
-          const tempStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { 
-              width: { ideal: 1 }, 
-              height: { ideal: 1 } 
-            } 
-          });
-          tempStream.getTracks().forEach(track => {
-            console.log('[AddBook] Stopping temporary track:', track.kind);
-            track.stop();
-          });
-          console.log('[AddBook] Temporary stream created and stopped');
-          
-          // Wait a bit for Chrome to process the stop
-          await new Promise(resolve => setTimeout(resolve, 100));
-          
-        } catch (error) {
-          console.log('[AddBook] Could not create temporary stream (expected if camera is busy):', error.message);
-        }
-      }
-      
-      // Try to revoke permissions (Chrome specific)
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          const permission = await navigator.permissions.query({ name: 'camera' });
-          console.log('[AddBook] Camera permission state:', permission.state);
-        } catch (error) {
-          console.log('[AddBook] Could not query camera permissions:', error.message);
-        }
-      }
-      
-    } else if (browser === 'Firefox') {
-      // Firefox-specific cleanup
-      console.log('[AddBook] Firefox-specific cleanup...');
-      
-      // Firefox sometimes needs multiple cleanup attempts
-      for (let i = 0; i < 3; i++) {
-        try {
-          const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          tempStream.getTracks().forEach(track => track.stop());
-          await new Promise(resolve => setTimeout(resolve, 50));
-        } catch (error) {
-          break;
-        }
-      }
-      
-    } else {
-      // Generic cleanup for other browsers
-      console.log('[AddBook] Generic browser cleanup...');
-      
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        try {
-          const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          tempStream.getTracks().forEach(track => track.stop());
-        } catch (error) {
-          console.log('[AddBook] Generic cleanup error:', error.message);
-        }
-      }
-    }
-    
-    // Final check - try to enumerate devices to see if camera is still active
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(device => device.kind === 'videoinput');
-      console.log('[AddBook] Final device count:', videoDevices.length);
-      
-      // Show user feedback about camera status
-      if (window.ScannerUI && window.ScannerUI.showNotification) {
-        window.ScannerUI.showNotification(
-          `Camera cleanup completed. Browser may take a moment to update the camera indicator.`, 
-          'info'
-        );
-      }
-      
-    } catch (error) {
-      console.log('[AddBook] Could not enumerate devices:', error.message);
-    }
-    
-  } catch (error) {
-    console.error('[AddBook] Browser-specific cleanup error:', error);
-  }
-}
-
-// Global aggressive cleanup function for console debugging
-window.forceCameraRelease = async function() {
-  console.log('[AddBook] Force camera release called from console...');
-  await aggressiveCameraCleanup();
-  console.log('[AddBook] Force camera release completed');
-  
-  // Show user feedback
-  if (window.ScannerUI && window.ScannerUI.showNotification) {
-    window.ScannerUI.showNotification(
-      'Force camera release completed. Check if camera indicator is now off.', 
-      'success'
-    );
-  }
-};
-
-// Nuclear cleanup function - last resort for stubborn camera connections
-window.nuclearCameraRelease = async function() {
-  console.log('[AddBook] Nuclear camera release called from console...');
-  
-  try {
-    // Call scanner core nuclear cleanup
-    if (window.ScannerCore && window.ScannerCore.nuclearCleanup) {
-      console.log('[AddBook] Calling scanner core nuclear cleanup...');
-      await window.ScannerCore.nuclearCleanup();
-    } else {
-      console.log('[AddBook] Scanner core nuclear cleanup not available');
-    }
-    
-    // Additional page-level nuclear cleanup
-    console.log('[AddBook] Performing page-level nuclear cleanup...');
-    
-    // Step 1: Stop all video streams
-    const allVideos = document.querySelectorAll('video');
-    allVideos.forEach((video, index) => {
-      console.log('[AddBook] Stopping video stream', index);
-      if (video.srcObject) {
-        const stream = video.srcObject;
-        if (stream && stream.getTracks) {
-          stream.getTracks().forEach(track => track.stop());
-        }
-        video.srcObject = null;
-        video.pause();
-      }
-    });
-    
-    // Step 2: SCORCHED EARTH - Forcefully kill any remaining MediaStreams
-    console.log('[AddBook] Step 2: Scorched earth cleanup...');
-    try {
-      // Get a new stream and immediately stop all tracks
-      console.log('[AddBook] Forcefully killing any remaining MediaStreams...');
-      const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      tempStream.getTracks().forEach(track => {
-        console.log('[AddBook] Force stopping track:', track.kind, track.label);
-        track.stop();
-      });
-      console.log('[AddBook] Scorched earth cleanup completed');
-    } catch (scorchedError) {
-      console.log('[AddBook] No active stream to force stop (this is good):', scorchedError.message);
-    }
-    
-    // Step 3: Remove all video elements
-    allVideos.forEach((video, index) => {
-      if (video.parentNode) {
-        video.parentNode.removeChild(video);
-        console.log('[AddBook] Removed video element', index);
-      }
-    });
-    
-    // Step 4: Clear global references
-    window.currentMediaStream = null;
-    
-    // Step 5: Force garbage collection
-    if (window.gc) {
-      console.log('[AddBook] Force garbage collection...');
-      for (let i = 0; i < 3; i++) {
-        window.gc();
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-    }
-    
-    // Step 6: Long delay for browser to process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Step 7: Recreate scanner video element
-    const scannerContainer = document.getElementById('scanner-viewport');
-    if (scannerContainer) {
-      const newVideo = document.createElement('video');
-      newVideo.id = 'scanner-video';
-      newVideo.autoplay = true;
-      newVideo.playsInline = true;
-      newVideo.muted = true;
-      newVideo.style.width = '100%';
-      newVideo.style.height = '100%';
-      newVideo.style.objectFit = 'cover';
-      
-      scannerContainer.appendChild(newVideo);
-      console.log('[AddBook] Scanner video element recreated');
-    }
-    
-    console.log('[AddBook] Nuclear camera release completed');
-    
-    if (window.ScannerUI && window.ScannerUI.showNotification) {
-      window.ScannerUI.showNotification(
-        'Nuclear camera release completed. All video elements recreated.', 
-        'success'
-      );
-    }
-    
-  } catch (error) {
-    console.error('[AddBook] Error during nuclear camera release:', error);
-    if (window.ScannerUI && window.ScannerUI.showNotification) {
-      window.ScannerUI.showNotification(
-        'Nuclear camera release failed: ' + error.message, 
-        'error'
-      );
-    }
-  }
-};
-
-// Console commands for debugging
-console.log('[AddBook] Available console commands:');
-console.log('- nuclearCameraRelease() - Nuclear cleanup for stubborn camera connections');
-console.log('- checkCameraStatus() - Check current camera status');
-console.log('- testScanner() - Test scanner functionality');
-console.log('- window.ScannerCore.nuclearCleanup() - Core nuclear cleanup');
-console.log('- window.ScannerZXing.nuclearCameraCleanup() - ZXing nuclear cleanup');
-
-// Check camera status function
-window.checkCameraStatus = async function() {
-  console.log('[AddBook] Checking camera status...');
-  
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const videoDevices = devices.filter(device => device.kind === 'videoinput');
-    
-    console.log('[AddBook] Camera status check:');
-    console.log('- Available video devices:', videoDevices.length);
-    videoDevices.forEach((device, index) => {
-      console.log(`  ${index}: ${device.label || 'Unknown device'} (${device.deviceId})`);
-    });
-    
-    // Check if there are any active streams
-    const allVideos = document.querySelectorAll('video');
-    const activeVideos = Array.from(allVideos).filter(video => video.srcObject);
-    
-    console.log('- Active video elements:', activeVideos.length);
-    console.log('- Global media stream:', window.currentMediaStream ? 'Active' : 'None');
-    
-    // Check permissions
-    let permissionState = 'Unknown';
-    if (navigator.permissions && navigator.permissions.query) {
-      try {
-        const permission = await navigator.permissions.query({ name: 'camera' });
-        permissionState = permission.state;
-      } catch (error) {
-        permissionState = 'Could not query';
-      }
-    }
-    
-    console.log('- Camera permission state:', permissionState);
-    
-    // Show user-friendly status
-    const status = {
-      devices: videoDevices.length,
-      activeVideos: activeVideos.length,
-      globalStream: !!window.currentMediaStream,
-      permission: permissionState
-    };
-    
-    console.log('[AddBook] Camera status summary:', status);
-    
-    if (window.ScannerUI && window.ScannerUI.showNotification) {
-      let message = `Camera Status: ${status.devices} devices, ${status.activeVideos} active videos`;
-      if (status.globalStream) {
-        message += ', global stream active';
-      }
-      message += `. Permission: ${status.permission}`;
-      
-      window.ScannerUI.showNotification(message, 'info');
-    }
-    
-    return status;
-    
-  } catch (error) {
-    console.error('[AddBook] Error checking camera status:', error);
-    return { error: error.message };
-  }
-};
-
-// Global test function for debugging (can be called from browser console)
-window.testScanner = async function() {
-  console.log('[AddBook] Testing scanner from global function...');
-  
-  // Run debug first
-  if (window.ScannerCore && window.ScannerCore.debugScannerSystem) {
-    const debugInfo = window.ScannerCore.debugScannerSystem();
-    console.log('[AddBook] Debug info:', debugInfo);
-    
-    // Check if we have any scanner available
-    const hasNative = debugInfo.hasStartNativeScanner;
-    const hasBrowser = debugInfo.hasStartBrowserScanner;
-    
-    if (!hasNative && !hasBrowser) {
-      console.error('[AddBook] No scanner available!');
-      alert('No scanner available. Check console for details.');
-      return;
-    }
-    
-    console.log('[AddBook] Available scanners - Native:', hasNative, 'Browser:', hasBrowser);
-    
-    // Try to start scanner
-    try {
-      console.log('[AddBook] Attempting to start scanner...');
-      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-        await window.ScannerCore.startSmartScanner();
-        console.log('[AddBook] Scanner started successfully');
-      } else {
-        console.error('[AddBook] startSmartScanner not available');
-        alert('startSmartScanner function not available');
-      }
-    } catch (error) {
-      console.error('[AddBook] Failed to start scanner:', error);
-      alert('Failed to start scanner: ' + error.message);
-    }
-  } else {
-    console.error('[AddBook] debugScannerSystem not available');
-    alert('Debug function not available');
-  }
-};
-
 // Ensure camera cleanup on page unload
 window.addEventListener('beforeunload', function() {
   console.log('[AddBook] Page unloading - ensuring camera cleanup...');
@@ -812,13 +487,6 @@ window.addEventListener('beforeunload', function() {
   if (window.ScannerCore && window.ScannerCore.stopScanner) {
     window.ScannerCore.stopScanner().catch(error => {
       console.warn('[AddBook] Error stopping scanner on unload:', error);
-    });
-  }
-  
-  // Force camera cleanup
-  if (window.ScannerCore && window.ScannerCore.forceCameraCleanup) {
-    window.ScannerCore.forceCameraCleanup().catch(error => {
-      console.warn('[AddBook] Error during force cleanup on unload:', error);
     });
   }
   
@@ -834,15 +502,74 @@ window.addEventListener('beforeunload', function() {
       video.srcObject = null;
     }
   });
-  
-  // Clear global stream reference
-  if (window.currentMediaStream) {
-    console.log('[AddBook] Clearing global media stream on unload');
-    if (window.currentMediaStream.getTracks) {
-      window.currentMediaStream.getTracks().forEach(track => track.stop());
-    }
-    window.currentMediaStream = null;
-  }
 });
+
+// Setup permission modal event handlers
+function setupPermissionModal() {
+  const modal = document.getElementById('permissionModal');
+  const confirmBtn = document.getElementById('confirmOpenSettings');
+  const cancelBtn = document.getElementById('cancelSettings');
+  const closeBtn = document.getElementById('closeModal');
+  
+  if (!modal || !confirmBtn || !cancelBtn || !closeBtn) {
+    console.log('[AddBook] Permission modal elements not found');
+    return;
+  }
+  
+  // Add click outside modal to close
+  modal.addEventListener('click', function(e) {
+    if (e.target === this) {
+      hidePermissionModal();
+    }
+  });
+  
+  // Confirm button - try to open device settings
+  confirmBtn.addEventListener('click', function() {
+    console.log('[AddBook] User confirmed opening device settings');
+    if (window.NativeScanner && window.NativeScanner.openDeviceSettings) {
+      window.NativeScanner.openDeviceSettings().catch(error => {
+        console.log('[AddBook] Error opening device settings:', error.message);
+      });
+    } else {
+      alert('Please go to your device settings → Apps → BookOracle → Permissions → Enable Camera');
+    }
+    // Don't close modal immediately - let the user see the logs
+  });
+  
+  // Cancel button
+  cancelBtn.addEventListener('click', function() {
+    console.log('[AddBook] User cancelled opening device settings');
+    hidePermissionModal();
+    if (window.ScannerUI && window.ScannerUI.showNotification) {
+      window.ScannerUI.showNotification('Camera permissions are required to use the barcode scanner.', 'info');
+    }
+  });
+  
+  // Close button
+  closeBtn.addEventListener('click', function() {
+    console.log('[AddBook] User closed modal manually');
+    hidePermissionModal();
+  });
+}
+
+// Hide permission modal
+function hidePermissionModal() {
+  const modal = document.getElementById('permissionModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Show permission modal
+function showPermissionModal() {
+  const modal = document.getElementById('permissionModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+// Make modal functions globally available
+window.showPermissionModal = showPermissionModal;
+window.hidePermissionModal = hidePermissionModal;
 </script>
 {% endblock %}

@@ -26,6 +26,25 @@ let isNative = window.isNative;
 let platform = window.platform;
 
 /**
+ * Initialize scanner system and request permissions early
+ */
+async function initializeScannerSystem() {
+  console.log('[ScannerCore] === INITIALIZING SCANNER SYSTEM ===');
+  
+  // Request camera permissions early if native scanner is available
+  if (window.isCapacitor && window.platform !== 'web' && window.NativeScanner && window.NativeScanner.requestCameraPermissionsEarly) {
+    console.log('[ScannerCore] Requesting camera permissions early...');
+    try {
+      await window.NativeScanner.requestCameraPermissionsEarly();
+    } catch (error) {
+      console.log('[ScannerCore] Early permission request failed:', error.message);
+    }
+  }
+  
+  console.log('[ScannerCore] Scanner system initialized');
+}
+
+/**
  * Smart Scanner - Main entry point that tries multiple approaches
  */
 async function startSmartScanner() {
@@ -116,7 +135,20 @@ async function startSmartScanner() {
           return;
         }
         
-        // For non-cancellation errors, fall back to browser scanner
+        // Check if it's a permission error
+        if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
+          console.log('[ScannerCore] === NATIVE SCANNER PERMISSION ERROR ===');
+          scannerState = 'idle';
+          if (window.ScannerUI) {
+            window.ScannerUI.updateScannerButton(false);
+            window.ScannerUI.hideScannerViewport();
+            window.ScannerUI.updateScannerStatus('Camera permissions required for native scanner', 'error');
+            window.ScannerUI.showNotification('Camera permissions needed. Please grant camera access in device settings.', 'error');
+          }
+          return;
+        }
+        
+        // For other errors, fall back to browser scanner
         console.log('[ScannerCore] === NATIVE SCANNER FAILED - FALLING BACK TO BROWSER SCANNER ===');
       }
     }
@@ -624,6 +656,7 @@ window.ScannerCore = {
   debugScannerSystem,
   isScannerAvailable,
   getScannerState,
+  initializeScannerSystem,
   scannerState,
   isNative: window.isNative,
   isCapacitor: window.isCapacitor,

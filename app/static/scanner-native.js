@@ -4,6 +4,201 @@
  */
 
 /**
+ * Request camera permissions early and proactively
+ */
+async function requestCameraPermissionsEarly() {
+  try {
+    console.log('[Native Scanner] === REQUESTING CAMERA PERMISSIONS EARLY ===');
+    
+    if (!window.isCapacitor) {
+      console.log('[Native Scanner] Not in Capacitor environment, skipping early permission request');
+      return;
+    }
+    
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    if (!BarcodeScanner) {
+      console.log('[Native Scanner] BarcodeScanner plugin not available for early permission request');
+      return;
+    }
+    
+    console.log('[Native Scanner] BarcodeScanner plugin found, checking current permissions...');
+    
+    // Check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    console.log(`[Native Scanner] Barcode scanning supported: ${supported}`);
+    
+    if (!supported) {
+      console.log('[Native Scanner] Barcode scanning not supported on this device');
+      return;
+    }
+    
+    // Check current permissions with retry logic
+    let permissionGranted = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries && !permissionGranted) {
+      try {
+        const { granted } = await BarcodeScanner.checkPermissions();
+        console.log(`[Native Scanner] Permission check attempt ${retryCount + 1}: ${granted ? 'GRANTED' : 'DENIED'}`);
+        
+        if (granted) {
+          permissionGranted = true;
+          console.log('[Native Scanner] ✅ Camera permissions confirmed as granted', 'success');
+          if (window.ScannerUI) {
+            window.ScannerUI.updateScannerStatus('Camera permissions granted!', 'success');
+          }
+          return;
+        }
+        
+        retryCount++;
+        if (retryCount < maxRetries) {
+          console.log(`[Native Scanner] Permission not granted, waiting 1 second before retry...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        console.log(`[Native Scanner] Permission check error on attempt ${retryCount + 1}: ${error.message}`, 'error');
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    
+    if (!permissionGranted) {
+      console.log('[Native Scanner] Permission not granted after retries, requesting permissions...');
+      
+      // Request permissions automatically
+      console.log('[Native Scanner] Requesting camera permissions automatically...');
+      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      console.log(`[Native Scanner] Early permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
+      
+      if (newGranted) {
+        console.log('[Native Scanner] ✅ Camera permissions granted successfully during early request!', 'success');
+        if (window.ScannerUI) {
+          window.ScannerUI.updateScannerStatus('Camera permissions granted!', 'success');
+        }
+      } else {
+        console.log('[Native Scanner] ❌ Camera permissions denied during early request', 'error');
+        if (window.ScannerUI) {
+          window.ScannerUI.updateScannerStatus('Camera permissions needed for barcode scanning', 'warning');
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.log(`[Native Scanner] Early permission request error: ${error.message}`, 'error');
+  }
+}
+
+/**
+ * Show permission help modal
+ */
+function showPermissionHelp() {
+  const modal = document.getElementById('permissionModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  } else {
+    // Fallback to alert if modal doesn't exist
+    alert('Camera permissions are required for barcode scanning. Please grant camera permissions in your device settings.');
+  }
+}
+
+/**
+ * Hide permission help modal
+ */
+function hidePermissionHelp() {
+  const modal = document.getElementById('permissionModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+/**
+ * Open device settings for camera permissions
+ */
+async function openDeviceSettings() {
+  try {
+    console.log('[Native Scanner] Attempting to open device settings...');
+    
+    if (window.isCapacitor) {
+      await openAppSettings();
+    } else {
+      showManualInstructions();
+    }
+  } catch (error) {
+    console.log(`[Native Scanner] Error in openDeviceSettings: ${error.message}`, 'error');
+    showManualInstructions();
+  }
+}
+
+/**
+ * Open app settings using Capacitor plugins
+ */
+async function openAppSettings() {
+  try {
+    // Wait for Capacitor to be available
+    if (typeof Capacitor === 'undefined') {
+      console.log('[Native Scanner] Capacitor not available yet, waiting...', 'warning');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (typeof Capacitor === 'undefined') {
+        throw new Error('Capacitor not available');
+      }
+    }
+
+    if (Capacitor.getPlatform() === 'android') {
+      console.log('[Native Scanner] Opening Android app settings via NativeSettings plugin...');
+      try {
+        // Use the available NativeSettings plugin with correct option values
+        if (Capacitor.Plugins.NativeSettings) {
+          await Capacitor.Plugins.NativeSettings.openAndroid({
+            option: 'application_details'
+          });
+          console.log('[Native Scanner] App settings opened successfully via NativeSettings plugin');
+        } else {
+          throw new Error('NativeSettings plugin not available');
+        }
+      } catch (pluginError) {
+        console.log(`[Native Scanner] NativeSettings plugin failed: ${pluginError.message}`, 'error');
+        // Fallback to manual instructions
+        showManualInstructions();
+      }
+    } else if (Capacitor.getPlatform() === 'ios') {
+      console.log('[Native Scanner] Opening iOS app settings via NativeSettings plugin...');
+      try {
+        if (Capacitor.Plugins.NativeSettings) {
+          await Capacitor.Plugins.NativeSettings.openIOS({
+            option: 'app'
+          });
+          console.log('[Native Scanner] iOS app settings opened successfully via NativeSettings plugin');
+        } else {
+          throw new Error('NativeSettings plugin not available');
+        }
+      } catch (pluginError) {
+        console.log(`[Native Scanner] NativeSettings plugin failed: ${pluginError.message}`, 'error');
+        // Fallback to manual instructions
+        showManualInstructions();
+      }
+    } else {
+      console.log('[Native Scanner] Unknown platform, showing manual instructions');
+      showManualInstructions();
+    }
+  } catch (error) {
+    console.log(`[Native Scanner] Error opening app settings: ${error.message}`, 'error');
+    // Fallback to manual instructions
+    showManualInstructions();
+  }
+}
+
+/**
+ * Show manual instructions for camera permissions
+ */
+function showManualInstructions() {
+  console.log('[Native Scanner] All automatic methods failed, showing manual instructions');
+  alert('Please go to your device settings → Apps → BookOracle → Permissions → Enable Camera');
+}
+
+/**
  * Start native scanner using Capacitor MLKit
  */
 async function startNativeScanner() {
@@ -71,7 +266,7 @@ async function startNativeScanner() {
     throw supportError;
   }
   
-  // Check permissions but don't fail if denied
+  // Check permissions with enhanced flow
   let permissionGranted = false;
   try {
     console.log('[Native Scanner] Checking camera permissions...');
@@ -84,8 +279,7 @@ async function startNativeScanner() {
     logScannerStatus(`Permission check error: ${permError.message}`, 'warning');
   }
   
-  // Note: On Android, permissions might show as "denied" even when they're granted for "only when using app"
-  // So we'll try to scan regardless of the permission check result
+  // Request permissions if not granted
   if (!permissionGranted) {
     console.log('[Native Scanner] Permission not granted, attempting to request...');
     logScannerStatus('Requesting camera permissions...', 'info');
@@ -94,14 +288,26 @@ async function startNativeScanner() {
       console.log(`[Native Scanner] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
       logScannerStatus(`Permission request result: ${newGranted ? 'granted' : 'denied'}`, newGranted ? 'success' : 'error');
       permissionGranted = newGranted;
+      
+      if (!newGranted) {
+        console.log('[Native Scanner] Camera permissions denied, showing help');
+        logScannerStatus('Camera permissions denied. Please grant camera permissions in device settings.', 'error');
+        showPermissionHelp();
+        throw new Error('Camera permissions denied');
+      }
     } catch (permError) {
       console.log(`[Native Scanner] Permission request error: ${permError.message}`, 'warning');
       logScannerStatus(`Permission request error: ${permError.message}`, 'error');
+      
+      // Show permission help for permission-related errors
+      if (permError.message.includes('permission') || permError.message.includes('denied')) {
+        showPermissionHelp();
+      }
+      throw permError;
     }
   }
   
-  // Try to start scanning even if permissions appear denied
-  // This handles the "only when using app" permission scenario
+  // Try to start scanning
   console.log('[Native Scanner] Attempting to start barcode scan...');
   logScannerStatus('Starting native barcode scan...', 'info');
   
@@ -190,6 +396,7 @@ async function startNativeScanner() {
       if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
         console.log('[Native Scanner] Permission error detected');
         logScannerStatus('Camera permission error during scanning. Please check device settings.', 'error');
+        showPermissionHelp();
         // Don't throw here, let the user know about the permission issue
         return;
       } else {
@@ -422,5 +629,11 @@ window.NativeScanner = {
   getNativeScannerCapabilities,
   testNativeScanner,
   debugNativeScanner,
-  requestCameraPermissions
+  requestCameraPermissions,
+  requestCameraPermissionsEarly,
+  showPermissionHelp,
+  hidePermissionHelp,
+  openDeviceSettings,
+  openAppSettings,
+  showManualInstructions
 }; 

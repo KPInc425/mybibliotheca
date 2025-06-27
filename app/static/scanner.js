@@ -153,6 +153,14 @@ function initializeScanner() {
     window.ScannerData.initializeDataModule();
   }
   
+  // Initialize scanner system and request permissions early
+  if (window.ScannerCore && window.ScannerCore.initializeScannerSystem) {
+    console.log('[Scanner] Initializing scanner system and requesting permissions early...');
+    window.ScannerCore.initializeScannerSystem().catch(error => {
+      console.log('[Scanner] Early scanner initialization failed:', error.message);
+    });
+  }
+  
   // Check scanner availability
   const isAvailable = window.ScannerCore && window.ScannerCore.isScannerAvailable();
   
