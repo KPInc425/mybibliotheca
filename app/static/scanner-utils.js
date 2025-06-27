@@ -697,12 +697,6 @@ function showBarcodeDetectorDiagnostics(browser, version, features) {
           superior barcode scanning capabilities.
         </p>
       </div>
-      <div style="background: #fff3cd; padding: 15px; border-radius: 8px;">
-        <h5 style="color: #856404; margin-bottom: 10px;">✏️ Manual Entry:</h5>
-        <p style="margin: 0;">
-          You can still manually enter the ISBN number in the field below.
-        </p>
-      </div>
     </div>
   `;
   

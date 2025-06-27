@@ -353,7 +353,8 @@ function isScannerAvailable() {
     isCapacitor: window.isCapacitor,
     platform: window.platform,
     hasNativeScanner: !!window.NativeScanner,
-    hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner)
+    hasStartNativeScanner: !!(window.NativeScanner && window.NativeScanner.startNativeScanner),
+    hasScannerZXing: !!window.ScannerZXing
   });
   
   // Prioritize native scanner - if native is available, we don't need browser scanner

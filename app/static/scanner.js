@@ -25,11 +25,14 @@ function importModuleFunctions() {
     window.handleScanError = window.ScannerCore.handleScanError;
   }
   
-  // Import from ScannerZXing
+  // Import from ScannerZXing (only if loaded)
   if (window.ScannerZXing) {
     window.startBrowserScanner = window.ScannerZXing.startBrowserScanner;
     window.stopBrowserScanner = window.ScannerZXing.stopBrowserScanner;
     window.isBrowserScannerAvailable = window.ScannerZXing.isBrowserScannerAvailable;
+    console.log('[Scanner] ZXing scanner module imported');
+  } else {
+    console.log('[Scanner] ZXing scanner module not loaded (native scanner available)');
   }
   
   // Import from ScannerUI
@@ -165,7 +168,7 @@ function getScannerSystemStatus() {
   return {
     core: window.ScannerCore ? window.ScannerCore.getScannerState() : 'unavailable',
     native: window.NativeScanner ? 'available' : 'unavailable',
-    browser: window.ScannerZXing ? window.ScannerZXing.getBrowserScannerStatus() : 'unavailable',
+    browser: window.ScannerZXing ? window.ScannerZXing.getBrowserScannerStatus() : 'not loaded',
     ui: window.ScannerUI ? 'available' : 'unavailable',
     data: window.ScannerData ? 'available' : 'unavailable'
   };

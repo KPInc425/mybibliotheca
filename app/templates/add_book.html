@@ -212,9 +212,6 @@
   </div>
 </div>
 
-<!-- Load ZXing library first -->
-<script src="{{ url_for('static', filename='node_modules/@zxing/browser/umd/index.min.js') }}"></script>
-
 <!-- Early environment detection setup -->
 <script>
 // Set up environment detection before loading scanner modules
@@ -233,22 +230,60 @@ console.log('[Scanner] Environment detection:', {
   CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A'
 });
 
-// Check if ZXing library loaded correctly
-console.log('[Scanner] ZXing library check:', {
-  ZXingBrowser: typeof ZXingBrowser,
-  BrowserMultiFormatReader: typeof ZXingBrowser !== 'undefined' ? typeof ZXingBrowser.BrowserMultiFormatReader : 'N/A'
+// Check if native scanner is available
+const nativeScannerAvailable = window.isCapacitor && 
+                              window.platform !== 'web' && 
+                              typeof Capacitor !== 'undefined' && 
+                              Capacitor.Plugins && 
+                              Capacitor.Plugins.BarcodeScanner;
+
+console.log('[Scanner] Native scanner availability:', {
+  nativeScannerAvailable,
+  shouldLoadZXing: !nativeScannerAvailable
 });
 
-if (typeof ZXingBrowser === 'undefined') {
-  console.error('[Scanner] ZXing library failed to load!');
+// Only load ZXing if native scanner is not available
+if (!nativeScannerAvailable) {
+  console.log('[Scanner] Native scanner not available, loading ZXing library...');
+  
+  // Dynamically load ZXing library
+  const zxingScript = document.createElement('script');
+  zxingScript.src = "{{ url_for('static', filename='node_modules/@zxing/browser/umd/index.min.js') }}";
+  zxingScript.onload = function() {
+    console.log('[Scanner] ZXing library loaded successfully');
+    
+    // Check if ZXing library loaded correctly
+    console.log('[Scanner] ZXing library check:', {
+      ZXingBrowser: typeof ZXingBrowser,
+      BrowserMultiFormatReader: typeof ZXingBrowser !== 'undefined' ? typeof ZXingBrowser.BrowserMultiFormatReader : 'N/A'
+    });
+    
+    if (typeof ZXingBrowser === 'undefined') {
+      console.error('[Scanner] ZXing library failed to load!');
+    }
+    
+    // Load ZXing scanner module after library is loaded
+    const zxingModuleScript = document.createElement('script');
+    zxingModuleScript.src = "{{ url_for('static', filename='scanner-zxing.js') }}";
+    zxingModuleScript.onload = function() {
+      console.log('[Scanner] ZXing scanner module loaded');
+    };
+    document.head.appendChild(zxingModuleScript);
+  };
+  zxingScript.onerror = function() {
+    console.error('[Scanner] Failed to load ZXing library');
+  };
+  document.head.appendChild(zxingScript);
+} else {
+  console.log('[Scanner] Native scanner available, skipping ZXing library load');
 }
 </script>
 
-<!-- Load modular scanner scripts -->
+<!-- Load modular scanner scripts (always load core modules) -->
 <script src="{{ url_for('static', filename='scanner-utils.js') }}"></script>
 <script src="{{ url_for('static', filename='scanner-native.js') }}"></script>
 <script src="{{ url_for('static', filename='scanner-core.js') }}"></script>
-<script src="{{ url_for('static', filename='scanner-zxing.js') }}"></script>
+<!-- ZXing scanner module is loaded conditionally above -->
 <script src="{{ url_for('static', filename='scanner-ui.js') }}"></script>
 <script src="{{ url_for('static', filename='scanner-data.js') }}"></script>
 <script src="{{ url_for('static', filename='scanner.js') }}"></script>

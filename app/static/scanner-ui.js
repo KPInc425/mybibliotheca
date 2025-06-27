@@ -235,12 +235,6 @@ function showBarcodeDetectorDiagnostics(browser, version, features) {
           superior barcode scanning capabilities.
         </p>
       </div>
-      <div style="background: #fff3cd; padding: 15px; border-radius: 8px;">
-        <h5 style="color: #856404; margin-bottom: 10px;">✏️ Manual Entry:</h5>
-        <p style="margin: 0;">
-          You can still manually enter the ISBN number in the field below.
-        </p>
-      </div>
     </div>
   `;
   
@@ -251,23 +245,6 @@ function showBarcodeDetectorDiagnostics(browser, version, features) {
   statusDiv.style.borderRadius = '10px';
   statusDiv.style.color = '#333';
   statusDiv.style.display = 'block';
-}
-
-/**
- * Focus on ISBN field for manual entry
- */
-function focusOnISBNField() {
-  setTimeout(() => {
-    const isbnField = document.getElementById('isbn');
-    if (isbnField) {
-      isbnField.focus();
-      isbnField.select();
-      isbnField.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
-      });
-    }
-  }, 500);
 }
 
 /**
@@ -388,7 +365,6 @@ window.ScannerUI = {
   updateScannerStatus,
   hideScannerStatus,
   showBarcodeDetectorDiagnostics,
-  focusOnISBNField,
   updateScannerButton,
   showScannerViewport,
   hideScannerViewport,
