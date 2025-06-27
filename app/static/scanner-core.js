@@ -78,14 +78,44 @@ async function startSmartScanner() {
       
       try {
         await window.NativeScanner.startNativeScanner();
-        scannerState = 'scanning';
+        // Native scanner completed successfully - don't fall back to browser scanner
+        console.log('[ScannerCore] Native scanner completed successfully');
+        scannerState = 'idle'; // Reset to idle since native scanner handles its own state
+        if (window.ScannerUI) {
+          window.ScannerUI.updateScannerButton(false);
+          window.ScannerUI.hideScannerViewport();
+          window.ScannerUI.hideScannerStatus();
+        }
         return;
       } catch (nativeError) {
         console.error('[ScannerCore] Native scanner failed:', nativeError);
-        // Don't throw here, fall back to browser scanner
-        if (window.ScannerUI) {
-          window.ScannerUI.updateScannerStatus('Native scanner failed, trying browser scanner...', 'warning');
+        // Only fall back to browser scanner if it's not a cancellation
+        const errorMessage = nativeError.message || nativeError.toString();
+        const isCancellation = errorMessage.includes('cancel') || 
+                              errorMessage.includes('Cancel') ||
+                              errorMessage.includes('User cancelled') ||
+                              errorMessage.includes('user cancelled') ||
+                              errorMessage.includes('cancelled') ||
+                              errorMessage.includes('Cancelled') ||
+                              errorMessage.includes('back') ||
+                              errorMessage.includes('Back') ||
+                              errorMessage.includes('dismiss') ||
+                              errorMessage.includes('Dismiss');
+        
+        if (isCancellation) {
+          console.log('[ScannerCore] Native scanner cancelled by user');
+          scannerState = 'idle';
+          if (window.ScannerUI) {
+            window.ScannerUI.updateScannerButton(false);
+            window.ScannerUI.hideScannerViewport();
+            window.ScannerUI.hideScannerStatus();
+          }
+          return;
         }
+        
+        // Don't fall back to browser scanner for other errors
+        console.log('[ScannerCore] Native scanner failed with non-cancellation error, not falling back');
+        throw nativeError;
       }
     } else {
       console.log('[ScannerCore] Native scanner not available:', {
@@ -96,7 +126,7 @@ async function startSmartScanner() {
       });
     }
     
-    // Fallback to browser scanner
+    // Only try browser scanner if native scanner is not available
     if (window.ScannerZXing && window.ScannerZXing.startBrowserScanner) {
       console.log('[ScannerCore] Attempting to start browser scanner...');
       if (window.ScannerUI) {

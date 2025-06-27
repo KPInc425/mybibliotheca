@@ -339,6 +339,12 @@ async function debugScanner() {
     debugInfo.scannerAvailable = available;
   }
   
+  // Add note about Android permission check issue
+  debugInfo.notes = {
+    androidPermissionCheck: "On Android, permission checks may show 'denied' even when permissions are granted for 'only when using app'. If the scanner works, permissions are actually granted.",
+    zxingLibrary: "ZXing library is not loaded (ZXingBrowser is undefined), but this is expected since native scanner is working."
+  };
+  
   // Create a modal with the debug info that can be copied
   const debugText = JSON.stringify(debugInfo, null, 2);
   
@@ -469,6 +475,9 @@ async function requestPermissions() {
     if (currentGranted) {
       alert('✅ Camera permissions are already granted! The scanner should work.');
       return;
+    } else {
+      // Note: On Android, permission checks can be inaccurate due to "only when using app" settings
+      console.log('[Debug] Permissions appear denied, but this might be inaccurate on Android');
     }
     
     // Request permissions directly
@@ -481,9 +490,8 @@ async function requestPermissions() {
       alert('✅ Camera permissions granted successfully! You can now use the barcode scanner.');
     } else {
       console.log('[Debug] Camera permissions denied');
-      alert('❌ Camera permissions were denied.\n\nNote: On Android, you may need to:\n1. Go to Settings > Apps > BookOracle > Permissions\n2. Enable Camera permission\n3. Make sure it\'s set to "Allow while using app" or "Allow all the time"');
+      alert('❌ Camera permissions were denied.\n\nNote: On Android, permission checks can be inaccurate. If the scanner works, permissions are actually granted.\n\nTo ensure permissions are set correctly:\n1. Go to Settings > Apps > BookOracle > Permissions\n2. Enable Camera permission\n3. Make sure it\'s set to "Allow while using app" or "Allow all the time"');
     }
-    
   } catch (error) {
     console.error('[Debug] Permission request error:', error);
     alert(`Permission request error: ${error.message}`);

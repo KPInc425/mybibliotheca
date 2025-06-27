@@ -203,6 +203,13 @@ async function startNativeScanner() {
     scannerState = 'idle';
     console.log('[Native Scanner] Reset scanner state to idle');
   }
+  
+  // Ensure UI is reset
+  if (window.ScannerUI) {
+    window.ScannerUI.updateScannerButton(false);
+    window.ScannerUI.hideScannerViewport();
+    window.ScannerUI.hideScannerStatus();
+  }
 }
 
 /**
