@@ -444,9 +444,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Update debug buttons
   updateDebugButtons();
   
-  // Setup permission modal event handlers
-  setupPermissionModal();
-  
   console.log('[AddBook] Scanner initialization complete');
 });
 
@@ -510,73 +507,5 @@ window.addEventListener('beforeunload', function() {
     }
   });
 });
-
-// Setup permission modal event handlers
-function setupPermissionModal() {
-  const modal = document.getElementById('permissionModal');
-  const confirmBtn = document.getElementById('confirmOpenSettings');
-  const cancelBtn = document.getElementById('cancelSettings');
-  const closeBtn = document.getElementById('closeModal');
-  
-  if (!modal || !confirmBtn || !cancelBtn || !closeBtn) {
-    console.log('[AddBook] Permission modal elements not found');
-    return;
-  }
-  
-  // Add click outside modal to close
-  modal.addEventListener('click', function(e) {
-    if (e.target === this) {
-      hidePermissionModal();
-    }
-  });
-  
-  // Confirm button - try to open device settings
-  confirmBtn.addEventListener('click', function() {
-    console.log('[AddBook] User confirmed opening device settings');
-    if (window.NativeScanner && window.NativeScanner.openDeviceSettings) {
-      window.NativeScanner.openDeviceSettings().catch(error => {
-        console.log('[AddBook] Error opening device settings:', error.message);
-      });
-    } else {
-      alert('Please go to your device settings → Apps → BookOracle → Permissions → Enable Camera');
-    }
-    // Don't close modal immediately - let the user see the logs
-  });
-  
-  // Cancel button
-  cancelBtn.addEventListener('click', function() {
-    console.log('[AddBook] User cancelled opening device settings');
-    hidePermissionModal();
-    if (window.ScannerUI && window.ScannerUI.showNotification) {
-      window.ScannerUI.showNotification('Camera permissions are required to use the barcode scanner.', 'info');
-    }
-  });
-  
-  // Close button
-  closeBtn.addEventListener('click', function() {
-    console.log('[AddBook] User closed modal manually');
-    hidePermissionModal();
-  });
-}
-
-// Hide permission modal
-function hidePermissionModal() {
-  const modal = document.getElementById('permissionModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-// Show permission modal
-function showPermissionModal() {
-  const modal = document.getElementById('permissionModal');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-// Make modal functions globally available
-window.showPermissionModal = showPermissionModal;
-window.hidePermissionModal = hidePermissionModal;
 </script>
 {% endblock %}

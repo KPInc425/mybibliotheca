@@ -203,6 +203,10 @@
     🌐 Test Browser Barcode Scanner (Fallback)
   </button>
   
+  <button id="debugModule" class="test-button" style="background: #ffc107; color: #000;">
+    🔍 Debug Scanner Module
+  </button>
+  
   <div id="result" class="result info" style="display: none;"></div>
   
   <div id="logs" style="margin-top: 20px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
@@ -961,6 +965,86 @@ Value: ${barcode.rawValue}`;
     } finally {
       button.disabled = false;
       button.textContent = '🌐 Test Browser Barcode Scanner (Fallback)';
+    }
+  });
+  
+  // Debug Scanner Module
+  document.getElementById('debugModule').addEventListener('click', async function() {
+    const button = this;
+    button.disabled = true;
+    button.textContent = '🔍 Debugging...';
+    
+    try {
+      log('=== DEBUGGING SCANNER MODULE ===');
+      
+      if (!isCapacitor) {
+        throw new Error('Capacitor not available');
+      }
+      
+      if (!window.NativeScanner || !window.NativeScanner.debugBarcodeScannerModule) {
+        throw new Error('NativeScanner.debugBarcodeScannerModule not available');
+      }
+      
+      log('Calling debugBarcodeScannerModule...');
+      const debugResult = await window.NativeScanner.debugBarcodeScannerModule();
+      
+      log('Debug result:', debugResult);
+      
+      if (debugResult.available) {
+        log('✅ Scanner module appears to be working', 'success');
+        showResult(`Scanner module is available: ${debugResult.reason}`, 'success');
+        updateStatus('Scanner module working!', 'success');
+      } else {
+        log(`❌ Scanner module issue: ${debugResult.reason}`, 'error');
+        showResult(`Scanner module issue: ${debugResult.reason}`, 'error');
+        updateStatus('Scanner module has issues', 'error');
+        
+        if (debugResult.needsInstallation) {
+          log('Module needs installation - offering to install...', 'warning');
+          showResult('The scanner module needs to be installed. Would you like to try installing it?', 'warning');
+          
+          // Add install button
+          const installBtn = document.createElement('button');
+          installBtn.textContent = '🔧 Install Scanner Module';
+          installBtn.className = 'btn btn-warning btn-sm mt-2';
+          installBtn.onclick = async function() {
+            try {
+              log('Attempting to install scanner module...');
+              await window.NativeScanner.installBarcodeScannerModule();
+              log('✅ Scanner module installed successfully!', 'success');
+              showResult('Scanner module installed successfully! Try scanning again.', 'success');
+              updateStatus('Module installed!', 'success');
+            } catch (installError) {
+              log(`❌ Installation failed: ${installError.message}`, 'error');
+              showResult(`Installation failed: ${installError.message}`, 'error');
+              updateStatus('Installation failed', 'error');
+            }
+          };
+          
+          const resultDiv = document.getElementById('result');
+          resultDiv.appendChild(installBtn);
+        }
+      }
+      
+      // Show debug info if available
+      if (debugResult.debugInfo) {
+        log('Debug info:', debugResult.debugInfo);
+        const debugInfoText = `Debug Info:
+- Plugin Methods: ${debugResult.debugInfo.pluginMethods?.join(', ') || 'N/A'}
+- Has Install Method: ${debugResult.debugInfo.hasInstallMethod || 'N/A'}
+- Platform: ${debugResult.debugInfo.platform || 'N/A'}
+- Supported: ${debugResult.debugInfo.supported || 'N/A'}
+- Permissions: ${debugResult.debugInfo.permissionsGranted || 'N/A'}`;
+        
+        showResult(debugInfoText, 'info');
+      }
+      
+    } catch (error) {
+      log(`Debug module error: ${error.message}`, 'error');
+      showResult(`Error: ${error.message}`, 'error');
+    } finally {
+      button.disabled = false;
+      button.textContent = '🔍 Debug Scanner Module';
     }
   });
 </script>

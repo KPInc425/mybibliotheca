@@ -86,113 +86,6 @@ async function requestCameraPermissionsEarly() {
 }
 
 /**
- * Show permission help modal
- */
-function showPermissionHelp() {
-  const modal = document.getElementById('permissionModal');
-  if (modal) {
-    modal.style.display = 'flex';
-  } else {
-    // Fallback to alert if modal doesn't exist
-    alert('Camera permissions are required for barcode scanning. Please grant camera permissions in your device settings.');
-  }
-}
-
-/**
- * Hide permission help modal
- */
-function hidePermissionHelp() {
-  const modal = document.getElementById('permissionModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-/**
- * Open device settings for camera permissions
- */
-async function openDeviceSettings() {
-  try {
-    console.log('[Native Scanner] Attempting to open device settings...');
-    
-    if (window.isCapacitor) {
-      await openAppSettings();
-    } else {
-      showManualInstructions();
-    }
-  } catch (error) {
-    console.log(`[Native Scanner] Error in openDeviceSettings: ${error.message}`, 'error');
-    showManualInstructions();
-  }
-}
-
-/**
- * Open app settings using Capacitor plugins
- */
-async function openAppSettings() {
-  try {
-    // Wait for Capacitor to be available
-    if (typeof Capacitor === 'undefined') {
-      console.log('[Native Scanner] Capacitor not available yet, waiting...', 'warning');
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      if (typeof Capacitor === 'undefined') {
-        throw new Error('Capacitor not available');
-      }
-    }
-
-    if (Capacitor.getPlatform() === 'android') {
-      console.log('[Native Scanner] Opening Android app settings via NativeSettings plugin...');
-      try {
-        // Use the available NativeSettings plugin with correct option values
-        if (Capacitor.Plugins.NativeSettings) {
-          await Capacitor.Plugins.NativeSettings.openAndroid({
-            option: 'application_details'
-          });
-          console.log('[Native Scanner] App settings opened successfully via NativeSettings plugin');
-        } else {
-          throw new Error('NativeSettings plugin not available');
-        }
-      } catch (pluginError) {
-        console.log(`[Native Scanner] NativeSettings plugin failed: ${pluginError.message}`, 'error');
-        // Fallback to manual instructions
-        showManualInstructions();
-      }
-    } else if (Capacitor.getPlatform() === 'ios') {
-      console.log('[Native Scanner] Opening iOS app settings via NativeSettings plugin...');
-      try {
-        if (Capacitor.Plugins.NativeSettings) {
-          await Capacitor.Plugins.NativeSettings.openIOS({
-            option: 'app'
-          });
-          console.log('[Native Scanner] iOS app settings opened successfully via NativeSettings plugin');
-        } else {
-          throw new Error('NativeSettings plugin not available');
-        }
-      } catch (pluginError) {
-        console.log(`[Native Scanner] NativeSettings plugin failed: ${pluginError.message}`, 'error');
-        // Fallback to manual instructions
-        showManualInstructions();
-      }
-    } else {
-      console.log('[Native Scanner] Unknown platform, showing manual instructions');
-      showManualInstructions();
-    }
-  } catch (error) {
-    console.log(`[Native Scanner] Error opening app settings: ${error.message}`, 'error');
-    // Fallback to manual instructions
-    showManualInstructions();
-  }
-}
-
-/**
- * Show manual instructions for camera permissions
- */
-function showManualInstructions() {
-  console.log('[Native Scanner] All automatic methods failed, showing manual instructions');
-  alert('Please go to your device settings → Apps → BookOracle → Permissions → Enable Camera');
-}
-
-/**
  * Start native scanner using Capacitor MLKit
  */
 async function startNativeScanner() {
@@ -260,8 +153,58 @@ async function startNativeScanner() {
     throw supportError;
   }
   
-  // Let the native scanner handle permissions naturally
-  // Don't pre-check or pre-request permissions - let the native system do it
+  // Check if Google Barcode Scanner Module is available
+  console.log('[Native Scanner] Checking Google Barcode Scanner Module availability...');
+  const moduleCheck = await checkBarcodeScannerModule();
+  console.log('[Native Scanner] Module check result:', moduleCheck);
+  
+  if (!moduleCheck.available) {
+    if (moduleCheck.needsInstallation) {
+      console.log('[Native Scanner] Google Barcode Scanner Module needs to be installed');
+      logScannerStatus('Installing barcode scanner module...', 'info');
+      
+      // Show user-friendly message about the installation
+      if (window.ScannerUI && window.ScannerUI.showNotification) {
+        window.ScannerUI.showNotification(
+          'Installing barcode scanner module for better compatibility...',
+          'info'
+        );
+      }
+      
+      try {
+        await installBarcodeScannerModule();
+        console.log('[Native Scanner] Module installation successful, retrying...');
+        logScannerStatus('Module installed successfully, retrying...', 'success');
+        
+        // Show success message
+        if (window.ScannerUI && window.ScannerUI.showNotification) {
+          window.ScannerUI.showNotification(
+            'Barcode scanner module installed successfully!',
+            'success'
+          );
+        }
+      } catch (installError) {
+        console.error('[Native Scanner] Module installation failed:', installError);
+        logScannerStatus('Module installation failed - app update may be required', 'error');
+        
+        // Show user-friendly error message
+        if (window.ScannerUI && window.ScannerUI.showNotification) {
+          window.ScannerUI.showNotification(
+            'Unable to install barcode scanner module. Please try updating the app or contact support.',
+            'error'
+          );
+        }
+        
+        throw new Error('Scanner module installation failed - app update required');
+      }
+    } else {
+      const errorMsg = `Scanner module not available: ${moduleCheck.reason}`;
+      console.error('[Native Scanner] Native scanner not available:', errorMsg);
+      logScannerStatus('Native scanner not available', 'error');
+      throw new Error('Native scanner not available');
+    }
+  }
+  
   console.log('[Native Scanner] Starting native scanner - letting native system handle permissions...');
   logScannerStatus('Starting native scanner...', 'info');
   
@@ -298,110 +241,101 @@ async function startNativeScanner() {
         ScannerModule: typeof window.ScannerModule
       });
       
-      if (window.debugEnabled) {
-        console.log('[Native Scanner] Debug mode enabled - auto-fetch skipped');
-        logScannerStatus('Debug mode enabled - auto-fetch skipped. Click "Fetch Book Data" manually when ready.', 'info');
+      // Try to auto-fetch book data
+      if (window.autofetchBookData) {
+        try {
+          await window.autofetchBookData(barcode.rawValue);
+          console.log('[Native Scanner] Auto-fetch completed successfully');
+          logScannerStatus('Book data fetched successfully!', 'success');
+        } catch (fetchError) {
+          console.log('[Native Scanner] Auto-fetch failed:', fetchError.message);
+          logScannerStatus('Auto-fetch failed, but barcode was scanned', 'warning');
+        }
       } else if (window.handleSuccessfulScan) {
-        console.log('[Native Scanner] Calling handleSuccessfulScan with code:', barcode.rawValue);
-        logScannerStatus('Calling handleSuccessfulScan for unified behavior', 'success');
-        window.handleSuccessfulScan(barcode.rawValue);
-      } else if (window.autofetchBookData) {
-        console.log('[Native Scanner] Calling autofetchBookData directly');
-        logScannerStatus('Calling autofetchBookData directly (fallback)', 'success');
-        window.autofetchBookData();
+        try {
+          window.handleSuccessfulScan(barcode.rawValue);
+          console.log('[Native Scanner] handleSuccessfulScan called');
+        } catch (scanError) {
+          console.log('[Native Scanner] handleSuccessfulScan failed:', scanError.message);
+        }
       } else {
-        console.log('[Native Scanner] No autofetch functions available');
-        logScannerStatus('No autofetch function found - please click "Fetch Book Data" manually', 'warning');
-        console.log('[Native Scanner] Available functions:', {
-          handleSuccessfulScan: typeof window.handleSuccessfulScan,
-          autofetchBookData: typeof window.autofetchBookData,
-          ScannerModule: typeof window.ScannerModule
-        });
+        console.log('[Native Scanner] No auto-fetch function available');
       }
+      
+      return barcode.rawValue;
     } else {
       console.log('[Native Scanner] No barcode detected');
       logScannerStatus('No barcode detected', 'info');
+      return null;
     }
+  } catch (scanError) {
+    console.error('[Native Scanner] Scan error:', scanError);
     
-  } catch (error) {
-    // Check if this is a user cancellation
-    const errorMessage = error.message || error.toString();
-    const isCancellation = errorMessage.includes('cancel') || 
-                          errorMessage.includes('Cancel') ||
-                          errorMessage.includes('User cancelled') ||
-                          errorMessage.includes('user cancelled') ||
-                          errorMessage.includes('cancelled') ||
-                          errorMessage.includes('Cancelled') ||
-                          errorMessage.includes('back') ||
-                          errorMessage.includes('Back') ||
-                          errorMessage.includes('dismiss') ||
-                          errorMessage.includes('Dismiss');
-    
-    if (isCancellation) {
-      console.log('[Native Scanner] Scan cancelled by user');
-      logScannerStatus('Scan cancelled by user', 'info');
-      // Don't throw error for cancellation - just return normally
-      return;
-    } else {
-      console.error('[Native Scanner] Scan error:', error);
-      logScannerStatus(`Native scanner error: ${error.message}`, 'error');
+    // Handle specific error for Google Barcode Scanner Module
+    if (scanError.message && scanError.message.includes('Google Barcode Scanner Module is not available')) {
+      const errorMsg = 'Barcode scanner module needs to be installed. Please update the app or contact support.';
+      console.error('[Native Scanner] Google Barcode Scanner Module not available:', errorMsg);
+      logScannerStatus('Scanner module not available - app update may be required', 'error');
       
-      // Check if it's a permission error
-      if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
-        console.log('[Native Scanner] Permission error detected');
-        logScannerStatus('Camera permission error during scanning. Please check device settings.', 'error');
-        // Don't throw here, let the user know about the permission issue
-        return;
-      } else {
-        throw error; // Re-throw actual errors to trigger fallback
+      // Show user-friendly error message
+      if (window.ScannerUI && window.ScannerUI.showNotification) {
+        window.ScannerUI.showNotification(
+          'The barcode scanner module is not available on this device. Please try updating the app or contact support.',
+          'error'
+        );
       }
+      
+      throw new Error('Scanner module not available - app update required');
     }
-  }
-  
-  // Always reset scanner state to idle after completion
-  if (typeof scannerState !== 'undefined') {
-    scannerState = 'idle';
-    console.log('[Native Scanner] Reset scanner state to idle');
-  }
-  
-  // Ensure UI is reset
-  if (window.ScannerUI) {
-    window.ScannerUI.updateScannerButton(false);
-    window.ScannerUI.hideScannerViewport();
-    window.ScannerUI.hideScannerStatus();
+    
+    // Handle cancellation
+    if (scanError.message && (
+      scanError.message.includes('cancel') || 
+      scanError.message.includes('Cancel') ||
+      scanError.message.includes('User cancelled') ||
+      scanError.message.includes('user cancelled') ||
+      scanError.message.includes('cancelled') ||
+      scanError.message.includes('Cancelled') ||
+      scanError.message.includes('back') ||
+      scanError.message.includes('Back') ||
+      scanError.message.includes('dismiss') ||
+      scanError.message.includes('Dismiss')
+    )) {
+      console.log('[Native Scanner] Scan cancelled by user');
+      logScannerStatus('Scan cancelled', 'info');
+      throw new Error('Scan cancelled by user');
+    }
+    
+    // Generic error handling
+    logScannerStatus(`Scan error: ${scanError.message}`, 'error');
+    throw scanError;
+  } finally {
+    // Reset scanner state
+    if (typeof scannerState !== 'undefined') {
+      scannerState = 'idle';
+      console.log('[Native Scanner] Reset scanner state to idle');
+    }
   }
 }
 
 /**
- * Log scanner status with formatting
+ * Log scanner status messages
  */
 function logScannerStatus(message, type = 'info') {
   console.log(`[Native Scanner] ${message}`);
   
-  const statusDiv = document.getElementById('scannerStatus');
-  if (statusDiv) {
-    const colors = {
-      success: { bg: '#d4edda', border: '#28a745', text: '#155724' },
-      info: { bg: '#e7f3ff', border: '#0056b3', text: '#004085' },
-      warning: { bg: '#fff3cd', border: '#856404', text: '#856404' },
-      error: { bg: '#f8d7da', border: '#dc3545', text: '#721c24' }
-    };
-    
-    const color = colors[type] || colors.info;
-    
-    statusDiv.innerHTML = `
-      <div style="text-align: center; padding: 15px;">
-        <h4 style="color: ${color.text}; margin-bottom: 10px;">📱 Native Scanner</h4>
-        <p style="margin-bottom: 15px;">
-          ${message}
-        </p>
-      </div>
-    `;
-    statusDiv.style.background = color.bg;
-    statusDiv.style.border = `2px solid ${color.border}`;
-    statusDiv.style.borderRadius = '10px';
-    statusDiv.style.color = '#333';
-    statusDiv.style.display = 'block';
+  // Update UI if ScannerUI is available
+  if (window.ScannerUI && window.ScannerUI.updateScannerStatus) {
+    window.ScannerUI.updateScannerStatus(message, type);
+  }
+  
+  // Show notification for important messages
+  if (window.ScannerUI && window.ScannerUI.showNotification) {
+    if (type === 'error') {
+      window.ScannerUI.showNotification(message, 'error');
+    } else if (type === 'success') {
+      window.ScannerUI.showNotification(message, 'success');
+    }
   }
 }
 
@@ -409,18 +343,11 @@ function logScannerStatus(message, type = 'info') {
  * Check if native scanner is available
  */
 function isNativeScannerAvailable() {
-  const available = window.isCapacitor && 
-                   window.platform !== 'web' && 
-                   Capacitor.Plugins.BarcodeScanner;
-  
-  console.log('[Native Scanner] Availability check:', {
-    available,
-    isCapacitor: window.isCapacitor,
-    platform: window.platform,
-    hasBarcodeScanner: window.isCapacitor ? !!Capacitor.Plugins.BarcodeScanner : false
-  });
-  
-  return available;
+  return window.isCapacitor && 
+         window.platform !== 'web' && 
+         typeof Capacitor !== 'undefined' && 
+         Capacitor.Plugins && 
+         Capacitor.Plugins.BarcodeScanner;
 }
 
 /**
@@ -464,69 +391,60 @@ async function getNativeScannerCapabilities() {
  * Test native scanner functionality
  */
 async function testNativeScanner() {
-  console.log('Testing native scanner...');
-  
-  const capabilities = await getNativeScannerCapabilities();
-  console.log('Native scanner capabilities:', capabilities);
-  
-  if (!capabilities.available) {
-    console.log('Native scanner not available:', capabilities.reason);
-    return false;
-  }
+  console.log('[Native Scanner] Testing native scanner...');
   
   try {
-    // Try a quick scan test
-    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
-    const { barcodes } = await BarcodeScanner.scan();
+    const capabilities = await getNativeScannerCapabilities();
+    console.log('[Native Scanner] Scanner capabilities:', capabilities);
     
-    console.log('Native scanner test successful');
-    return true;
+    if (!capabilities.available) {
+      throw new Error(capabilities.reason);
+    }
+    
+    console.log('[Native Scanner] Native scanner test passed');
+    return { success: true, capabilities };
     
   } catch (error) {
-    console.log('Native scanner test failed:', error.message);
-    return false;
+    console.error('[Native Scanner] Native scanner test failed:', error);
+    return { success: false, error: error.message };
   }
 }
 
 /**
- * Simple test function for debugging
+ * Debug native scanner
  */
 async function debugNativeScanner() {
-  console.log('[Native Scanner] Debug function called');
+  console.log('[Native Scanner] === NATIVE SCANNER DEBUG ===');
   
-  if (!window.isCapacitor) {
-    console.log('[Native Scanner] Capacitor not available');
-    return { available: false, reason: 'Capacitor not available' };
-  }
+  const debugInfo = {
+    isCapacitor: window.isCapacitor,
+    isNative: window.isNative,
+    platform: window.platform,
+    Capacitor: typeof Capacitor,
+    CapacitorPlugins: window.isCapacitor ? Object.keys(Capacitor.Plugins || {}) : 'N/A',
+    BarcodeScanner: window.isCapacitor ? !!Capacitor.Plugins.BarcodeScanner : 'N/A'
+  };
   
-  if (!Capacitor.Plugins.BarcodeScanner) {
-    console.log('[Native Scanner] BarcodeScanner plugin not found');
-    return { available: false, reason: 'BarcodeScanner plugin not found' };
-  }
+  console.log('[Native Scanner] Debug info:', debugInfo);
   
-  const platform = Capacitor.getPlatform();
-  console.log('[Native Scanner] Platform:', platform);
-  
-  if (platform === 'web') {
-    console.log('[Native Scanner] Running on web platform');
-    return { available: false, reason: 'Running on web platform' };
-  }
-  
-  try {
-    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
-    const { supported } = await BarcodeScanner.isSupported();
-    console.log('[Native Scanner] Supported:', supported);
-    
-    if (!supported) {
-      return { available: false, reason: 'Barcode scanning not supported' };
+  if (window.isCapacitor && Capacitor.Plugins.BarcodeScanner) {
+    try {
+      const { supported } = await Capacitor.Plugins.BarcodeScanner.isSupported();
+      debugInfo.supported = supported;
+      console.log('[Native Scanner] Barcode scanning supported:', supported);
+      
+      if (supported) {
+        const { granted } = await Capacitor.Plugins.BarcodeScanner.checkPermissions();
+        debugInfo.permissions = granted ? 'granted' : 'denied';
+        console.log('[Native Scanner] Camera permissions:', debugInfo.permissions);
+      }
+    } catch (error) {
+      debugInfo.error = error.message;
+      console.error('[Native Scanner] Debug error:', error);
     }
-    
-    return { available: true, platform, supported };
-    
-  } catch (error) {
-    console.log('[Native Scanner] Error checking support:', error.message);
-    return { available: false, reason: error.message };
   }
+  
+  return debugInfo;
 }
 
 /**
@@ -580,11 +498,6 @@ async function requestCameraPermissions() {
 async function stopNativeScanner() {
   console.log('[Native Scanner] Stopping native scanner...');
   
-  if (!window.isCapacitor) {
-    console.log('[Native Scanner] Not in Capacitor environment, nothing to stop');
-    return;
-  }
-  
   const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
   if (!BarcodeScanner) {
     console.log('[Native Scanner] BarcodeScanner plugin not available for stopping');
@@ -617,6 +530,155 @@ async function stopNativeScanner() {
   }
 }
 
+/**
+ * Check if Google Barcode Scanner Module is available
+ */
+async function checkBarcodeScannerModule() {
+  if (!window.isCapacitor || !Capacitor.Plugins.BarcodeScanner) {
+    return { available: false, reason: 'BarcodeScanner plugin not available' };
+  }
+  
+  try {
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    
+    // First check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    if (!supported) {
+      return { available: false, reason: 'Barcode scanning not supported on this device' };
+    }
+    
+    // Try to check permissions as a way to test if the module is properly installed
+    try {
+      await BarcodeScanner.checkPermissions();
+      return { available: true, reason: 'Module appears to be available' };
+    } catch (permError) {
+      // If we get a specific error about the module not being available, return that
+      if (permError.message && permError.message.includes('Google Barcode Scanner Module is not available')) {
+        return { 
+          available: false, 
+          reason: 'Google Barcode Scanner Module needs to be installed',
+          needsInstallation: true 
+        };
+      }
+      // Other permission errors are normal and don't indicate module unavailability
+      return { available: true, reason: 'Module available (permission check failed but that\'s normal)' };
+    }
+    
+  } catch (error) {
+    if (error.message && error.message.includes('Google Barcode Scanner Module is not available')) {
+      return { 
+        available: false, 
+        reason: 'Google Barcode Scanner Module needs to be installed',
+        needsInstallation: true 
+      };
+    }
+    return { available: false, reason: error.message };
+  }
+}
+
+/**
+ * Install Google Barcode Scanner Module (if supported)
+ */
+async function installBarcodeScannerModule() {
+  if (!window.isCapacitor || !Capacitor.Plugins.BarcodeScanner) {
+    throw new Error('BarcodeScanner plugin not available');
+  }
+  
+  try {
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    
+    // Check if the install method is available
+    if (typeof BarcodeScanner.installGoogleBarcodeScannerModule === 'function') {
+      console.log('[Native Scanner] Installing Google Barcode Scanner Module...');
+      await BarcodeScanner.installGoogleBarcodeScannerModule();
+      console.log('[Native Scanner] Google Barcode Scanner Module installation completed');
+      return { success: true, message: 'Module installed successfully' };
+    } else {
+      throw new Error('Install method not available on this device');
+    }
+  } catch (error) {
+    console.error('[Native Scanner] Failed to install Google Barcode Scanner Module:', error);
+    throw error;
+  }
+}
+
+/**
+ * Debug Google Barcode Scanner Module status
+ */
+async function debugBarcodeScannerModule() {
+  console.log('[Native Scanner] === DEBUGGING BARCODE SCANNER MODULE ===');
+  
+  if (!window.isCapacitor) {
+    console.log('[Native Scanner] Not in Capacitor environment');
+    return { available: false, reason: 'Not in Capacitor environment' };
+  }
+  
+  if (!Capacitor.Plugins.BarcodeScanner) {
+    console.log('[Native Scanner] BarcodeScanner plugin not found');
+    return { available: false, reason: 'BarcodeScanner plugin not found' };
+  }
+  
+  const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+  const debugInfo = {
+    pluginAvailable: true,
+    pluginMethods: Object.keys(BarcodeScanner),
+    hasInstallMethod: typeof BarcodeScanner.installGoogleBarcodeScannerModule === 'function',
+    platform: Capacitor.getPlatform(),
+    isNative: Capacitor.isNative
+  };
+  
+  console.log('[Native Scanner] Debug info:', debugInfo);
+  
+  try {
+    // Check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    debugInfo.supported = supported;
+    console.log('[Native Scanner] Barcode scanning supported:', supported);
+    
+    if (!supported) {
+      return { available: false, reason: 'Barcode scanning not supported on this device', debugInfo };
+    }
+    
+    // Try to check permissions
+    try {
+      const { granted } = await BarcodeScanner.checkPermissions();
+      debugInfo.permissionsGranted = granted;
+      console.log('[Native Scanner] Permissions granted:', granted);
+    } catch (permError) {
+      debugInfo.permissionError = permError.message;
+      console.log('[Native Scanner] Permission check error:', permError.message);
+      
+      if (permError.message.includes('Google Barcode Scanner Module is not available')) {
+        debugInfo.moduleNotAvailable = true;
+        return { 
+          available: false, 
+          reason: 'Google Barcode Scanner Module needs to be installed',
+          needsInstallation: true,
+          debugInfo 
+        };
+      }
+    }
+    
+    return { available: true, reason: 'Module appears to be working', debugInfo };
+    
+  } catch (error) {
+    debugInfo.error = error.message;
+    console.error('[Native Scanner] Debug error:', error);
+    
+    if (error.message.includes('Google Barcode Scanner Module is not available')) {
+      debugInfo.moduleNotAvailable = true;
+      return { 
+        available: false, 
+        reason: 'Google Barcode Scanner Module needs to be installed',
+        needsInstallation: true,
+        debugInfo 
+      };
+    }
+    
+    return { available: false, reason: error.message, debugInfo };
+  }
+}
+
 // Export functions for use in other modules
 window.NativeScanner = {
   startNativeScanner,
@@ -628,9 +690,7 @@ window.NativeScanner = {
   debugNativeScanner,
   requestCameraPermissions,
   requestCameraPermissionsEarly,
-  showPermissionHelp,
-  hidePermissionHelp,
-  openDeviceSettings,
-  openAppSettings,
-  showManualInstructions
-}; 
+  checkBarcodeScannerModule,
+  installBarcodeScannerModule,
+  debugBarcodeScannerModule
+};

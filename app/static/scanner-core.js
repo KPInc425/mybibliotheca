@@ -137,6 +137,23 @@ async function startSmartScanner() {
           return;
         }
         
+        // Check if it's a module installation error - don't fall back to browser scanner
+        const isModuleError = errorMessage.includes('Scanner module not available') ||
+                             errorMessage.includes('app update required') ||
+                             errorMessage.includes('Google Barcode Scanner Module');
+        
+        if (isModuleError) {
+          console.log('[ScannerCore] === NATIVE SCANNER MODULE ERROR ===');
+          scannerState = 'idle';
+          if (window.ScannerUI) {
+            window.ScannerUI.updateScannerButton(false);
+            window.ScannerUI.hideScannerViewport();
+            window.ScannerUI.hideScannerStatus();
+            window.ScannerUI.showNotification('Barcode scanner module not available. Please update the app.', 'error');
+          }
+          return;
+        }
+        
         // For other errors, fall back to browser scanner
         console.log('[ScannerCore] === NATIVE SCANNER FAILED - FALLING BACK TO BROWSER SCANNER ===');
       }
