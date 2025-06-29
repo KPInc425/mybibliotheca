@@ -2,247 +2,73 @@
 {% block title %}Test Native Barcode Scanner - BookOracle{% endblock %}
 {% block content %}
 
-<style>
-  .test-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  }
-  
-  .test-header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
-  
-  .test-button {
-    display: block;
-    width: 100%;
-    padding: 15px;
-    margin: 10px 0;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    text-align: center;
-  }
-  
-  .test-button:hover {
-    background: #0056b3;
-  }
-  
-  .test-button:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-  }
-  
-  .result {
-    margin: 20px 0;
-    padding: 15px;
-    border-radius: 8px;
-    font-family: monospace;
-    white-space: pre-wrap;
-  }
-  
-  .result.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-  }
-  
-  .result.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-  }
-  
-  .result.info {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-  }
-  
-  .status {
-    text-align: center;
-    font-weight: bold;
-    margin: 10px 0;
-  }
-  
-  .back-link {
-    display: block;
-    text-align: center;
-    margin-top: 20px;
-    color: #007bff;
-    text-decoration: none;
-  }
-  
-  .back-link:hover {
-    text-decoration: underline;
-  }
-  
-  /* Modal Dialog Styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-  }
-  
-  .modal-dialog {
-    background: white;
-    border-radius: 12px;
-    padding: 25px;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    position: relative;
-    z-index: 1001;
-    pointer-events: auto;
-  }
-  
-  .modal-title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: #333;
-  }
-  
-  .modal-content {
-    margin-bottom: 20px;
-    line-height: 1.5;
-    color: #666;
-  }
-  
-  .modal-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-  }
-  
-  .modal-button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    flex: 1;
-    max-width: 150px;
-  }
-  
-  .modal-button.primary {
-    background: #17a2b8;
-    color: white;
-  }
-  
-  .modal-button.secondary {
-    background: #6c757d;
-    color: white;
-  }
-  
-  .modal-button:hover {
-    opacity: 0.9;
-  }
-  
-  .modal-path {
-    font-size: 12px;
-    color: #999;
-    margin-top: 15px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border-left: 3px solid #17a2b8;
-  }
-</style>
-
-<div class="test-container">
-  <div class="test-header">
-    <h1>🧪 Test Native Barcode Scanner</h1>
-    <p>This page tests the MLKit native barcode scanner plugin</p>
-  </div>
-  
-  <div id="status" class="status">Ready to test native barcode scanner</div>
-  
-  <button id="testNativeScanner" class="test-button">
-    📱 Launch Native Barcode Scanner
-  </button>
-  
-  <button id="debugPlugins" class="test-button" style="background: #6c757d;">
-    🔍 Debug Plugin Availability
-  </button>
-  
-  <button id="requestPermissions" class="test-button" style="background: #17a2b8;">
-    🔐 Request Camera Permissions Now
-  </button>
-  
-  <button id="refreshPermissions" class="test-button" style="background: #ffc107; color: #000;">
-    🔄 Refresh Permission Status
-  </button>
-  
-  <button id="testDirectCamera" class="test-button" style="background: #e83e8c;">
-    📹 Test Direct Camera Access
-  </button>
-  
-  <button id="testPermissions" class="test-button" style="background: #28a745;">
-    📷 Test Camera Permissions
-  </button>
-  
-  <button id="testBrowserScanner" class="test-button">
-    🌐 Test Browser Barcode Scanner (Fallback)
-  </button>
-  
-  <button id="debugModule" class="test-button" style="background: #ffc107; color: #000;">
-    🔍 Debug Scanner Module
-  </button>
-  
-  <div id="result" class="result info" style="display: none;"></div>
-  
-  <div id="logs" style="margin-top: 20px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
-  
-  <a href="{{ url_for('main.index') }}" class="back-link">⬅️ Back to Library</a>
-</div>
-
-<!-- Permission Modal Dialog -->
-<div id="permissionModal" class="modal-overlay">
-  <div class="modal-dialog">
-    <div class="modal-title">📱 Camera Permissions Required</div>
-    <div class="modal-content">
-      <p>The barcode scanner needs camera access to work.</p>
-      <p>I'll try to open your device settings automatically. If that doesn't work, follow the manual steps below.</p>
+<div class="max-w-2xl mx-auto p-6">
+  <div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-primary mb-4">🧪 Test Native Barcode Scanner</h1>
+        <p class="text-lg opacity-70">This page tests the MLKit native barcode scanner plugin</p>
+      </div>
+      
+      <!-- Status Display -->
+      <div id="status" class="text-center font-bold text-lg mb-6 p-4 bg-base-200 rounded-box">
+        Ready to test native barcode scanner
+      </div>
+      
+      <!-- Test Buttons -->
+      <div class="space-y-4">
+        <button id="testNativeScanner" class="btn btn-primary btn-lg w-full">
+          📱 Launch Native Barcode Scanner
+        </button>
+        
+        <button id="debugPlugins" class="btn btn-neutral btn-lg w-full">
+          🔍 Debug Plugin Availability
+        </button>
+        
+        <button id="requestPermissions" class="btn btn-info btn-lg w-full">
+          🔐 Request Camera Permissions Now
+        </button>
+        
+        <button id="refreshPermissions" class="btn btn-warning btn-lg w-full">
+          🔄 Refresh Permission Status
+        </button>
+        
+        <button id="testDirectCamera" class="btn btn-secondary btn-lg w-full">
+          📹 Test Direct Camera Access
+        </button>
+        
+        <button id="testPermissions" class="btn btn-success btn-lg w-full">
+          📷 Test Camera Permissions
+        </button>
+        
+        <button id="testBrowserScanner" class="btn btn-primary btn-lg w-full">
+          🌐 Test Browser Barcode Scanner (Fallback)
+        </button>
+        
+        <button id="debugModule" class="btn btn-warning btn-lg w-full">
+          🔍 Debug Scanner Module
+        </button>
+      </div>
+      
+      <!-- Result Display -->
+      <div id="result" class="alert mt-6 hidden">
+        <span id="result-text"></span>
+      </div>
+      
+      <!-- Logs Display -->
+      <div class="mt-6">
+        <h3 class="text-lg font-semibold mb-3">📋 Debug Logs</h3>
+        <div id="logs" class="bg-base-200 p-4 rounded-box font-mono text-sm max-h-64 overflow-y-auto border border-base-300"></div>
+      </div>
+      
+      <!-- Back Link -->
+      <div class="text-center mt-8">
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline btn-wide">
+          ⬅️ Back to Library
+        </a>
+      </div>
     </div>
-    <div class="modal-buttons">
-      <button id="confirmOpenSettings" class="modal-button primary">
-        🔧 Try to Open Settings
-      </button>
-      <button id="cancelSettings" class="modal-button secondary">
-        ❌ Cancel
-      </button>
-    </div>
-    <div class="modal-path">
-      <strong>📋 Manual Steps (if automatic doesn't work):</strong><br>
-      1. <strong>Open Settings</strong> on your device<br>
-      2. <strong>Find "Apps"</strong> or "Applications"<br>
-      3. <strong>Search for "BookOracle"</strong> in the app list<br>
-      4. <strong>Tap on "BookOracle"</strong><br>
-      5. <strong>Tap "Permissions"</strong><br>
-      6. <strong>Enable "Camera"</strong> permission<br>
-      7. <strong>Return to this app</strong> and try again
-    </div>
-    <button id="closeModal" class="modal-button secondary" style="margin-top: 15px; width: 100%;">
-      ✖️ Close Modal
-    </button>
   </div>
 </div>
 
@@ -255,7 +81,16 @@
     const logsDiv = document.getElementById('logs');
     const timestamp = new Date().toLocaleTimeString();
     const logEntry = document.createElement('div');
-    logEntry.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff';
+    
+    // Set text color based on type
+    const colors = {
+      error: 'text-error',
+      success: 'text-success', 
+      warning: 'text-warning',
+      info: 'text-info'
+    };
+    logEntry.className = colors[type] || colors.info;
+    
     logEntry.textContent = `[${timestamp}] ${message}`;
     logsDiv.appendChild(logEntry);
     logsDiv.scrollTop = logsDiv.scrollHeight;
@@ -265,24 +100,41 @@
   function updateStatus(message, type = 'info') {
     const statusDiv = document.getElementById('status');
     statusDiv.textContent = message;
-    statusDiv.className = `status ${type}`;
+    
+    // Update status styling based on type
+    const statusClasses = {
+      success: 'bg-success/20 text-success-content',
+      error: 'bg-error/20 text-error-content',
+      warning: 'bg-warning/20 text-warning-content',
+      info: 'bg-info/20 text-info-content'
+    };
+    
+    // Remove existing type classes
+    statusDiv.className = 'text-center font-bold text-lg mb-6 p-4 rounded-box';
+    // Add new type class
+    statusDiv.classList.add(...statusClasses[type].split(' '));
   }
   
   function showResult(message, type = 'info') {
     const resultDiv = document.getElementById('result');
-    resultDiv.textContent = message;
-    resultDiv.className = `result ${type}`;
-    resultDiv.style.display = 'block';
-  }
-  
-  function showPermissionHelp() {
-    const modal = document.getElementById('permissionModal');
-    modal.style.display = 'flex';
-  }
-  
-  function hidePermissionHelp() {
-    const modal = document.getElementById('permissionModal');
-    modal.style.display = 'none';
+    const resultText = document.getElementById('result-text');
+    
+    resultText.textContent = message;
+    
+    // Update alert styling based on type
+    const alertClasses = {
+      success: 'alert-success',
+      error: 'alert-error',
+      warning: 'alert-warning',
+      info: 'alert-info'
+    };
+    
+    // Remove existing alert classes
+    resultDiv.className = 'alert mt-6';
+    // Add new alert class
+    resultDiv.classList.add(alertClasses[type] || alertClasses.info);
+    
+    resultDiv.classList.remove('hidden');
   }
   
   function openDeviceSettings() {
@@ -392,32 +244,6 @@
       log('Running in browser - will use fallback scanner');
       updateStatus('Browser mode - using fallback scanner', 'info');
     }
-    
-    // Add click outside modal to close
-    document.getElementById('permissionModal').addEventListener('click', function(e) {
-      if (e.target === this) {
-        hidePermissionHelp();
-      }
-    });
-    
-    // Add modal button event listeners
-    document.getElementById('confirmOpenSettings').addEventListener('click', function() {
-      log('User confirmed opening device settings');
-      openDeviceSettings();
-      // Don't close modal immediately - let the user see the logs
-      // hidePermissionHelp();
-    });
-    
-    document.getElementById('cancelSettings').addEventListener('click', function() {
-      log('User cancelled opening device settings');
-      hidePermissionHelp();
-      showResult('Camera permissions are required to use the barcode scanner.', 'info');
-    });
-    
-    document.getElementById('closeModal').addEventListener('click', function() {
-      log('User closed modal manually');
-      hidePermissionHelp();
-    });
   });
   
   // Early permission request function
@@ -504,7 +330,7 @@
   document.getElementById('testNativeScanner').addEventListener('click', async function() {
     const button = this;
     button.disabled = true;
-    button.textContent = '🔄 Launching...';
+    button.innerHTML = '<span class="loading loading-spinner"></span> Launching...';
     
     try {
       if (!isCapacitor) {
@@ -578,7 +404,6 @@ Confidence: ${barcode.confidence || 'N/A'}`;
         
         if (scanError.message.includes('permission') || scanError.message.includes('denied')) {
           showResult('Camera permission error during scanning. Please check device settings.', 'error');
-          showPermissionHelp();
         } else {
           showResult(`Scanning error: ${scanError.message}`, 'error');
         }
@@ -590,7 +415,7 @@ Confidence: ${barcode.confidence || 'N/A'}`;
       updateStatus('Native scanner failed', 'error');
     } finally {
       button.disabled = false;
-      button.textContent = '📱 Launch Native Barcode Scanner';
+      button.innerHTML = '📱 Launch Native Barcode Scanner';
     }
   });
   
@@ -598,146 +423,65 @@ Confidence: ${barcode.confidence || 'N/A'}`;
   document.getElementById('debugPlugins').addEventListener('click', function() {
     const button = this;
     button.disabled = true;
-    button.textContent = '🔍 Debugging...';
+    button.innerHTML = '<span class="loading loading-spinner"></span> Debugging...';
     
     try {
       log('=== DEBUGGING PLUGIN AVAILABILITY ===');
       
       if (!isCapacitor) {
-        log('❌ Capacitor not available', 'error');
-        showResult('Capacitor not available in this environment', 'error');
+        log('Capacitor not available', 'error');
+        showResult('Capacitor not available - cannot debug plugins', 'error');
         return;
       }
       
-      log('✅ Capacitor is available');
+      log('Capacitor detected, checking plugins...');
       
       // Log Capacitor object structure
-      log('Capacitor object structure:');
+      log('Capacitor object:');
       Object.keys(Capacitor).forEach(key => {
-        log(`  - ${key}: ${typeof Capacitor[key]}`);
-        if (typeof Capacitor[key] === 'object' && Capacitor[key] !== null) {
-          try {
-            const subKeys = Object.keys(Capacitor[key]);
-            if (subKeys.length > 0) {
-              log(`    Sub-keys: ${subKeys.join(', ')}`);
-            }
-          } catch (e) {
-            log(`    (Could not enumerate sub-keys)`);
-          }
-        }
+        log(`  ${key}: ${typeof Capacitor[key]}`);
       });
       
-      // Check global plugins
+      // Check plugins
       if (Capacitor.Plugins) {
-        log('Available plugins in Capacitor.Plugins:');
+        log('Available plugins:');
         Object.keys(Capacitor.Plugins).forEach(plugin => {
           log(`  - ${plugin}`);
         });
         
-        if (Capacitor.Plugins.BarcodeScanner) {
-          log('✅ BarcodeScanner plugin found in Capacitor.Plugins', 'success');
-        } else {
-          log('❌ BarcodeScanner plugin NOT found in Capacitor.Plugins', 'error');
-        }
+        // Check specific plugins
+        const importantPlugins = ['BarcodeScanner', 'NativeSettings', 'Camera'];
+        importantPlugins.forEach(pluginName => {
+          if (Capacitor.Plugins[pluginName]) {
+            log(`✅ ${pluginName} plugin available`);
+          } else {
+            log(`❌ ${pluginName} plugin not available`);
+          }
+        });
+        
+        showResult(`Found ${Object.keys(Capacitor.Plugins).length} plugins. Check logs for details.`, 'info');
       } else {
-        log('❌ Capacitor.Plugins is not available', 'error');
+        log('No plugins available', 'error');
+        showResult('No plugins available', 'error');
       }
-      
-      // Check window object
-      log('Checking window object for plugins...');
-      if (window.BarcodeScanner) {
-        log('✅ BarcodeScanner found on window object', 'success');
-      } else {
-        log('❌ BarcodeScanner NOT found on window object', 'error');
-      }
-      
-      // Note: ES6 imports don't work in Capacitor environment
-      log('Note: ES6 imports are not available in Capacitor environment');
-      log('Plugins must be accessed via Capacitor.Plugins');
-      
-      showResult('Debug information logged above. Check the logs for details.', 'info');
       
     } catch (error) {
       log(`Debug error: ${error.message}`, 'error');
       showResult(`Debug error: ${error.message}`, 'error');
     } finally {
       button.disabled = false;
-      button.textContent = '🔍 Debug Plugin Availability';
+      button.innerHTML = '🔍 Debug Plugin Availability';
     }
   });
   
-  // Test Camera Permissions
-  document.getElementById('testPermissions').addEventListener('click', async function() {
-    const button = this;
-    button.disabled = true;
-    button.textContent = '📷 Testing...';
-    
-    try {
-      log('=== TESTING CAMERA PERMISSIONS ===');
-      
-      if (!isCapacitor) {
-        throw new Error('Capacitor not available');
-      }
-      
-      const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
-      if (!BarcodeScanner) {
-        throw new Error('BarcodeScanner plugin not found');
-      }
-      
-      log('BarcodeScanner plugin found');
-      
-      // Check if scanning is supported
-      log('Checking if barcode scanning is supported...');
-      const { supported } = await BarcodeScanner.isSupported();
-      log(`Barcode scanning supported: ${supported}`);
-      
-      if (!supported) {
-        throw new Error('Barcode scanning not supported on this device');
-      }
-      
-      // Check current permissions
-      log('Checking current camera permissions...');
-      const { granted } = await BarcodeScanner.checkPermissions();
-      log(`Current permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
-      
-      if (granted) {
-        log('✅ Camera permissions already granted', 'success');
-        showResult('Camera permissions are already granted!', 'success');
-        return;
-      }
-      
-      // Request permissions
-      log('Requesting camera permissions...');
-      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-      log(`Permission request result: ${newGranted ? 'GRANTED' : 'DENIED'}`);
-      
-      if (newGranted) {
-        log('✅ Camera permissions granted successfully!', 'success');
-        showResult('Camera permissions granted successfully!', 'success');
-        hidePermissionHelp();
-      } else {
-        log('❌ Camera permissions denied', 'error');
-        showResult('Camera permissions were denied. Please grant camera permissions in your device settings.', 'error');
-        showPermissionHelp();
-      }
-      
-    } catch (error) {
-      log(`Permission test error: ${error.message}`, 'error');
-      showResult(`Error: ${error.message}`, 'error');
-    } finally {
-      button.disabled = false;
-      button.textContent = '📷 Test Camera Permissions';
-    }
-  });
-  
-  // Request Camera Permissions
+  // Request Permissions
   document.getElementById('requestPermissions').addEventListener('click', async function() {
     const button = this;
     button.disabled = true;
-    button.textContent = '🔐 Requesting...';
+    button.innerHTML = '<span class="loading loading-spinner"></span> Requesting...';
     
     try {
-      log('=== MANUALLY REQUESTING CAMERA PERMISSIONS ===');
+      log('=== REQUESTING CAMERA PERMISSIONS ===');
       
       if (!isCapacitor) {
         throw new Error('Capacitor not available');
@@ -745,49 +489,36 @@ Confidence: ${barcode.confidence || 'N/A'}`;
       
       const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
       if (!BarcodeScanner) {
-        throw new Error('BarcodeScanner plugin not found');
+        throw new Error('BarcodeScanner plugin not available');
       }
       
-      log('BarcodeScanner plugin found, requesting permissions...');
-      
-      // Check if scanning is supported
-      const { supported } = await BarcodeScanner.isSupported();
-      log(`Barcode scanning supported: ${supported}`);
-      
-      if (!supported) {
-        throw new Error('Barcode scanning not supported on this device');
-      }
-      
-      // Request permissions directly
       log('Requesting camera permissions...');
       const { granted } = await BarcodeScanner.requestPermissions();
-      log(`Permission request result: ${granted ? 'GRANTED' : 'DENIED'}`);
       
       if (granted) {
-        log('✅ Camera permissions granted successfully!', 'success');
-        showResult('Camera permissions granted successfully! You can now use the barcode scanner.', 'success');
+        log('✅ Camera permissions granted!', 'success');
+        showResult('Camera permissions granted successfully!', 'success');
         updateStatus('Camera permissions granted!', 'success');
       } else {
         log('❌ Camera permissions denied', 'error');
-        showResult('Camera permissions were denied. Please grant camera permissions in your device settings.', 'error');
+        showResult('Camera permissions denied. Please enable camera access in device settings.', 'error');
         updateStatus('Camera permissions needed', 'warning');
-        showPermissionHelp();
       }
       
     } catch (error) {
       log(`Permission request error: ${error.message}`, 'error');
-      showResult(`Error: ${error.message}`, 'error');
+      showResult(`Permission request error: ${error.message}`, 'error');
     } finally {
       button.disabled = false;
-      button.textContent = '🔐 Request Camera Permissions Now';
+      button.innerHTML = '🔐 Request Camera Permissions Now';
     }
   });
   
-  // Refresh Permission Status
+  // Refresh Permissions
   document.getElementById('refreshPermissions').addEventListener('click', async function() {
     const button = this;
     button.disabled = true;
-    button.textContent = '🔄 Refreshing...';
+    button.innerHTML = '<span class="loading loading-spinner"></span> Refreshing...';
     
     try {
       log('=== REFRESHING PERMISSION STATUS ===');
@@ -798,253 +529,221 @@ Confidence: ${barcode.confidence || 'N/A'}`;
       
       const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
       if (!BarcodeScanner) {
-        throw new Error('BarcodeScanner plugin not found');
+        throw new Error('BarcodeScanner plugin not available');
       }
       
-      log('BarcodeScanner plugin found, checking current permissions...');
-      
-      // Check if scanning is supported
-      const { supported } = await BarcodeScanner.isSupported();
-      log(`Barcode scanning supported: ${supported}`);
-      
-      if (!supported) {
-        throw new Error('Barcode scanning not supported on this device');
-      }
-      
-      // Check current permissions with detailed logging
       log('Checking current camera permissions...');
       const { granted } = await BarcodeScanner.checkPermissions();
-      log(`Current permission status: ${granted ? 'GRANTED' : 'DENIED'}`);
       
       if (granted) {
-        log('✅ Camera permissions are currently granted!', 'success');
-        showResult('Camera permissions are currently granted! You can use the barcode scanner.', 'success');
+        log('✅ Camera permissions are granted', 'success');
+        showResult('Camera permissions are currently granted.', 'success');
         updateStatus('Camera permissions granted!', 'success');
       } else {
-        log('❌ Camera permissions are currently denied', 'error');
-        showResult('Camera permissions are currently denied. Please grant camera permissions in your device settings.', 'error');
+        log('❌ Camera permissions are not granted', 'error');
+        showResult('Camera permissions are not granted. Use the "Request Permissions" button to request access.', 'error');
         updateStatus('Camera permissions needed', 'warning');
-        showPermissionHelp();
       }
       
     } catch (error) {
-      log(`Permission refresh error: ${error.message}`, 'error');
-      showResult(`Error: ${error.message}`, 'error');
+      log(`Permission check error: ${error.message}`, 'error');
+      showResult(`Permission check error: ${error.message}`, 'error');
     } finally {
       button.disabled = false;
-      button.textContent = '🔄 Refresh Permission Status';
+      button.innerHTML = '🔄 Refresh Permission Status';
     }
   });
   
-  // Test Direct Camera Access
+  // Test Direct Camera
   document.getElementById('testDirectCamera').addEventListener('click', async function() {
     const button = this;
     button.disabled = true;
-    button.textContent = '📹 Testing...';
+    button.innerHTML = '<span class="loading loading-spinner"></span> Testing...';
     
     try {
       log('=== TESTING DIRECT CAMERA ACCESS ===');
       
-      if (!isCapacitor) {
-        throw new Error('Capacitor not available');
-      }
+      // Try to get camera stream directly
+      log('Requesting camera stream...');
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       
-      log('Attempting to access camera directly...');
+      log('✅ Camera stream obtained successfully!', 'success');
+      showResult('Direct camera access successful! Camera permissions are working.', 'success');
       
-      // Try to get camera stream directly using Web API
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        });
-        
-        log('✅ Direct camera access successful!', 'success');
-        showResult('Direct camera access is working! The camera permission is actually granted.', 'success');
-        updateStatus('Camera access confirmed!', 'success');
-        
-        // Stop the stream immediately
-        stream.getTracks().forEach(track => track.stop());
-        log('Camera stream stopped');
-        
-      } catch (cameraError) {
-        log(`Direct camera access failed: ${cameraError.message}`, 'error');
-        
-        if (cameraError.name === 'NotAllowedError') {
-          showResult('Camera access denied by browser/system. This confirms the permission issue.', 'error');
-        } else if (cameraError.name === 'NotFoundError') {
-          showResult('No camera found on device.', 'error');
-        } else {
-          showResult(`Camera access error: ${cameraError.message}`, 'error');
-        }
-      }
+      // Stop the stream immediately
+      stream.getTracks().forEach(track => track.stop());
+      log('Camera stream stopped');
       
     } catch (error) {
       log(`Direct camera test error: ${error.message}`, 'error');
-      showResult(`Error: ${error.message}`, 'error');
+      
+      if (error.name === 'NotAllowedError') {
+        showResult('Camera access denied. Please enable camera permissions in your browser or device settings.', 'error');
+      } else if (error.name === 'NotFoundError') {
+        showResult('No camera found on this device.', 'error');
+      } else {
+        showResult(`Camera test error: ${error.message}`, 'error');
+      }
     } finally {
       button.disabled = false;
-      button.textContent = '📹 Test Direct Camera Access';
+      button.innerHTML = '📹 Test Direct Camera Access';
     }
   });
   
-  // Test Browser Scanner (Fallback)
+  // Test Permissions
+  document.getElementById('testPermissions').addEventListener('click', async function() {
+    const button = this;
+    button.disabled = true;
+    button.innerHTML = '<span class="loading loading-spinner"></span> Testing...';
+    
+    try {
+      log('=== TESTING CAMERA PERMISSIONS ===');
+      
+      if (!isCapacitor) {
+        log('Not in Capacitor environment, testing browser permissions...');
+        
+        // Test browser permissions
+        const permission = await navigator.permissions.query({ name: 'camera' });
+        log(`Browser camera permission state: ${permission.state}`);
+        
+        if (permission.state === 'granted') {
+          showResult('Browser camera permissions are granted.', 'success');
+        } else if (permission.state === 'denied') {
+          showResult('Browser camera permissions are denied.', 'error');
+        } else {
+          showResult('Browser camera permissions are not set.', 'info');
+        }
+        
+        return;
+      }
+      
+      const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+      if (!BarcodeScanner) {
+        throw new Error('BarcodeScanner plugin not available');
+      }
+      
+      log('Testing native camera permissions...');
+      
+      // Check if supported
+      const { supported } = await BarcodeScanner.isSupported();
+      if (!supported) {
+        throw new Error('Barcode scanning not supported on this device');
+      }
+      
+      // Check permissions
+      const { granted } = await BarcodeScanner.checkPermissions();
+      
+      if (granted) {
+        log('✅ Native camera permissions are granted', 'success');
+        showResult('Native camera permissions are granted and working.', 'success');
+      } else {
+        log('❌ Native camera permissions are not granted', 'error');
+        showResult('Native camera permissions are not granted. Use the "Request Permissions" button.', 'error');
+      }
+      
+    } catch (error) {
+      log(`Permission test error: ${error.message}`, 'error');
+      showResult(`Permission test error: ${error.message}`, 'error');
+    } finally {
+      button.disabled = false;
+      button.innerHTML = '📷 Test Camera Permissions';
+    }
+  });
+  
+  // Test Browser Scanner
   document.getElementById('testBrowserScanner').addEventListener('click', async function() {
     const button = this;
     button.disabled = true;
-    button.textContent = '🔄 Starting...';
+    button.innerHTML = '<span class="loading loading-spinner"></span> Testing...';
     
     try {
-      log('Testing browser-based barcode scanner...');
-      updateStatus('Starting browser scanner...', 'info');
+      log('=== TESTING BROWSER BARCODE SCANNER ===');
       
-      // Check if BarcodeDetector is supported
-      if (!('BarcodeDetector' in window)) {
-        throw new Error('BarcodeDetector not supported in this browser');
+      // Check if ZXing is available
+      if (typeof ZXingBrowser === 'undefined') {
+        throw new Error('ZXing library not loaded');
       }
       
-      log('BarcodeDetector is supported');
+      log('ZXing library available, testing browser scanner...');
       
       // Create a simple video element for testing
       const video = document.createElement('video');
-      video.style.width = '100%';
-      video.style.height = '300px';
-      video.style.border = '2px solid #007bff';
-      video.style.borderRadius = '8px';
-      video.style.marginTop = '10px';
+      video.className = 'w-full h-48 border border-base-300 rounded-box mt-4';
       
-      // Replace result div with video
+      // Insert video element
       const resultDiv = document.getElementById('result');
-      resultDiv.innerHTML = '';
-      resultDiv.appendChild(video);
-      resultDiv.style.display = 'block';
+      resultDiv.parentNode.insertBefore(video, resultDiv.nextSibling);
       
-      // Get camera stream
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      
+      // Try to get camera stream
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       video.srcObject = stream;
-      await video.play();
+      video.play();
       
-      log('Camera stream started');
-      updateStatus('Camera active - point at barcode', 'info');
+      log('✅ Browser camera access successful', 'success');
+      showResult('Browser camera access working. Video stream started.', 'success');
       
-      // Create BarcodeDetector
-      const barcodeDetector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'code_128', 'code_39']
-      });
-      
-      // Scan for barcodes
-      const scanInterval = setInterval(async () => {
-        try {
-          const barcodes = await barcodeDetector.detect(video);
-          if (barcodes.length > 0) {
-            const barcode = barcodes[0];
-            const result = `✅ Browser Scanner Detected!
-Format: ${barcode.format}
-Value: ${barcode.rawValue}`;
-            
-            log(`Browser scanner detected: ${barcode.rawValue} (${barcode.format})`, 'success');
-            showResult(result, 'success');
-            updateStatus(`Detected: ${barcode.rawValue}`, 'success');
-          } else {
-            log('No barcode detected');
-            showResult('No barcode detected', 'info');
-            updateStatus('No barcode detected', 'info');
-          }
-        } catch (error) {
-          log(`Browser scanner error: ${error.message}`, 'error');
-          showResult(`Error: ${error.message}`, 'error');
-          updateStatus('Browser scanner failed', 'error');
-        }
-      });
+      // Stop stream after 5 seconds
+      setTimeout(() => {
+        stream.getTracks().forEach(track => track.stop());
+        video.remove();
+        log('Browser camera test completed');
+      }, 5000);
       
     } catch (error) {
-      log(`Browser scanner error: ${error.message}`, 'error');
-      showResult(`Error: ${error.message}`, 'error');
-      updateStatus('Browser scanner failed', 'error');
+      log(`Browser scanner test error: ${error.message}`, 'error');
+      
+      if (error.name === 'NotAllowedError') {
+        showResult('Camera access denied. Please enable camera permissions.', 'error');
+      } else if (error.name === 'NotFoundError') {
+        showResult('No camera found on this device.', 'error');
+      } else {
+        showResult(`Browser scanner test error: ${error.message}`, 'error');
+      }
     } finally {
       button.disabled = false;
-      button.textContent = '🌐 Test Browser Barcode Scanner (Fallback)';
+      button.innerHTML = '🌐 Test Browser Barcode Scanner (Fallback)';
     }
   });
   
-  // Debug Scanner Module
-  document.getElementById('debugModule').addEventListener('click', async function() {
+  // Debug Module
+  document.getElementById('debugModule').addEventListener('click', function() {
     const button = this;
     button.disabled = true;
-    button.textContent = '🔍 Debugging...';
+    button.innerHTML = '<span class="loading loading-spinner"></span> Debugging...';
     
     try {
       log('=== DEBUGGING SCANNER MODULE ===');
       
-      if (!isCapacitor) {
-        throw new Error('Capacitor not available');
-      }
-      
-      if (!window.NativeScanner || !window.NativeScanner.debugBarcodeScannerModule) {
-        throw new Error('NativeScanner.debugBarcodeScannerModule not available');
-      }
-      
-      log('Calling debugBarcodeScannerModule...');
-      const debugResult = await window.NativeScanner.debugBarcodeScannerModule();
-      
-      log('Debug result:', debugResult);
-      
-      if (debugResult.available) {
-        log('✅ Scanner module appears to be working', 'success');
-        showResult(`Scanner module is available: ${debugResult.reason}`, 'success');
-        updateStatus('Scanner module working!', 'success');
-      } else {
-        log(`❌ Scanner module issue: ${debugResult.reason}`, 'error');
-        showResult(`Scanner module issue: ${debugResult.reason}`, 'error');
-        updateStatus('Scanner module has issues', 'error');
-        
-        if (debugResult.needsInstallation) {
-          log('Module needs installation - offering to install...', 'warning');
-          showResult('The scanner module needs to be installed. Would you like to try installing it?', 'warning');
+      // Check for scanner modules
+      const modules = ['ScannerCore', 'ScannerUI', 'ScannerNative', 'ScannerZXing'];
+      modules.forEach(moduleName => {
+        if (window[moduleName]) {
+          log(`✅ ${moduleName} module available`);
           
-          // Add install button
-          const installBtn = document.createElement('button');
-          installBtn.textContent = '🔧 Install Scanner Module';
-          installBtn.className = 'btn btn-warning btn-sm mt-2';
-          installBtn.onclick = async function() {
-            try {
-              log('Attempting to install scanner module...');
-              await window.NativeScanner.installBarcodeScannerModule();
-              log('✅ Scanner module installed successfully!', 'success');
-              showResult('Scanner module installed successfully! Try scanning again.', 'success');
-              updateStatus('Module installed!', 'success');
-            } catch (installError) {
-              log(`❌ Installation failed: ${installError.message}`, 'error');
-              showResult(`Installation failed: ${installError.message}`, 'error');
-              updateStatus('Installation failed', 'error');
-            }
-          };
-          
-          const resultDiv = document.getElementById('result');
-          resultDiv.appendChild(installBtn);
+          // Log module methods
+          const methods = Object.getOwnPropertyNames(window[moduleName]);
+          log(`  Methods: ${methods.join(', ')}`);
+        } else {
+          log(`❌ ${moduleName} module not available`);
         }
+      });
+      
+      // Check for ZXing
+      if (typeof ZXingBrowser !== 'undefined') {
+        log('✅ ZXing library available');
+        log(`  ZXingBrowser methods: ${Object.getOwnPropertyNames(ZXingBrowser).join(', ')}`);
+      } else {
+        log('❌ ZXing library not available');
       }
       
-      // Show debug info if available
-      if (debugResult.debugInfo) {
-        log('Debug info:', debugResult.debugInfo);
-        const debugInfoText = `Debug Info:
-- Plugin Methods: ${debugResult.debugInfo.pluginMethods?.join(', ') || 'N/A'}
-- Has Install Method: ${debugResult.debugInfo.hasInstallMethod || 'N/A'}
-- Platform: ${debugResult.debugInfo.platform || 'N/A'}
-- Supported: ${debugResult.debugInfo.supported || 'N/A'}
-- Permissions: ${debugResult.debugInfo.permissionsGranted || 'N/A'}`;
-        
-        showResult(debugInfoText, 'info');
-      }
+      showResult('Scanner module debug complete. Check logs for details.', 'info');
       
     } catch (error) {
-      log(`Debug module error: ${error.message}`, 'error');
-      showResult(`Error: ${error.message}`, 'error');
+      log(`Module debug error: ${error.message}`, 'error');
+      showResult(`Module debug error: ${error.message}`, 'error');
     } finally {
       button.disabled = false;
-      button.textContent = '🔍 Debug Scanner Module';
+      button.innerHTML = '🔍 Debug Scanner Module';
     }
   });
 </script>

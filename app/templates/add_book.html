@@ -197,122 +197,6 @@
   </div>
 </div>
 
-<!-- Permission Modal Dialog -->
-<div id="permissionModal" class="modal-overlay" style="display: none;">
-  <div class="modal-dialog">
-    <div class="modal-title">📱 Camera Permissions Required</div>
-    <div class="modal-content">
-      <p>The barcode scanner needs camera access to work.</p>
-      <p>I'll try to open your device settings automatically. If that doesn't work, follow the manual steps below.</p>
-    </div>
-    <div class="modal-buttons">
-      <button id="confirmOpenSettings" class="modal-button primary">
-        🔧 Try to Open Settings
-      </button>
-      <button id="cancelSettings" class="modal-button secondary">
-        ❌ Cancel
-      </button>
-    </div>
-    <div class="modal-path">
-      <strong>📋 Manual Steps (if automatic doesn't work):</strong><br>
-      1. <strong>Open Settings</strong> on your device<br>
-      2. <strong>Find "Apps"</strong> or "Applications"<br>
-      3. <strong>Search for "BookOracle"</strong> in the app list<br>
-      4. <strong>Tap on "BookOracle"</strong><br>
-      5. <strong>Tap "Permissions"</strong><br>
-      6. <strong>Enable "Camera"</strong> permission<br>
-      7. <strong>Return to this app</strong> and try again
-    </div>
-    <button id="closeModal" class="modal-button secondary" style="margin-top: 15px; width: 100%;">
-      ✖️ Close Modal
-    </button>
-  </div>
-</div>
-
-<style>
-  /* Modal Dialog Styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-  }
-  
-  .modal-dialog {
-    background: white;
-    border-radius: 12px;
-    padding: 25px;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    position: relative;
-    z-index: 1001;
-    pointer-events: auto;
-  }
-  
-  .modal-title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: #333;
-  }
-  
-  .modal-content {
-    margin-bottom: 20px;
-    line-height: 1.5;
-    color: #666;
-  }
-  
-  .modal-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-  }
-  
-  .modal-button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    flex: 1;
-    max-width: 150px;
-  }
-  
-  .modal-button.primary {
-    background: #17a2b8;
-    color: white;
-  }
-  
-  .modal-button.secondary {
-    background: #6c757d;
-    color: white;
-  }
-  
-  .modal-button:hover {
-    opacity: 0.9;
-  }
-  
-  .modal-path {
-    font-size: 12px;
-    color: #999;
-    margin-top: 15px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border-left: 3px solid #17a2b8;
-  }
-</style>
-
 <!-- Early environment detection setup -->
 <script>
 // Function to check native scanner availability
@@ -446,6 +330,178 @@ document.addEventListener('DOMContentLoaded', function() {
   
   console.log('[AddBook] Scanner initialization complete');
 });
+
+// Enhanced scanner button click handler with proper permission handling
+async function handleScannerButtonClick() {
+  console.log('[AddBook] Scanner button clicked');
+  
+  const scannerBtn = document.getElementById('scannerBtn');
+  if (!scannerBtn) {
+    console.error('[AddBook] Scanner button not found');
+    return;
+  }
+  
+  // Disable button and show loading state
+  scannerBtn.disabled = true;
+  const originalText = scannerBtn.innerHTML;
+  scannerBtn.innerHTML = '<span class="loading loading-spinner"></span> Starting...';
+  
+  try {
+    // Check if we're in a Capacitor environment
+    if (!window.isCapacitor) {
+      console.log('[AddBook] Not in Capacitor environment, using browser scanner');
+      // Use the existing smart scanner for browser environment
+      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+        await window.ScannerCore.startSmartScanner();
+      } else {
+        throw new Error('Scanner not available');
+      }
+      return;
+    }
+    
+    console.log('[AddBook] Capacitor environment detected, checking native scanner...');
+    
+    // Get the BarcodeScanner plugin from Capacitor.Plugins
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    if (!BarcodeScanner) {
+      console.log('[AddBook] BarcodeScanner plugin not found, falling back to browser scanner');
+      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+        await window.ScannerCore.startSmartScanner();
+      } else {
+        throw new Error('Scanner not available');
+      }
+      return;
+    }
+    
+    console.log('[AddBook] Found BarcodeScanner plugin, checking support...');
+    
+    // Check if scanning is supported
+    const { supported } = await BarcodeScanner.isSupported();
+    if (!supported) {
+      console.log('[AddBook] Barcode scanning not supported, falling back to browser scanner');
+      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+        await window.ScannerCore.startSmartScanner();
+      } else {
+        throw new Error('Scanner not available');
+      }
+      return;
+    }
+    
+    console.log('[AddBook] Barcode scanning is supported, checking permissions...');
+    
+    // Check current permissions
+    let permissionGranted = false;
+    try {
+      const { granted } = await BarcodeScanner.checkPermissions();
+      console.log(`[AddBook] Initial permission status: ${granted ? 'granted' : 'denied'}`);
+      permissionGranted = granted;
+    } catch (permError) {
+      console.log(`[AddBook] Permission check error: ${permError.message}`, 'warning');
+    }
+    
+    // Request permissions if not granted
+    if (!permissionGranted) {
+      console.log('[AddBook] Permission not granted, requesting permissions...');
+      try {
+        const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+        console.log(`[AddBook] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
+        permissionGranted = newGranted;
+      } catch (permError) {
+        console.log(`[AddBook] Permission request error: ${permError.message}`, 'warning');
+      }
+    }
+    
+    // If permissions are granted, start native scanner
+    if (permissionGranted) {
+      console.log('[AddBook] Permissions granted, starting native scanner...');
+      try {
+        const { barcodes } = await BarcodeScanner.scan();
+        
+        if (barcodes && barcodes.length > 0) {
+          const barcode = barcodes[0];
+          console.log(`[AddBook] Native scanner detected: ${barcode.rawValue} (${barcode.format})`);
+          
+          // Fill in the ISBN field
+          const isbnField = document.getElementById('isbn');
+          if (isbnField) {
+            isbnField.value = barcode.rawValue;
+            isbnField.dispatchEvent(new Event('input', { bubbles: true }));
+            console.log('[AddBook] ISBN field updated with scanned barcode');
+            
+            // Show success notification
+            if (window.ScannerUI && window.ScannerUI.showNotification) {
+              window.ScannerUI.showNotification(`Barcode scanned: ${barcode.rawValue}`, 'success');
+            }
+          }
+          
+          // Auto-fetch book data if available
+          if (window.autofetchBookData) {
+            console.log('[AddBook] Auto-fetching book data...');
+            window.autofetchBookData();
+          }
+        } else {
+          console.log('[AddBook] No barcode detected');
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification('No barcode detected', 'info');
+          }
+        }
+      } catch (scanError) {
+        console.error('[AddBook] Native scanner error:', scanError);
+        
+        // Handle cancellation
+        const errorMessage = scanError.message || scanError.toString();
+        const isCancellation = errorMessage.includes('cancel') || 
+                              errorMessage.includes('Cancel') ||
+                              errorMessage.includes('User cancelled') ||
+                              errorMessage.includes('user cancelled') ||
+                              errorMessage.includes('cancelled') ||
+                              errorMessage.includes('Cancelled') ||
+                              errorMessage.includes('back') ||
+                              errorMessage.includes('Back') ||
+                              errorMessage.includes('dismiss') ||
+                              errorMessage.includes('Dismiss');
+        
+        if (isCancellation) {
+          console.log('[AddBook] Scan cancelled by user');
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification('Scan cancelled', 'info');
+          }
+        } else {
+          // Handle permission errors
+          if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
+            console.error('[AddBook] Camera permission error during scanning');
+            if (window.ScannerUI && window.ScannerUI.showNotification) {
+              window.ScannerUI.showNotification('Camera permission error. Please check device settings.', 'error');
+            }
+          } else {
+            console.error('[AddBook] Scanning error:', scanError.message);
+            if (window.ScannerUI && window.ScannerUI.showNotification) {
+              window.ScannerUI.showNotification(`Scanning error: ${scanError.message}`, 'error');
+            }
+          }
+        }
+      }
+    } else {
+      console.log('[AddBook] Permissions not granted, falling back to browser scanner');
+      // Fall back to browser scanner
+      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+        await window.ScannerCore.startSmartScanner();
+      } else {
+        throw new Error('Scanner not available');
+      }
+    }
+    
+  } catch (error) {
+    console.error('[AddBook] Scanner error:', error);
+    if (window.ScannerUI && window.ScannerUI.showNotification) {
+      window.ScannerUI.showNotification(`Scanner error: ${error.message}`, 'error');
+    }
+  } finally {
+    // Re-enable button and restore original text
+    scannerBtn.disabled = false;
+    scannerBtn.innerHTML = originalText;
+  }
+}
 
 // Show/hide debug buttons based on environment
 function updateDebugButtons() {
