@@ -44,11 +44,11 @@
               📷 Scan Barcode
             </button>
             
-            <button id="debugBtn" type="button" class="btn btn-secondary btn-sm" onclick="debugScanner()" style="display: none;">
+            <button id="debugBtn" type="button" class="btn btn-secondary btn-sm hidden" onclick="debugScanner()">
               🔍 Debug Scanner
             </button>
             
-            <button id="installModuleBtn" type="button" class="btn btn-warning btn-sm" onclick="installScannerModule()" style="display: none;">
+            <button id="installModuleBtn" type="button" class="btn btn-warning btn-sm hidden" onclick="installScannerModule()">
               🔧 Install Scanner Module
             </button>
           </div>
@@ -202,22 +202,22 @@
 </div>
 
 <!-- Permission Modal Dialog -->
-<div id="permissionModal" class="modal-overlay" style="display: none;">
-  <div class="modal-dialog">
-    <div class="modal-title">📱 Camera Permissions Required</div>
-    <div class="modal-content">
+<div id="permissionModal" class="fixed inset-0 bg-black/50 items-center justify-center z-[1000] pointer-events-auto hidden">
+  <div class="bg-white rounded-xl p-6 max-w-md w-[90%] shadow-2xl text-center relative z-[1001] pointer-events-auto">
+    <div class="text-xl font-bold mb-4 text-gray-800">📱 Camera Permissions Required</div>
+    <div class="mb-5 leading-relaxed text-gray-600">
       <p>The barcode scanner needs camera access to work.</p>
       <p>I'll try to open your device settings automatically. If that doesn't work, follow the manual steps below.</p>
     </div>
-    <div class="modal-buttons">
-      <button id="confirmOpenSettings" class="modal-button primary">
+    <div class="flex gap-2.5 justify-center">
+      <button id="confirmOpenSettings" class="btn btn-info flex-1 max-w-[150px]">
         🔧 Try to Open Settings
       </button>
-      <button id="cancelSettings" class="modal-button secondary">
+      <button id="cancelSettings" class="btn btn-neutral flex-1 max-w-[150px]">
         ❌ Cancel
       </button>
     </div>
-    <div class="modal-path">
+    <div class="text-xs text-gray-500 mt-4 p-2.5 bg-gray-50 rounded-md border-l-4 border-info">
       <strong>📋 Manual Steps (if automatic doesn't work):</strong><br>
       1. <strong>Open Settings</strong> on your device<br>
       2. <strong>Find "Apps"</strong> or "Applications"<br>
@@ -227,95 +227,11 @@
       6. <strong>Enable "Camera"</strong> permission<br>
       7. <strong>Return to this app</strong> and try again
     </div>
-    <button id="closeModal" class="modal-button secondary" style="margin-top: 15px; width: 100%;">
+    <button id="closeModal" class="btn btn-neutral w-full mt-4">
       ✖️ Close Modal
     </button>
   </div>
 </div>
-
-<style>
-  /* Modal Dialog Styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-  }
-  
-  .modal-dialog {
-    background: white;
-    border-radius: 12px;
-    padding: 25px;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    position: relative;
-    z-index: 1001;
-    pointer-events: auto;
-  }
-  
-  .modal-title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: #333;
-  }
-  
-  .modal-content {
-    margin-bottom: 20px;
-    line-height: 1.5;
-    color: #666;
-  }
-  
-  .modal-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-  }
-  
-  .modal-button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    flex: 1;
-    max-width: 150px;
-  }
-  
-  .modal-button.primary {
-    background: #17a2b8;
-    color: white;
-  }
-  
-  .modal-button.secondary {
-    background: #6c757d;
-    color: white;
-  }
-  
-  .modal-button:hover {
-    opacity: 0.9;
-  }
-  
-  .modal-path {
-    font-size: 12px;
-    color: #999;
-    margin-top: 15px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border-left: 3px solid #17a2b8;
-  }
-</style>
 
 <!-- Early environment detection setup -->
 <script>
@@ -460,12 +376,17 @@ function updateDebugButtons() {
   const installModuleBtn = document.getElementById('installModuleBtn');
   
   if (debugBtn) {
-    debugBtn.style.display = '{{ "block" if config.DEBUG_MODE or current_user.debug_enabled else "none" }}';
+    // Only show debug button if the current user has debug_enabled set
+    if ('{{ current_user.debug_enabled }}' === 'True') {
+      debugBtn.classList.remove('hidden');
+    } else {
+      debugBtn.classList.add('hidden');
+    }
   }
   
   // Hide install module button by default - only show when needed
   if (installModuleBtn) {
-    installModuleBtn.style.display = 'none';
+    installModuleBtn.classList.add('hidden');
   }
 }
 
@@ -473,7 +394,7 @@ function updateDebugButtons() {
 function showInstallModuleButton() {
   const installModuleBtn = document.getElementById('installModuleBtn');
   if (installModuleBtn && window.isCapacitor && window.platform !== 'web') {
-    installModuleBtn.style.display = 'block';
+    installModuleBtn.classList.remove('hidden');
   }
 }
 
@@ -481,7 +402,7 @@ function showInstallModuleButton() {
 function hideInstallModuleButton() {
   const installModuleBtn = document.getElementById('installModuleBtn');
   if (installModuleBtn) {
-    installModuleBtn.style.display = 'none';
+    installModuleBtn.classList.add('hidden');
   }
 }
 
@@ -645,6 +566,66 @@ document.addEventListener('visibilitychange', function() {
     // Small delay to ensure any background installations have completed
     setTimeout(checkAndHideInstallButton, 1000);
   }
+});
+
+// Modal control functions using Tailwind classes
+function showPermissionModal() {
+  const modal = document.getElementById('permissionModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+}
+
+function hidePermissionModal() {
+  const modal = document.getElementById('permissionModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+}
+
+// Add event listeners for modal buttons
+document.addEventListener('DOMContentLoaded', function() {
+  const confirmBtn = document.getElementById('confirmOpenSettings');
+  const cancelBtn = document.getElementById('cancelSettings');
+  const closeBtn = document.getElementById('closeModal');
+  const modal = document.getElementById('permissionModal');
+  
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', function() {
+      console.log('[AddBook] User confirmed opening device settings');
+      // Add your settings opening logic here
+      hidePermissionModal();
+    });
+  }
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function() {
+      console.log('[AddBook] User cancelled opening device settings');
+      hidePermissionModal();
+    });
+  }
+  
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      console.log('[AddBook] User closed modal manually');
+      hidePermissionModal();
+    });
+  }
+  
+  // Close modal when clicking outside
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) {
+        hidePermissionModal();
+      }
+    });
+  }
+  
+  // Make modal functions globally available for scanner modules
+  window.showPermissionModal = showPermissionModal;
+  window.hidePermissionModal = hidePermissionModal;
 });
 </script>
 {% endblock %}

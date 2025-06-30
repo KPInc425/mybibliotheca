@@ -2,235 +2,70 @@
 {% block title %}Test Native Barcode Scanner - BookOracle{% endblock %}
 {% block content %}
 
-<style>
-  .test-container {
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 20px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  }
-  
-  .test-header {
-    text-align: center;
-    margin-bottom: 30px;
-  }
-  
-  .test-button {
-    display: block;
-    width: 100%;
-    padding: 15px;
-    margin: 10px 0;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    text-align: center;
-  }
-  
-  .test-button:hover {
-    background: #0056b3;
-  }
-  
-  .test-button:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-  }
-  
-  .result {
-    margin: 20px 0;
-    padding: 15px;
-    border-radius: 8px;
-    font-family: monospace;
-    white-space: pre-wrap;
-  }
-  
-  .result.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-  }
-  
-  .result.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-  }
-  
-  .result.info {
-    background: #d1ecf1;
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-  }
-  
-  .status {
-    text-align: center;
-    font-weight: bold;
-    margin: 10px 0;
-  }
-  
-  .back-link {
-    display: block;
-    text-align: center;
-    margin-top: 20px;
-    color: #007bff;
-    text-decoration: none;
-  }
-  
-  .back-link:hover {
-    text-decoration: underline;
-  }
-  
-  /* Modal Dialog Styles */
-  .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-  }
-  
-  .modal-dialog {
-    background: white;
-    border-radius: 12px;
-    padding: 25px;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    position: relative;
-    z-index: 1001;
-    pointer-events: auto;
-  }
-  
-  .modal-title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: #333;
-  }
-  
-  .modal-content {
-    margin-bottom: 20px;
-    line-height: 1.5;
-    color: #666;
-  }
-  
-  .modal-buttons {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-  }
-  
-  .modal-button {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    flex: 1;
-    max-width: 150px;
-  }
-  
-  .modal-button.primary {
-    background: #17a2b8;
-    color: white;
-  }
-  
-  .modal-button.secondary {
-    background: #6c757d;
-    color: white;
-  }
-  
-  .modal-button:hover {
-    opacity: 0.9;
-  }
-  
-  .modal-path {
-    font-size: 12px;
-    color: #999;
-    margin-top: 15px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border-left: 3px solid #17a2b8;
-  }
-</style>
-
-<div class="test-container">
-  <div class="test-header">
-    <h1>🧪 Test Native Barcode Scanner</h1>
-    <p>This page tests the MLKit native barcode scanner plugin</p>
+<div class="max-w-2xl mx-auto p-5 bg-white rounded-xl shadow-lg">
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-800">🧪 Test Native Barcode Scanner</h1>
+    <p class="text-gray-600 mt-2">This page tests the MLKit native barcode scanner plugin</p>
   </div>
   
-  <div id="status" class="status">Ready to test native barcode scanner</div>
+  <div id="status" class="text-center font-bold text-lg mb-4 text-blue-600">Ready to test native barcode scanner</div>
   
-  <button id="testNativeScanner" class="test-button">
+  <button id="testNativeScanner" class="w-full p-4 mb-3 bg-blue-500 hover:bg-blue-600 text-white border-none rounded-lg text-base cursor-pointer text-center transition-colors">
     📱 Launch Native Barcode Scanner
   </button>
   
-  <button id="debugPlugins" class="test-button" style="background: #6c757d;">
+  <button id="debugPlugins" class="w-full p-4 mb-3 bg-gray-500 hover:bg-gray-600 text-white border-none rounded-lg text-base cursor-pointer text-center transition-colors">
     🔍 Debug Plugin Availability
   </button>
   
-  <button id="requestPermissions" class="test-button" style="background: #17a2b8;">
+  <button id="requestPermissions" class="w-full p-4 mb-3 bg-cyan-500 hover:bg-cyan-600 text-white border-none rounded-lg text-base cursor-pointer text-center transition-colors">
     🔐 Request Camera Permissions Now
   </button>
   
-  <button id="refreshPermissions" class="test-button" style="background: #ffc107; color: #000;">
+  <button id="refreshPermissions" class="w-full p-4 mb-3 bg-yellow-500 hover:bg-yellow-600 text-black border-none rounded-lg text-base cursor-pointer text-center transition-colors">
     🔄 Refresh Permission Status
   </button>
   
-  <button id="testDirectCamera" class="test-button" style="background: #e83e8c;">
+  <button id="testDirectCamera" class="w-full p-4 mb-3 bg-pink-500 hover:bg-pink-600 text-white border-none rounded-lg text-base cursor-pointer text-center transition-colors">
     📹 Test Direct Camera Access
   </button>
   
-  <button id="testPermissions" class="test-button" style="background: #28a745;">
+  <button id="testPermissions" class="w-full p-4 mb-3 bg-green-500 hover:bg-green-600 text-white border-none rounded-lg text-base cursor-pointer text-center transition-colors">
     📷 Test Camera Permissions
   </button>
   
-  <button id="testBrowserScanner" class="test-button">
+  <button id="testBrowserScanner" class="w-full p-4 mb-3 bg-blue-500 hover:bg-blue-600 text-white border-none rounded-lg text-base cursor-pointer text-center transition-colors">
     🌐 Test Browser Barcode Scanner (Fallback)
   </button>
   
-  <button id="debugModule" class="test-button" style="background: #ffc107; color: #000;">
+  <button id="debugModule" class="w-full p-4 mb-3 bg-yellow-500 hover:bg-yellow-600 text-black border-none rounded-lg text-base cursor-pointer text-center transition-colors">
     🔍 Debug Scanner Module
   </button>
   
-  <div id="result" class="result info" style="display: none;"></div>
+  <div id="result" class="hidden mt-5 p-4 rounded-lg font-mono whitespace-pre-wrap"></div>
   
-  <div id="logs" style="margin-top: 20px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
+  <div id="logs" class="mt-5 font-mono text-xs max-h-48 overflow-y-auto bg-gray-100 p-3 rounded-lg"></div>
   
-  <a href="{{ url_for('main.index') }}" class="back-link">⬅️ Back to Library</a>
+  <a href="{{ url_for('main.index') }}" class="block text-center mt-5 text-blue-500 hover:underline no-underline">⬅️ Back to Library</a>
 </div>
 
 <!-- Permission Modal Dialog -->
-<div id="permissionModal" class="modal-overlay">
-  <div class="modal-dialog">
-    <div class="modal-title">📱 Camera Permissions Required</div>
-    <div class="modal-content">
+<div id="permissionModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center pointer-events-auto">
+  <div class="bg-white rounded-xl p-6 max-w-md w-11/12 shadow-2xl text-center relative z-10 pointer-events-auto">
+    <div class="text-xl font-bold mb-4 text-gray-800">📱 Camera Permissions Required</div>
+    <div class="mb-5 leading-relaxed text-gray-600">
       <p>The barcode scanner needs camera access to work.</p>
       <p>I'll try to open your device settings automatically. If that doesn't work, follow the manual steps below.</p>
     </div>
-    <div class="modal-buttons">
-      <button id="confirmOpenSettings" class="modal-button primary">
+    <div class="flex gap-3 justify-center">
+      <button id="confirmOpenSettings" class="px-5 py-3 border-none rounded-lg text-sm font-medium cursor-pointer flex-1 max-w-36 bg-cyan-500 hover:bg-cyan-600 text-white transition-opacity">
         🔧 Try to Open Settings
       </button>
-      <button id="cancelSettings" class="modal-button secondary">
+      <button id="cancelSettings" class="px-5 py-3 border-none rounded-lg text-sm font-medium cursor-pointer flex-1 max-w-36 bg-gray-500 hover:bg-gray-600 text-white transition-opacity">
         ❌ Cancel
       </button>
     </div>
-    <div class="modal-path">
+    <div class="text-xs text-gray-500 mt-4 p-3 bg-gray-50 rounded-lg border-l-4 border-cyan-500">
       <strong>📋 Manual Steps (if automatic doesn't work):</strong><br>
       1. <strong>Open Settings</strong> on your device<br>
       2. <strong>Find "Apps"</strong> or "Applications"<br>
@@ -240,7 +75,7 @@
       6. <strong>Enable "Camera"</strong> permission<br>
       7. <strong>Return to this app</strong> and try again
     </div>
-    <button id="closeModal" class="modal-button secondary" style="margin-top: 15px; width: 100%;">
+    <button id="closeModal" class="px-5 py-3 border-none rounded-lg text-sm font-medium cursor-pointer w-full mt-4 bg-gray-500 hover:bg-gray-600 text-white transition-opacity">
       ✖️ Close Modal
     </button>
   </div>
@@ -265,24 +100,26 @@
   function updateStatus(message, type = 'info') {
     const statusDiv = document.getElementById('status');
     statusDiv.textContent = message;
-    statusDiv.className = `status ${type}`;
+    statusDiv.className = `text-center font-bold text-lg mb-4 ${type === 'success' ? 'text-green-600' : type === 'error' ? 'text-red-600' : type === 'warning' ? 'text-yellow-600' : 'text-blue-600'}`;
   }
   
   function showResult(message, type = 'info') {
     const resultDiv = document.getElementById('result');
     resultDiv.textContent = message;
-    resultDiv.className = `result ${type}`;
-    resultDiv.style.display = 'block';
+    resultDiv.className = `mt-5 p-4 rounded-lg font-mono whitespace-pre-wrap ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-blue-100 text-blue-800 border border-blue-200'}`;
+    resultDiv.classList.remove('hidden');
   }
   
   function showPermissionHelp() {
     const modal = document.getElementById('permissionModal');
-    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
   }
   
   function hidePermissionHelp() {
     const modal = document.getElementById('permissionModal');
-    modal.style.display = 'none';
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
   }
   
   function openDeviceSettings() {
@@ -905,17 +742,13 @@ Confidence: ${barcode.confidence || 'N/A'}`;
       
       // Create a simple video element for testing
       const video = document.createElement('video');
-      video.style.width = '100%';
-      video.style.height = '300px';
-      video.style.border = '2px solid #007bff';
-      video.style.borderRadius = '8px';
-      video.style.marginTop = '10px';
+      video.className = 'w-full h-72 border-2 border-blue-500 rounded-lg mt-3';
       
       // Replace result div with video
       const resultDiv = document.getElementById('result');
       resultDiv.innerHTML = '';
       resultDiv.appendChild(video);
-      resultDiv.style.display = 'block';
+      resultDiv.classList.remove('hidden');
       
       // Get camera stream
       const stream = await navigator.mediaDevices.getUserMedia({
