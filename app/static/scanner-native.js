@@ -188,18 +188,39 @@ async function startNativeScanner() {
         } catch (installError) {
           console.error('[Native Scanner] Module installation failed:', installError);
           
-          // Show user-friendly error message with fallback options
-          const errorMessage = installError.message || 'Installation failed';
-          logScannerStatus('Module installation failed - try browser scanner', 'error');
-          
-          if (window.ScannerUI && window.ScannerUI.showNotification) {
-            window.ScannerUI.showNotification(
-              `Scanner module installation failed: ${errorMessage}. Try using the browser scanner instead.`,
-              'error'
-            );
+          // Try manual installation help as a fallback
+          console.log('[Native Scanner] Trying manual installation help...');
+          try {
+            await helpInstallBarcodeScannerModule();
+            console.log('[Native Scanner] Manual installation help opened successfully');
+            logScannerStatus('Manual installation guide opened - please follow the instructions', 'info');
+            
+            if (window.ScannerUI && window.ScannerUI.showNotification) {
+              window.ScannerUI.showNotification(
+                'Manual installation guide opened. Please follow the instructions to install the module, then try scanning again.',
+                'info'
+              );
+            }
+            
+            // Don't throw error, let user try again after manual installation
+            throw new Error('Manual installation guide opened - please install module and try again');
+            
+          } catch (helpError) {
+            console.error('[Native Scanner] Manual installation help also failed:', helpError);
+            
+            // Show user-friendly error message with fallback options
+            const errorMessage = installError.message || 'Installation failed';
+            logScannerStatus('Module installation failed - try browser scanner', 'error');
+            
+            if (window.ScannerUI && window.ScannerUI.showNotification) {
+              window.ScannerUI.showNotification(
+                `Scanner module installation failed: ${errorMessage}. Try using the browser scanner instead.`,
+                'error'
+              );
+            }
+            
+            throw new Error('Scanner module installation failed - try browser scanner');
           }
-          
-          throw new Error('Scanner module installation failed - try browser scanner');
         }
       } else {
         // Installation method not available - provide helpful guidance

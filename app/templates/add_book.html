@@ -448,6 +448,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Update debug buttons
   updateDebugButtons();
   
+  // Check if scanner module is available and hide install button if it is
+  checkAndHideInstallButton();
+  
   console.log('[AddBook] Scanner initialization complete');
 });
 
@@ -460,10 +463,44 @@ function updateDebugButtons() {
     debugBtn.style.display = '{{ "block" if config.DEBUG_MODE or current_user.debug_enabled else "none" }}';
   }
   
-  // Show install module button if we're in a native environment
+  // Hide install module button by default - only show when needed
   if (installModuleBtn) {
-    const shouldShowInstall = window.isCapacitor && window.platform !== 'web';
-    installModuleBtn.style.display = shouldShowInstall ? 'block' : 'none';
+    installModuleBtn.style.display = 'none';
+  }
+}
+
+// Function to show install module button when needed
+function showInstallModuleButton() {
+  const installModuleBtn = document.getElementById('installModuleBtn');
+  if (installModuleBtn && window.isCapacitor && window.platform !== 'web') {
+    installModuleBtn.style.display = 'block';
+  }
+}
+
+// Function to hide install module button after successful installation
+function hideInstallModuleButton() {
+  const installModuleBtn = document.getElementById('installModuleBtn');
+  if (installModuleBtn) {
+    installModuleBtn.style.display = 'none';
+  }
+}
+
+// Function to check if scanner module is available and hide install button if it is
+async function checkAndHideInstallButton() {
+  if (!window.isCapacitor || window.platform === 'web') {
+    return;
+  }
+  
+  try {
+    if (window.NativeScanner && window.NativeScanner.checkBarcodeScannerModule) {
+      const moduleCheck = await window.NativeScanner.checkBarcodeScannerModule();
+      if (moduleCheck.available) {
+        console.log('[AddBook] Scanner module is available, hiding install button');
+        hideInstallModuleButton();
+      }
+    }
+  } catch (error) {
+    console.log('[AddBook] Error checking module availability:', error.message);
   }
 }
 
@@ -504,6 +541,7 @@ async function installScannerModule() {
         const retrySuccess = await window.ScannerCore.retryNativeScannerAfterInstallation();
         if (retrySuccess) {
           console.log('[AddBook] Native scanner retry successful after installation!');
+          hideInstallModuleButton(); // Hide the button after successful installation
           return; // Successfully started native scanner
         }
       }
@@ -512,6 +550,7 @@ async function installScannerModule() {
       if (window.ScannerUI && window.ScannerUI.showNotification) {
         window.ScannerUI.showNotification('Module installed! Try the "Scan Barcode" button now.', 'success');
       }
+      hideInstallModuleButton(); // Hide the button after successful installation
       
     } else if (window.NativeScanner && window.NativeScanner.helpInstallBarcodeScannerModule) {
       console.log('[AddBook] Install method not available, trying help installation...');
@@ -597,6 +636,15 @@ window.addEventListener('beforeunload', function() {
       video.srcObject = null;
     }
   });
+});
+
+// Check module availability when user returns to the app
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden && window.isCapacitor && window.platform !== 'web') {
+    console.log('[AddBook] App became visible, checking module availability...');
+    // Small delay to ensure any background installations have completed
+    setTimeout(checkAndHideInstallButton, 1000);
+  }
 });
 </script>
 {% endblock %}

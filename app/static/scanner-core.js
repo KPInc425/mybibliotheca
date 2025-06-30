@@ -141,7 +141,8 @@ async function startSmartScanner() {
         const isModuleError = errorMessage.includes('Scanner module not available') ||
                              errorMessage.includes('app update required') ||
                              errorMessage.includes('Google Barcode Scanner Module') ||
-                             errorMessage.includes('try browser scanner');
+                             errorMessage.includes('try browser scanner') ||
+                             errorMessage.includes('Manual installation guide opened');
         
         if (isModuleError) {
           console.log('[ScannerCore] === NATIVE SCANNER MODULE ERROR ===');
@@ -152,10 +153,20 @@ async function startSmartScanner() {
             window.ScannerUI.hideScannerStatus();
             
             // Provide more helpful error message with manual installation option
-            if (errorMessage.includes('try browser scanner')) {
+            if (errorMessage.includes('Manual installation guide opened')) {
+              window.ScannerUI.showNotification('Manual installation guide opened. Please follow the instructions and try scanning again.', 'info');
+            } else if (errorMessage.includes('try browser scanner')) {
               window.ScannerUI.showNotification('Native scanner module not available. Try the "Install Scanner Module" button or use the browser scanner.', 'error');
+              // Show the install module button when automatic methods have failed
+              if (typeof showInstallModuleButton === 'function') {
+                showInstallModuleButton();
+              }
             } else {
               window.ScannerUI.showNotification('Barcode scanner module not available. Try the "Install Scanner Module" button.', 'error');
+              // Show the install module button when there's a module issue
+              if (typeof showInstallModuleButton === 'function') {
+                showInstallModuleButton();
+              }
             }
           }
           return;
