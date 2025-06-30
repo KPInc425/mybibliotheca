@@ -345,49 +345,33 @@ async function handleScannerButtonClick() {
   scannerBtn.innerHTML = '<span class="loading loading-spinner"></span> Starting...';
   
   try {
-    // Check if we're in a Capacitor environment
     if (!window.isCapacitor) {
-      console.log('[AddBook] Not in Capacitor environment, using browser scanner');
-      // Use the existing smart scanner for browser environment
-      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-        await window.ScannerCore.startSmartScanner();
-      } else {
-        throw new Error('Scanner not available');
-      }
-      return;
+      throw new Error('Capacitor not available - cannot use native scanner');
     }
     
-    console.log('[AddBook] Capacitor environment detected, checking native scanner...');
+    console.log('[AddBook] Attempting to launch native barcode scanner...');
+    if (window.ScannerUI) {
+      window.ScannerUI.updateScannerStatus('Launching native scanner...', 'info');
+    }
     
     // Get the BarcodeScanner plugin from Capacitor.Plugins
     const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
     if (!BarcodeScanner) {
-      console.log('[AddBook] BarcodeScanner plugin not found, falling back to browser scanner');
-      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-        await window.ScannerCore.startSmartScanner();
-      } else {
-        throw new Error('Scanner not available');
-      }
-      return;
+      throw new Error('BarcodeScanner plugin not found in Capacitor.Plugins');
     }
     
-    console.log('[AddBook] Found BarcodeScanner plugin, checking support...');
+    console.log('[AddBook] Found BarcodeScanner plugin in Capacitor.Plugins');
     
     // Check if scanning is supported
     const { supported } = await BarcodeScanner.isSupported();
     if (!supported) {
-      console.log('[AddBook] Barcode scanning not supported, falling back to browser scanner');
-      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-        await window.ScannerCore.startSmartScanner();
-      } else {
-        throw new Error('Scanner not available');
-      }
-      return;
+      throw new Error('Barcode scanning not supported on this device');
     }
     
-    console.log('[AddBook] Barcode scanning is supported, checking permissions...');
+    console.log('[AddBook] Barcode scanning is supported');
     
-    // Check current permissions first
+    // Check permissions but don't fail if denied
+    console.log('[AddBook] Checking camera permissions...');
     let permissionGranted = false;
     let retryCount = 0;
     const maxRetries = 3;
@@ -400,9 +384,8 @@ async function handleScannerButtonClick() {
       console.log(`[AddBook] Permission check error: ${permError.message}`, 'warning');
     }
     
-    // If permissions are not granted, request them BEFORE attempting to scan
     if (!permissionGranted) {
-      console.log('[AddBook] Permission not granted, requesting permissions...');
+      console.log('[AddBook] Permission not granted, attempting to request...');
       try {
         const { granted: newGranted } = await BarcodeScanner.requestPermissions();
         console.log(`[AddBook] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
@@ -439,54 +422,31 @@ async function handleScannerButtonClick() {
           
           // If still not granted after retries, then it's truly denied
           if (!permissionGranted) {
-            console.log('[AddBook] Permissions denied after retries, falling back to browser scanner');
+            console.log('[AddBook] Permission denied after retries');
             if (window.ScannerUI && window.ScannerUI.showNotification) {
-              window.ScannerUI.showNotification('Camera permissions denied. Using browser scanner instead.', 'warning');
-            }
-            if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-              await window.ScannerCore.startSmartScanner();
-            } else {
-              throw new Error('Scanner not available');
+              window.ScannerUI.showNotification('Camera permissions denied. Please check device settings.', 'error');
             }
             return;
           }
         }
       } catch (permError) {
         console.log(`[AddBook] Permission request error: ${permError.message}`, 'warning');
-        // If permission request fails, fall back to browser scanner
-        console.log('[AddBook] Permission request failed, falling back to browser scanner');
-        if (window.ScannerUI && window.ScannerUI.showNotification) {
-          window.ScannerUI.showNotification('Camera permission request failed. Using browser scanner instead.', 'warning');
-        }
-        if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-          await window.ScannerCore.startSmartScanner();
-        } else {
-          throw new Error('Scanner not available');
-        }
-        return;
       }
     }
     
-    // Final verification that permissions are granted
-    if (permissionGranted) {
-      console.log('[AddBook] Permissions confirmed granted, proceeding with scanner...');
-    } else {
-      // This should not happen if our logic is correct, but just in case
-      console.log('[AddBook] Permissions not granted, falling back to browser scanner');
+    // Only proceed with scanning if permissions are granted
+    if (!permissionGranted) {
+      console.log('[AddBook] Permissions not granted, cannot proceed with scanning');
       if (window.ScannerUI && window.ScannerUI.showNotification) {
-        window.ScannerUI.showNotification('Camera permissions not available. Using browser scanner instead.', 'warning');
-      }
-      // Fall back to browser scanner
-      if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-        await window.ScannerCore.startSmartScanner();
-      } else {
-        throw new Error('Scanner not available');
+        window.ScannerUI.showNotification('Camera permissions not available. Cannot start scanner.', 'error');
       }
       return;
     }
     
-    // At this point, we are confident permissions are granted
-    console.log('[AddBook] Permissions verified, starting native scanner...');
+    console.log('[AddBook] Permissions confirmed granted, starting barcode scan...');
+    if (window.ScannerUI) {
+      window.ScannerUI.updateScannerStatus('Starting barcode scan...', 'info');
+    }
     
     // Add a small delay to ensure any permission dialogs have completed
     await new Promise(resolve => setTimeout(resolve, 500));
@@ -523,7 +483,7 @@ async function handleScannerButtonClick() {
         }
       }
     } catch (scanError) {
-      console.error('[AddBook] Native scanner error:', scanError);
+      console.error('[AddBook] Scan error:', scanError);
       
       // Handle cancellation
       const errorMessage = scanError.message || scanError.toString();
@@ -558,8 +518,9 @@ async function handleScannerButtonClick() {
         }
       }
     }
+    
   } catch (error) {
-    console.error('[AddBook] Scanner error:', error);
+    console.error('[AddBook] Native scanner error:', error);
     if (window.ScannerUI && window.ScannerUI.showNotification) {
       window.ScannerUI.showNotification(`Scanner error: ${error.message}`, 'error');
     }
@@ -567,6 +528,11 @@ async function handleScannerButtonClick() {
     // Re-enable button and restore original text
     scannerBtn.disabled = false;
     scannerBtn.innerHTML = originalText;
+    
+    // Clear scanner status
+    if (window.ScannerUI) {
+      window.ScannerUI.hideScannerStatus();
+    }
   }
 }
 
