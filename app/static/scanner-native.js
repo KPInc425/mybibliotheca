@@ -161,41 +161,60 @@ async function startNativeScanner() {
   if (!moduleCheck.available) {
     if (moduleCheck.needsInstallation) {
       console.log('[Native Scanner] Google Barcode Scanner Module needs to be installed');
-      logScannerStatus('Installing barcode scanner module...', 'info');
       
-      // Show user-friendly message about the installation
-      if (window.ScannerUI && window.ScannerUI.showNotification) {
-        window.ScannerUI.showNotification(
-          'Installing barcode scanner module for better compatibility...',
-          'info'
-        );
-      }
-      
-      try {
-        await installBarcodeScannerModule();
-        console.log('[Native Scanner] Module installation successful, retrying...');
-        logScannerStatus('Module installed successfully, retrying...', 'success');
+      if (moduleCheck.canInstall) {
+        logScannerStatus('Installing barcode scanner module...', 'info');
         
-        // Show success message
+        // Show user-friendly message about the installation
         if (window.ScannerUI && window.ScannerUI.showNotification) {
           window.ScannerUI.showNotification(
-            'Barcode scanner module installed successfully!',
-            'success'
+            'Installing barcode scanner module for better compatibility...',
+            'info'
           );
         }
-      } catch (installError) {
-        console.error('[Native Scanner] Module installation failed:', installError);
-        logScannerStatus('Module installation failed - app update may be required', 'error');
         
-        // Show user-friendly error message
+        try {
+          await installBarcodeScannerModule();
+          console.log('[Native Scanner] Module installation successful, retrying...');
+          logScannerStatus('Module installed successfully, retrying...', 'success');
+          
+          // Show success message
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification(
+              'Barcode scanner module installed successfully!',
+              'success'
+            );
+          }
+        } catch (installError) {
+          console.error('[Native Scanner] Module installation failed:', installError);
+          
+          // Show user-friendly error message with fallback options
+          const errorMessage = installError.message || 'Installation failed';
+          logScannerStatus('Module installation failed - try browser scanner', 'error');
+          
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification(
+              `Scanner module installation failed: ${errorMessage}. Try using the browser scanner instead.`,
+              'error'
+            );
+          }
+          
+          throw new Error('Scanner module installation failed - try browser scanner');
+        }
+      } else {
+        // Installation method not available - provide helpful guidance
+        const errorMsg = 'Scanner module not available and cannot be installed on this device';
+        console.error('[Native Scanner] Native scanner not available:', errorMsg);
+        logScannerStatus('Scanner module not available - try browser scanner', 'error');
+        
         if (window.ScannerUI && window.ScannerUI.showNotification) {
           window.ScannerUI.showNotification(
-            'Unable to install barcode scanner module. Please try updating the app or contact support.',
+            'This device does not support the native barcode scanner. Please try the browser scanner instead.',
             'error'
           );
         }
         
-        throw new Error('Scanner module installation failed - app update required');
+        throw new Error('Scanner module not available - try browser scanner');
       }
     } else {
       const errorMsg = `Scanner module not available: ${moduleCheck.reason}`;
@@ -275,17 +294,17 @@ async function startNativeScanner() {
     if (scanError.message && scanError.message.includes('Google Barcode Scanner Module is not available')) {
       const errorMsg = 'Barcode scanner module needs to be installed. Please update the app or contact support.';
       console.error('[Native Scanner] Google Barcode Scanner Module not available:', errorMsg);
-      logScannerStatus('Scanner module not available - app update may be required', 'error');
+      logScannerStatus('Scanner module not available - try browser scanner', 'error');
       
-      // Show user-friendly error message
+      // Show user-friendly error message with fallback guidance
       if (window.ScannerUI && window.ScannerUI.showNotification) {
         window.ScannerUI.showNotification(
-          'The barcode scanner module is not available on this device. Please try updating the app or contact support.',
+          'The barcode scanner module is not available on this device. Please try the browser scanner instead.',
           'error'
         );
       }
       
-      throw new Error('Scanner module not available - app update required');
+      throw new Error('Scanner module not available - try browser scanner');
     }
     
     // Handle cancellation
@@ -557,7 +576,8 @@ async function checkBarcodeScannerModule() {
         return { 
           available: false, 
           reason: 'Google Barcode Scanner Module needs to be installed',
-          needsInstallation: true 
+          needsInstallation: true,
+          canInstall: typeof BarcodeScanner.installGoogleBarcodeScannerModule === 'function'
         };
       }
       // Other permission errors are normal and don't indicate module unavailability
@@ -569,7 +589,8 @@ async function checkBarcodeScannerModule() {
       return { 
         available: false, 
         reason: 'Google Barcode Scanner Module needs to be installed',
-        needsInstallation: true 
+        needsInstallation: true,
+        canInstall: typeof Capacitor.Plugins.BarcodeScanner.installGoogleBarcodeScannerModule === 'function'
       };
     }
     return { available: false, reason: error.message };
@@ -594,11 +615,21 @@ async function installBarcodeScannerModule() {
       console.log('[Native Scanner] Google Barcode Scanner Module installation completed');
       return { success: true, message: 'Module installed successfully' };
     } else {
-      throw new Error('Install method not available on this device');
+      // For older devices that don't support the install method, provide helpful guidance
+      console.log('[Native Scanner] Install method not available on this device');
+      throw new Error('Install method not available on this device - try updating Google Play Services or the app');
     }
   } catch (error) {
     console.error('[Native Scanner] Failed to install Google Barcode Scanner Module:', error);
-    throw error;
+    
+    // Provide more specific error messages based on the error type
+    if (error.message.includes('Install method not available')) {
+      throw new Error('This device does not support automatic module installation. Please update Google Play Services or try the browser scanner instead.');
+    } else if (error.message.includes('network') || error.message.includes('connection')) {
+      throw new Error('Network error during installation. Please check your internet connection and try again.');
+    } else {
+      throw new Error(`Installation failed: ${error.message}. Please try updating the app or use the browser scanner.`);
+    }
   }
 }
 
@@ -679,6 +710,43 @@ async function debugBarcodeScannerModule() {
   }
 }
 
+/**
+ * Help user manually install Google Barcode Scanner Module
+ */
+async function helpInstallBarcodeScannerModule() {
+  if (!window.isCapacitor) {
+    throw new Error('Not in Capacitor environment');
+  }
+  
+  try {
+    const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
+    
+    // Check if the help method is available
+    if (typeof BarcodeScanner.helpInstallGoogleBarcodeScannerModule === 'function') {
+      console.log('[Native Scanner] Opening Google Barcode Scanner Module installation help...');
+      await BarcodeScanner.helpInstallGoogleBarcodeScannerModule();
+      return { success: true, message: 'Installation help opened' };
+    } else {
+      // Fallback: try to open Google Play Services
+      console.log('[Native Scanner] Help method not available, trying to open Google Play Services...');
+      
+      if (window.isCapacitor && Capacitor.Plugins.App) {
+        try {
+          await Capacitor.Plugins.App.openApp({ appId: 'com.google.android.gms' });
+          return { success: true, message: 'Google Play Services opened - search for "Barcode Scanner" module' };
+        } catch (appError) {
+          console.log('[Native Scanner] Could not open Google Play Services:', appError);
+        }
+      }
+      
+      throw new Error('Manual installation help not available on this device');
+    }
+  } catch (error) {
+    console.error('[Native Scanner] Failed to open installation help:', error);
+    throw error;
+  }
+}
+
 // Export functions for use in other modules
 window.NativeScanner = {
   startNativeScanner,
@@ -692,5 +760,6 @@ window.NativeScanner = {
   requestCameraPermissionsEarly,
   checkBarcodeScannerModule,
   installBarcodeScannerModule,
-  debugBarcodeScannerModule
+  debugBarcodeScannerModule,
+  helpInstallBarcodeScannerModule
 };

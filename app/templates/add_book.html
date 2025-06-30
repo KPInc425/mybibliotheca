@@ -47,6 +47,10 @@
             <button id="debugBtn" type="button" class="btn btn-secondary btn-sm" onclick="debugScanner()" style="display: none;">
               🔍 Debug Scanner
             </button>
+            
+            <button id="installModuleBtn" type="button" class="btn btn-warning btn-sm" onclick="installScannerModule()" style="display: none;">
+              🔧 Install Scanner Module
+            </button>
           </div>
           
           <!-- Scanner Viewport -->
@@ -450,9 +454,96 @@ document.addEventListener('DOMContentLoaded', function() {
 // Show/hide debug buttons based on environment
 function updateDebugButtons() {
   const debugBtn = document.getElementById('debugBtn');
+  const installModuleBtn = document.getElementById('installModuleBtn');
   
   if (debugBtn) {
     debugBtn.style.display = '{{ "block" if config.DEBUG_MODE or current_user.debug_enabled else "none" }}';
+  }
+  
+  // Show install module button if we're in a native environment
+  if (installModuleBtn) {
+    const shouldShowInstall = window.isCapacitor && window.platform !== 'web';
+    installModuleBtn.style.display = shouldShowInstall ? 'block' : 'none';
+  }
+}
+
+// Manual scanner module installation function
+async function installScannerModule() {
+  console.log('[AddBook] Manual scanner module installation called');
+  
+  if (!window.isCapacitor) {
+    if (window.ScannerUI && window.ScannerUI.showNotification) {
+      window.ScannerUI.showNotification('Manual installation only available in native app', 'error');
+    }
+    return;
+  }
+  
+  const button = document.getElementById('installModuleBtn');
+  if (button) {
+    button.disabled = true;
+    button.textContent = '🔧 Installing...';
+  }
+  
+  try {
+    if (window.NativeScanner && window.NativeScanner.installBarcodeScannerModule) {
+      console.log('[AddBook] Attempting to install barcode scanner module...');
+      
+      if (window.ScannerUI && window.ScannerUI.showNotification) {
+        window.ScannerUI.showNotification('Installing barcode scanner module...', 'info');
+      }
+      
+      await window.NativeScanner.installBarcodeScannerModule();
+      
+      console.log('[AddBook] Module installation successful!');
+      if (window.ScannerUI && window.ScannerUI.showNotification) {
+        window.ScannerUI.showNotification('Scanner module installed successfully! Retrying native scanner...', 'success');
+      }
+      
+      // Try to retry the native scanner after installation
+      if (window.ScannerCore && window.ScannerCore.retryNativeScannerAfterInstallation) {
+        const retrySuccess = await window.ScannerCore.retryNativeScannerAfterInstallation();
+        if (retrySuccess) {
+          console.log('[AddBook] Native scanner retry successful after installation!');
+          return; // Successfully started native scanner
+        }
+      }
+      
+      // If retry failed, show success message but suggest trying the scan button
+      if (window.ScannerUI && window.ScannerUI.showNotification) {
+        window.ScannerUI.showNotification('Module installed! Try the "Scan Barcode" button now.', 'success');
+      }
+      
+    } else if (window.NativeScanner && window.NativeScanner.helpInstallBarcodeScannerModule) {
+      console.log('[AddBook] Install method not available, trying help installation...');
+      
+      if (window.ScannerUI && window.ScannerUI.showNotification) {
+        window.ScannerUI.showNotification('Opening manual installation guide...', 'info');
+      }
+      
+      await window.NativeScanner.helpInstallBarcodeScannerModule();
+      
+      if (window.ScannerUI && window.ScannerUI.showNotification) {
+        window.ScannerUI.showNotification('Manual installation guide opened. Follow the instructions to install the module.', 'info');
+      }
+      
+    } else {
+      throw new Error('Installation methods not available');
+    }
+    
+  } catch (error) {
+    console.error('[AddBook] Module installation failed:', error);
+    
+    if (window.ScannerUI && window.ScannerUI.showNotification) {
+      window.ScannerUI.showNotification(
+        `Installation failed: ${error.message}. Please try updating Google Play Services or use the browser scanner.`,
+        'error'
+      );
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = '🔧 Install Scanner Module';
+    }
   }
 }
 

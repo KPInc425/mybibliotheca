@@ -140,7 +140,8 @@ async function startSmartScanner() {
         // Check if it's a module installation error - don't fall back to browser scanner
         const isModuleError = errorMessage.includes('Scanner module not available') ||
                              errorMessage.includes('app update required') ||
-                             errorMessage.includes('Google Barcode Scanner Module');
+                             errorMessage.includes('Google Barcode Scanner Module') ||
+                             errorMessage.includes('try browser scanner');
         
         if (isModuleError) {
           console.log('[ScannerCore] === NATIVE SCANNER MODULE ERROR ===');
@@ -149,7 +150,13 @@ async function startSmartScanner() {
             window.ScannerUI.updateScannerButton(false);
             window.ScannerUI.hideScannerViewport();
             window.ScannerUI.hideScannerStatus();
-            window.ScannerUI.showNotification('Barcode scanner module not available. Please update the app.', 'error');
+            
+            // Provide more helpful error message with manual installation option
+            if (errorMessage.includes('try browser scanner')) {
+              window.ScannerUI.showNotification('Native scanner module not available. Try the "Install Scanner Module" button or use the browser scanner.', 'error');
+            } else {
+              window.ScannerUI.showNotification('Barcode scanner module not available. Try the "Install Scanner Module" button.', 'error');
+            }
           }
           return;
         }
@@ -650,6 +657,52 @@ async function nuclearCleanup() {
   }
 }
 
+/**
+ * Retry native scanner after module installation
+ */
+async function retryNativeScannerAfterInstallation() {
+  console.log('[ScannerCore] === RETRYING NATIVE SCANNER AFTER INSTALLATION ===');
+  
+  if (!window.isCapacitor || window.platform === 'web') {
+    console.log('[ScannerCore] Not in native environment, cannot retry native scanner');
+    return false;
+  }
+  
+  try {
+    // Check if module is now available
+    if (window.NativeScanner && window.NativeScanner.checkBarcodeScannerModule) {
+      const moduleCheck = await window.NativeScanner.checkBarcodeScannerModule();
+      console.log('[ScannerCore] Module check after installation:', moduleCheck);
+      
+      if (moduleCheck.available) {
+        console.log('[ScannerCore] Module is now available, retrying native scanner...');
+        
+        if (window.ScannerUI) {
+          window.ScannerUI.showNotification('Scanner module installed! Retrying native scanner...', 'success');
+        }
+        
+        // Try to start native scanner again
+        if (window.NativeScanner && window.NativeScanner.startNativeScanner) {
+          await window.NativeScanner.startNativeScanner();
+          return true;
+        }
+      } else {
+        console.log('[ScannerCore] Module still not available after installation');
+        if (window.ScannerUI) {
+          window.ScannerUI.showNotification('Module installation may have failed. Please try again or use browser scanner.', 'warning');
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[ScannerCore] Error retrying native scanner:', error);
+    if (window.ScannerUI) {
+      window.ScannerUI.showNotification('Error retrying scanner. Please try again.', 'error');
+    }
+  }
+  
+  return false;
+}
+
 // Export functions to global scope
 window.ScannerCore = {
   startSmartScanner,
@@ -667,7 +720,8 @@ window.ScannerCore = {
   isNative: window.isNative,
   isCapacitor: window.isCapacitor,
   platform: window.platform,
-  nuclearCleanup
+  nuclearCleanup,
+  retryNativeScannerAfterInstallation
 };
 
 // Ensure camera cleanup on page unload
