@@ -308,12 +308,10 @@ document.addEventListener('DOMContentLoaded', function() {
     window.handleScannerButtonClick = window.ScannerCore.handleScannerButtonClick;
     window.stopScanner = window.ScannerCore.stopScanner;
     
-    // Initialize scanner system and request permissions early
+    // Initialize scanner system but skip early permission request to avoid conflicts
     if (window.ScannerCore.initializeScannerSystem) {
-      window.ScannerCore.initializeScannerSystem().catch(error => {
-        console.log('[AddBook] Early scanner initialization failed:', error.message);
-        // Don't show error messages to user for early initialization
-      });
+      // Don't call initializeScannerSystem here as it may interfere with permission flow
+      console.log('[AddBook] Skipping early scanner initialization to avoid permission conflicts');
     }
   }
   
@@ -389,7 +387,7 @@ async function handleScannerButtonClick() {
     
     console.log('[AddBook] Barcode scanning is supported, checking permissions...');
     
-    // Check current permissions
+    // Check current permissions first
     let permissionGranted = false;
     try {
       const { granted } = await BarcodeScanner.checkPermissions();
@@ -399,21 +397,82 @@ async function handleScannerButtonClick() {
       console.log(`[AddBook] Permission check error: ${permError.message}`, 'warning');
     }
     
-    // Request permissions if not granted
+    // If permissions are not granted, request them BEFORE attempting to scan
     if (!permissionGranted) {
       console.log('[AddBook] Permission not granted, requesting permissions...');
       try {
         const { granted: newGranted } = await BarcodeScanner.requestPermissions();
         console.log(`[AddBook] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
         permissionGranted = newGranted;
+        
+        // If permissions are still denied after request, show error and fall back
+        if (!permissionGranted) {
+          console.log('[AddBook] Permissions denied after request, falling back to browser scanner');
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification('Camera permissions denied. Using browser scanner instead.', 'warning');
+          }
+          if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+            await window.ScannerCore.startSmartScanner();
+          } else {
+            throw new Error('Scanner not available');
+          }
+          return;
+        }
       } catch (permError) {
         console.log(`[AddBook] Permission request error: ${permError.message}`, 'warning');
+        // If permission request fails, fall back to browser scanner
+        console.log('[AddBook] Permission request failed, falling back to browser scanner');
+        if (window.ScannerUI && window.ScannerUI.showNotification) {
+          window.ScannerUI.showNotification('Camera permission request failed. Using browser scanner instead.', 'warning');
+        }
+        if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+          await window.ScannerCore.startSmartScanner();
+        } else {
+          throw new Error('Scanner not available');
+        }
+        return;
       }
     }
     
-    // If permissions are granted, start native scanner
+    // Double-check permissions before starting scanner
     if (permissionGranted) {
-      console.log('[AddBook] Permissions granted, starting native scanner...');
+      console.log('[AddBook] Permissions confirmed granted, double-checking before starting scanner...');
+      
+      // Final permission check before starting scanner
+      try {
+        const { granted: finalCheck } = await BarcodeScanner.checkPermissions();
+        if (!finalCheck) {
+          console.log('[AddBook] Final permission check failed, falling back to browser scanner');
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification('Camera permissions not available. Using browser scanner instead.', 'warning');
+          }
+          if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+            await window.ScannerCore.startSmartScanner();
+          } else {
+            throw new Error('Scanner not available');
+          }
+          return;
+        }
+      } catch (finalCheckError) {
+        console.log(`[AddBook] Final permission check error: ${finalCheckError.message}`, 'warning');
+        // If final check fails, fall back to browser scanner
+        if (window.ScannerUI && window.ScannerUI.showNotification) {
+          window.ScannerUI.showNotification('Camera permission verification failed. Using browser scanner instead.', 'warning');
+        }
+        if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+          await window.ScannerCore.startSmartScanner();
+        } else {
+          throw new Error('Scanner not available');
+        }
+        return;
+      }
+      
+      // At this point, we are confident permissions are granted
+      console.log('[AddBook] Permissions verified, starting native scanner...');
+      
+      // Add a small delay to ensure any permission dialogs have completed
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       try {
         const { barcodes } = await BarcodeScanner.scan();
         
@@ -482,7 +541,11 @@ async function handleScannerButtonClick() {
         }
       }
     } else {
+      // This should not happen if our logic is correct, but just in case
       console.log('[AddBook] Permissions not granted, falling back to browser scanner');
+      if (window.ScannerUI && window.ScannerUI.showNotification) {
+        window.ScannerUI.showNotification('Camera permissions not available. Using browser scanner instead.', 'warning');
+      }
       // Fall back to browser scanner
       if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
         await window.ScannerCore.startSmartScanner();

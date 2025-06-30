@@ -31,17 +31,9 @@ let platform = window.platform;
 async function initializeScannerSystem() {
   console.log('[ScannerCore] === INITIALIZING SCANNER SYSTEM ===');
   
-  // Request camera permissions early if native scanner is available
-  if (window.isCapacitor && window.platform !== 'web' && window.NativeScanner && window.NativeScanner.requestCameraPermissionsEarly) {
-    console.log('[ScannerCore] Requesting camera permissions early...');
-    try {
-      await window.NativeScanner.requestCameraPermissionsEarly();
-      // Don't show any status messages here - let the early request handle it silently
-    } catch (error) {
-      console.log('[ScannerCore] Early permission request failed:', error.message);
-      // Don't show error messages for early permission requests
-    }
-  }
+  // Skip early permission request to avoid conflicts with main scanner flow
+  // Early permission requests can interfere with the main scanner permission flow
+  console.log('[ScannerCore] Skipping early permission request to avoid conflicts');
   
   console.log('[ScannerCore] Scanner system initialized');
 }

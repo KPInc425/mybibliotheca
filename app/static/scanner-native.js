@@ -205,7 +205,63 @@ async function startNativeScanner() {
     }
   }
   
-  console.log('[Native Scanner] Starting native scanner - letting native system handle permissions...');
+  console.log('[Native Scanner] Starting native scanner - checking permissions first...');
+  logScannerStatus('Checking camera permissions...', 'info');
+  
+  // Check and request permissions before starting scanner
+  let permissionGranted = false;
+  try {
+    const { granted } = await BarcodeScanner.checkPermissions();
+    console.log(`[Native Scanner] Initial permission status: ${granted ? 'granted' : 'denied'}`);
+    permissionGranted = granted;
+  } catch (permError) {
+    console.log(`[Native Scanner] Permission check error: ${permError.message}`, 'warning');
+  }
+  
+  // If permissions are not granted, request them BEFORE attempting to scan
+  if (!permissionGranted) {
+    console.log('[Native Scanner] Permission not granted, requesting permissions...');
+    logScannerStatus('Requesting camera permissions...', 'info');
+    
+    try {
+      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      console.log(`[Native Scanner] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
+      permissionGranted = newGranted;
+      
+      if (!permissionGranted) {
+        const errorMsg = 'Camera permissions denied';
+        console.error('[Native Scanner] Permission denied:', errorMsg);
+        logScannerStatus('Camera permissions denied', 'error');
+        throw new Error('Camera permissions denied');
+      }
+    } catch (permError) {
+      console.error('[Native Scanner] Permission request error:', permError);
+      logScannerStatus('Camera permission request failed', 'error');
+      throw new Error('Camera permission request failed');
+    }
+  }
+  
+  // Double-check permissions before starting scanner
+  if (permissionGranted) {
+    console.log('[Native Scanner] Permissions confirmed granted, double-checking before starting scanner...');
+    
+    // Final permission check before starting scanner
+    try {
+      const { granted: finalCheck } = await BarcodeScanner.checkPermissions();
+      if (!finalCheck) {
+        const errorMsg = 'Camera permissions not available';
+        console.error('[Native Scanner] Final permission check failed:', errorMsg);
+        logScannerStatus('Camera permissions not available', 'error');
+        throw new Error('Camera permissions not available');
+      }
+    } catch (finalCheckError) {
+      console.error('[Native Scanner] Final permission check error:', finalCheckError);
+      logScannerStatus('Camera permission verification failed', 'error');
+      throw new Error('Camera permission verification failed');
+    }
+  }
+  
+  console.log('[Native Scanner] Permissions verified, starting native scanner...');
   logScannerStatus('Starting native scanner...', 'info');
   
   // Set scanner state to scanning
@@ -213,6 +269,9 @@ async function startNativeScanner() {
     scannerState = 'scanning';
     console.log('[Native Scanner] Set scanner state to scanning');
   }
+  
+  // Add a small delay to ensure any permission dialogs have completed
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   try {
     const { barcodes } = await BarcodeScanner.scan();
