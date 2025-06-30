@@ -389,6 +389,9 @@ async function handleScannerButtonClick() {
     
     // Check current permissions first
     let permissionGranted = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
     try {
       const { granted } = await BarcodeScanner.checkPermissions();
       console.log(`[AddBook] Initial permission status: ${granted ? 'granted' : 'denied'}`);
@@ -405,18 +408,48 @@ async function handleScannerButtonClick() {
         console.log(`[AddBook] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
         permissionGranted = newGranted;
         
-        // If permissions are still denied after request, show error and fall back
-        if (!permissionGranted) {
-          console.log('[AddBook] Permissions denied after request, falling back to browser scanner');
-          if (window.ScannerUI && window.ScannerUI.showNotification) {
-            window.ScannerUI.showNotification('Camera permissions denied. Using browser scanner instead.', 'warning');
+        // If the permission request returned granted, we can proceed
+        if (permissionGranted) {
+          console.log('[AddBook] Permission granted during request, proceeding...');
+        } else {
+          // If permission request returned denied, try checking again with retries
+          // This handles cases where the system hasn't updated the permission status yet
+          console.log('[AddBook] Permission request returned denied, checking again with retries...');
+          
+          while (retryCount < maxRetries && !permissionGranted) {
+            retryCount++;
+            console.log(`[AddBook] Permission check retry ${retryCount}/${maxRetries}...`);
+            
+            // Wait a bit before checking again
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            try {
+              const { granted: retryGranted } = await BarcodeScanner.checkPermissions();
+              console.log(`[AddBook] Retry ${retryCount} permission status: ${retryGranted ? 'granted' : 'denied'}`);
+              
+              if (retryGranted) {
+                permissionGranted = true;
+                console.log('[AddBook] Permission confirmed granted on retry!');
+                break;
+              }
+            } catch (retryError) {
+              console.log(`[AddBook] Retry ${retryCount} permission check error: ${retryError.message}`, 'warning');
+            }
           }
-          if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-            await window.ScannerCore.startSmartScanner();
-          } else {
-            throw new Error('Scanner not available');
+          
+          // If still not granted after retries, then it's truly denied
+          if (!permissionGranted) {
+            console.log('[AddBook] Permissions denied after retries, falling back to browser scanner');
+            if (window.ScannerUI && window.ScannerUI.showNotification) {
+              window.ScannerUI.showNotification('Camera permissions denied. Using browser scanner instead.', 'warning');
+            }
+            if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
+              await window.ScannerCore.startSmartScanner();
+            } else {
+              throw new Error('Scanner not available');
+            }
+            return;
           }
-          return;
         }
       } catch (permError) {
         console.log(`[AddBook] Permission request error: ${permError.message}`, 'warning');
@@ -434,112 +467,9 @@ async function handleScannerButtonClick() {
       }
     }
     
-    // Double-check permissions before starting scanner
+    // Final verification that permissions are granted
     if (permissionGranted) {
-      console.log('[AddBook] Permissions confirmed granted, double-checking before starting scanner...');
-      
-      // Final permission check before starting scanner
-      try {
-        const { granted: finalCheck } = await BarcodeScanner.checkPermissions();
-        if (!finalCheck) {
-          console.log('[AddBook] Final permission check failed, falling back to browser scanner');
-          if (window.ScannerUI && window.ScannerUI.showNotification) {
-            window.ScannerUI.showNotification('Camera permissions not available. Using browser scanner instead.', 'warning');
-          }
-          if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-            await window.ScannerCore.startSmartScanner();
-          } else {
-            throw new Error('Scanner not available');
-          }
-          return;
-        }
-      } catch (finalCheckError) {
-        console.log(`[AddBook] Final permission check error: ${finalCheckError.message}`, 'warning');
-        // If final check fails, fall back to browser scanner
-        if (window.ScannerUI && window.ScannerUI.showNotification) {
-          window.ScannerUI.showNotification('Camera permission verification failed. Using browser scanner instead.', 'warning');
-        }
-        if (window.ScannerCore && window.ScannerCore.startSmartScanner) {
-          await window.ScannerCore.startSmartScanner();
-        } else {
-          throw new Error('Scanner not available');
-        }
-        return;
-      }
-      
-      // At this point, we are confident permissions are granted
-      console.log('[AddBook] Permissions verified, starting native scanner...');
-      
-      // Add a small delay to ensure any permission dialogs have completed
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      try {
-        const { barcodes } = await BarcodeScanner.scan();
-        
-        if (barcodes && barcodes.length > 0) {
-          const barcode = barcodes[0];
-          console.log(`[AddBook] Native scanner detected: ${barcode.rawValue} (${barcode.format})`);
-          
-          // Fill in the ISBN field
-          const isbnField = document.getElementById('isbn');
-          if (isbnField) {
-            isbnField.value = barcode.rawValue;
-            isbnField.dispatchEvent(new Event('input', { bubbles: true }));
-            console.log('[AddBook] ISBN field updated with scanned barcode');
-            
-            // Show success notification
-            if (window.ScannerUI && window.ScannerUI.showNotification) {
-              window.ScannerUI.showNotification(`Barcode scanned: ${barcode.rawValue}`, 'success');
-            }
-          }
-          
-          // Auto-fetch book data if available
-          if (window.autofetchBookData) {
-            console.log('[AddBook] Auto-fetching book data...');
-            window.autofetchBookData();
-          }
-        } else {
-          console.log('[AddBook] No barcode detected');
-          if (window.ScannerUI && window.ScannerUI.showNotification) {
-            window.ScannerUI.showNotification('No barcode detected', 'info');
-          }
-        }
-      } catch (scanError) {
-        console.error('[AddBook] Native scanner error:', scanError);
-        
-        // Handle cancellation
-        const errorMessage = scanError.message || scanError.toString();
-        const isCancellation = errorMessage.includes('cancel') || 
-                              errorMessage.includes('Cancel') ||
-                              errorMessage.includes('User cancelled') ||
-                              errorMessage.includes('user cancelled') ||
-                              errorMessage.includes('cancelled') ||
-                              errorMessage.includes('Cancelled') ||
-                              errorMessage.includes('back') ||
-                              errorMessage.includes('Back') ||
-                              errorMessage.includes('dismiss') ||
-                              errorMessage.includes('Dismiss');
-        
-        if (isCancellation) {
-          console.log('[AddBook] Scan cancelled by user');
-          if (window.ScannerUI && window.ScannerUI.showNotification) {
-            window.ScannerUI.showNotification('Scan cancelled', 'info');
-          }
-        } else {
-          // Handle permission errors
-          if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
-            console.error('[AddBook] Camera permission error during scanning');
-            if (window.ScannerUI && window.ScannerUI.showNotification) {
-              window.ScannerUI.showNotification('Camera permission error. Please check device settings.', 'error');
-            }
-          } else {
-            console.error('[AddBook] Scanning error:', scanError.message);
-            if (window.ScannerUI && window.ScannerUI.showNotification) {
-              window.ScannerUI.showNotification(`Scanning error: ${scanError.message}`, 'error');
-            }
-          }
-        }
-      }
+      console.log('[AddBook] Permissions confirmed granted, proceeding with scanner...');
     } else {
       // This should not happen if our logic is correct, but just in case
       console.log('[AddBook] Permissions not granted, falling back to browser scanner');
@@ -552,8 +482,82 @@ async function handleScannerButtonClick() {
       } else {
         throw new Error('Scanner not available');
       }
+      return;
     }
     
+    // At this point, we are confident permissions are granted
+    console.log('[AddBook] Permissions verified, starting native scanner...');
+    
+    // Add a small delay to ensure any permission dialogs have completed
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    try {
+      const { barcodes } = await BarcodeScanner.scan();
+      
+      if (barcodes && barcodes.length > 0) {
+        const barcode = barcodes[0];
+        console.log(`[AddBook] Native scanner detected: ${barcode.rawValue} (${barcode.format})`);
+        
+        // Fill in the ISBN field
+        const isbnField = document.getElementById('isbn');
+        if (isbnField) {
+          isbnField.value = barcode.rawValue;
+          isbnField.dispatchEvent(new Event('input', { bubbles: true }));
+          console.log('[AddBook] ISBN field updated with scanned barcode');
+          
+          // Show success notification
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification(`Barcode scanned: ${barcode.rawValue}`, 'success');
+          }
+        }
+        
+        // Auto-fetch book data if available
+        if (window.autofetchBookData) {
+          console.log('[AddBook] Auto-fetching book data...');
+          window.autofetchBookData();
+        }
+      } else {
+        console.log('[AddBook] No barcode detected');
+        if (window.ScannerUI && window.ScannerUI.showNotification) {
+          window.ScannerUI.showNotification('No barcode detected', 'info');
+        }
+      }
+    } catch (scanError) {
+      console.error('[AddBook] Native scanner error:', scanError);
+      
+      // Handle cancellation
+      const errorMessage = scanError.message || scanError.toString();
+      const isCancellation = errorMessage.includes('cancel') || 
+                            errorMessage.includes('Cancel') ||
+                            errorMessage.includes('User cancelled') ||
+                            errorMessage.includes('user cancelled') ||
+                            errorMessage.includes('cancelled') ||
+                            errorMessage.includes('Cancelled') ||
+                            errorMessage.includes('back') ||
+                            errorMessage.includes('Back') ||
+                            errorMessage.includes('dismiss') ||
+                            errorMessage.includes('Dismiss');
+      
+      if (isCancellation) {
+        console.log('[AddBook] Scan cancelled by user');
+        if (window.ScannerUI && window.ScannerUI.showNotification) {
+          window.ScannerUI.showNotification('Scan cancelled', 'info');
+        }
+      } else {
+        // Handle permission errors
+        if (errorMessage.includes('permission') || errorMessage.includes('denied')) {
+          console.error('[AddBook] Camera permission error during scanning');
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification('Camera permission error. Please check device settings.', 'error');
+          }
+        } else {
+          console.error('[AddBook] Scanning error:', scanError.message);
+          if (window.ScannerUI && window.ScannerUI.showNotification) {
+            window.ScannerUI.showNotification(`Scanning error: ${scanError.message}`, 'error');
+          }
+        }
+      }
+    }
   } catch (error) {
     console.error('[AddBook] Scanner error:', error);
     if (window.ScannerUI && window.ScannerUI.showNotification) {
