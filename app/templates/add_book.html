@@ -361,6 +361,18 @@ async function handleScannerButtonClick() {
     }
     
     console.log('[AddBook] Found BarcodeScanner plugin in Capacitor.Plugins');
+    console.log('[AddBook] BarcodeScanner methods:', Object.keys(BarcodeScanner));
+    console.log('[AddBook] BarcodeScanner.requestPermissions type:', typeof BarcodeScanner.requestPermissions);
+    console.log('[AddBook] BarcodeScanner.checkPermissions type:', typeof BarcodeScanner.checkPermissions);
+    console.log('[AddBook] BarcodeScanner.scan type:', typeof BarcodeScanner.scan);
+    
+    // Check if scanning is supported
+    console.log('[AddBook] Checking if scanning is supported...');
+    const { supported } = await BarcodeScanner.isSupported();
+    console.log(`[AddBook] Barcode scanning supported: ${supported}`);
+    if (!supported) {
+      throw new Error('Barcode scanning not supported on this device');
+    }
     
     // Check permissions but don't fail if denied
     console.log('[AddBook] Checking camera permissions...');
@@ -374,16 +386,8 @@ async function handleScannerButtonClick() {
       console.log(`[AddBook] Permission check error: ${permError.message}`, 'warning');
     }
     
-    if (!permissionGranted) {
-      console.log('[AddBook] Permission not granted, attempting to request...');
-      try {
-        const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-        console.log(`[AddBook] Permission request result: ${newGranted ? 'granted' : 'denied'}`);
-        permissionGranted = newGranted;
-      } catch (permError) {
-        console.log(`[AddBook] Permission request error: ${permError.message}`, 'warning');
-      }
-    }
+    // Don't try to request permissions explicitly - let the scan method handle it
+    console.log('[AddBook] Skipping explicit permission request, letting scan method handle it...');
     
     // Try to start scanning even if permissions appear denied
     console.log('[AddBook] Attempting to start barcode scan...');
