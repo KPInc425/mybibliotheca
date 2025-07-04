@@ -6,7 +6,7 @@
 
 {% block content %}
 <!-- Add bottom padding for mobile to account for fixed button and footer -->
-<div class="pb-40 md:pb-0">
+
 <div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
   <div class="hero-content text-center">
     <div>
@@ -24,29 +24,24 @@
       <!-- Scanner Section -->
       <div class="card bg-base-200 border-2 border-primary/20">
         <div class="card-body">
-          <h3 class="card-title text-primary mb-4">
+          <h3 class="card-title text-primary mb-4 justify-center text-nowrap">
             📱 Barcode Scanner
+						<!-- Scanner Tips Tooltip -->
+						<div class="tooltip tooltip-right pb-1" data-tip="Scanner Tips Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices.">
+							<button type="button" class="btn btn-circle btn-ghost btn-sm">
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current w-5 h-5">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+							</button>
+						</div>
           </h3>
           
-          <!-- Scanner Tips -->
-          <div class="alert alert-info mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <div>
-              <h4 class="font-bold">Scanner Tips</h4>
-              <div class="text-sm">
-                <p><strong>Native App:</strong> Best experience with automatic scanning</p>
-                <p><strong>Browser:</strong> Works but may be slower on mobile devices</p>
-              </div>
-            </div>
-          </div>
-          
           <!-- Scanner Controls -->
-          <div class="flex flex-wrap gap-2 mt-4 justify-center">
+          <div class="flex flex-wrap gap-2 mt-4 justify-center items-center">
             <button id="scannerBtn" type="button" class="btn btn-primary btn-lg w-full sm:w-auto">
               📷 Scan Barcode
             </button>
+            
             
             <button id="debugBtn" type="button" class="btn btn-secondary btn-sm hidden" onclick="debugScanner()">
               🔍 Debug Scanner
@@ -79,7 +74,7 @@
                  type="text" pattern="[0-9\-]+" title="Enter a valid ISBN (digits and hyphens only)"
                  placeholder="Enter ISBN or scan barcode above">
           <button id="fetchBtn" name="fetch" value="1" type="button" class="btn btn-secondary join-item">
-            🔍 Fetch Book Data
+            🔍 Fetch Book
           </button>
         </div>
       </div>
@@ -177,12 +172,12 @@
             <label class="label cursor-pointer justify-start gap-4">
               <input type="checkbox" name="want_to_read" class="checkbox checkbox-primary" 
                      {% if request.form.want_to_read %}checked{% endif %}>
-              <span class="label-text md:text-lg">📋 Want to Read (Add to reading list)</span>
+              <span class="label-text md:text-lg text-wrap">📋 Want to Read (Add to reading list)</span>
             </label>
             <label class="label cursor-pointer justify-start gap-4">
               <input type="checkbox" name="library_only" class="checkbox checkbox-primary" 
                      {% if request.form.library_only %}checked{% endif %}>
-              <span class="label-text md:text-lg">📚 Library Only (Reference/Collection)</span>
+              <span class="label-text md:text-lg text-wrap">📚 Library Only (Reference/Collection)</span>
             </label>
           </div>
         </div>
@@ -516,6 +511,44 @@ document.addEventListener('DOMContentLoaded', function() {
   checkAndHideInstallButton();
   
   console.log('[AddBook] Scanner initialization complete');
+  
+  // Handle responsive tooltip behavior
+  function setupTooltipBehavior() {
+    const scannerTipsTooltip = document.querySelector('.tooltip');
+    const scannerTipsButton = scannerTipsTooltip ? scannerTipsTooltip.querySelector('button') : null;
+    
+    if (scannerTipsTooltip && scannerTipsButton) {
+      // Remove any existing click handlers
+      scannerTipsButton.removeEventListener('click', showMobileAlert);
+      
+      // Check if we're on mobile using a more reliable method
+      const isMobile = window.innerWidth <= 768;
+      
+      if (isMobile) {
+        // On mobile: remove tooltip classes and add click handler
+        scannerTipsTooltip.classList.remove('tooltip', 'tooltip-left');
+        scannerTipsButton.addEventListener('click', showMobileAlert);
+        console.log('[AddBook] Mobile tooltip behavior enabled (click to show alert)');
+      } else {
+        // On desktop: restore tooltip classes and remove click handler
+        scannerTipsTooltip.classList.add('tooltip', 'tooltip-left');
+        console.log('[AddBook] Desktop tooltip behavior enabled (hover to show tooltip)');
+      }
+    }
+  }
+  
+  // Function to show mobile alert
+  function showMobileAlert(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    alert('Scanner Tips:\n\nNative App: Best experience with automatic scanning\nBrowser: Works but may be slower on mobile devices');
+  }
+  
+  // Initial setup
+  setupTooltipBehavior();
+  
+  // Handle window resize
+  window.addEventListener('resize', setupTooltipBehavior);
 });
 
 // Show/hide debug buttons based on environment

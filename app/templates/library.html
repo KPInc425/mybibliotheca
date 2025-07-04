@@ -378,18 +378,18 @@ document.addEventListener('DOMContentLoaded', function() {
     if (searchInput) {
         const debouncedSubmit = debounce(() => {
             filterForm.submit();
-        }, 500);
+        }, 1500); // Increased from 500ms to 1.5 seconds to give users more thinking time
         
         searchInput.addEventListener('input', debouncedSubmit);
     }
     
-    // Handle dropdown changes - submit form after a short delay
+    // Handle dropdown changes - submit form after a longer delay
     filterSelects.forEach(select => {
         select.addEventListener('change', function() {
-            // Small delay to allow user to see their selection
+            // Longer delay to allow user to see their selection and think
             setTimeout(() => {
                 filterForm.submit();
-            }, 100);
+            }, 800); // Increased from 100ms to 800ms
         });
     });
     
