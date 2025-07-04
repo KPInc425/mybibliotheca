@@ -58,40 +58,49 @@
       <label for="category" class="label">
         <span class="label-text font-semibold">Category</span>
       </label>
-      <select class="select select-bordered w-full" id="category" name="category">
-        <option value="">Categories</option>
-        {% for category in categories %}
-          <option value="{{ category }}" {% if category == current_category %}selected{% endif %}>
-            {{ category }}
-          </option>
-        {% endfor %}
-      </select>
+      <div class="relative">
+        <input type="text" class="input input-bordered w-full" id="category" name="category" 
+               value="{{ current_category }}" placeholder="Search categories..." 
+               autocomplete="off" data-tooltip="false">
+        <div id="category-options" class="absolute top-full left-0 right-0 bg-base-100 border border-base-300 rounded-b-lg shadow-lg max-h-48 overflow-y-auto z-50 hidden">
+          <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="">All Categories</div>
+          {% for category in categories %}
+            <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="{{ category }}">{{ category }}</div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
     <div class="form-control w-full">
       <label for="publisher" class="label">
         <span class="label-text font-semibold">Publisher</span>
       </label>
-      <select class="select select-bordered w-full" id="publisher" name="publisher">
-        <option value="">Publishers</option>
-        {% for publisher in publishers %}
-          <option value="{{ publisher }}" {% if publisher == current_publisher %}selected{% endif %}>
-            {{ publisher }}
-          </option>
-        {% endfor %}
-      </select>
+      <div class="relative">
+        <input type="text" class="input input-bordered w-full" id="publisher" name="publisher" 
+               value="{{ current_publisher }}" placeholder="Search publishers..." 
+               autocomplete="off" data-tooltip="false">
+        <div id="publisher-options" class="absolute top-full left-0 right-0 bg-base-100 border border-base-300 rounded-b-lg shadow-lg max-h-48 overflow-y-auto z-50 hidden">
+          <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="">All Publishers</div>
+          {% for publisher in publishers %}
+            <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="{{ publisher }}">{{ publisher }}</div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
     <div class="form-control w-full">
       <label for="language" class="label">
         <span class="label-text font-semibold">Language</span>
       </label>
-      <select class="select select-bordered w-full" id="language" name="language">
-        <option value="">Languages</option>
-        {% for language in languages %}
-          <option value="{{ language }}" {% if language == current_language %}selected{% endif %}>
-            {{ language }}
-          </option>
-        {% endfor %}
-      </select>
+      <div class="relative">
+        <input type="text" class="input input-bordered w-full" id="language" name="language" 
+               value="{{ current_language }}" placeholder="Search languages..." 
+               autocomplete="off" data-tooltip="false">
+        <div id="language-options" class="absolute top-full left-0 right-0 bg-base-100 border border-base-300 rounded-b-lg shadow-lg max-h-48 overflow-y-auto z-50 hidden">
+          <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="">All Languages</div>
+          {% for language in languages %}
+            <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="{{ language }}">{{ language }}</div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
   </form>
   <div class="mt-6 text-center">

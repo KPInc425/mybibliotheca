@@ -172,6 +172,25 @@
           <textarea id="description" name="description" class="textarea textarea-bordered h-24"
                     placeholder="Enter book description">{{ book_data.description if book_data else request.form.description or '' }}</textarea>
         </div>
+        
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">🏷️ Categories</span>
+          </label>
+          <div class="relative">
+            <input id="categories" name="categories" class="input input-bordered w-full" 
+                   value="{{ book_data.categories if book_data else request.form.categories or '' }}"
+                   placeholder="Enter categories separated by commas" 
+                   autocomplete="off"
+                   data-tooltip="false">
+            <div id="category-suggestions" class="absolute top-full left-0 right-0 bg-base-100 border border-base-300 rounded-b-lg shadow-lg max-h-48 overflow-y-auto z-50 hidden">
+              <!-- Will be populated by JavaScript -->
+            </div>
+          </div>
+          <label class="label">
+            <span class="label-text-alt">Enter categories separated by commas (e.g., Fiction, Science Fiction, Adventure)</span>
+          </label>
+        </div>
       </div>
 
       <!-- Book Cover Preview -->

@@ -266,6 +266,78 @@ def ensure_https_url(url):
         return url.replace('http://', 'https://')
     return url
 
+def standardize_categories(categories_string):
+    """Standardize and clean category strings"""
+    if not categories_string:
+        return None
+    
+    # Split by comma and clean each category
+    categories = [cat.strip() for cat in categories_string.split(',')]
+    
+    # Remove empty categories and standardize common variations
+    cleaned_categories = []
+    for category in categories:
+        if not category:
+            continue
+            
+        # Standardize common variations
+        category_lower = category.lower()
+        if category_lower in ['sci-fi', 'scifi', 'science fiction']:
+            category = 'Science Fiction'
+        elif category_lower in ['fantasy', 'fantasy fiction']:
+            category = 'Fantasy'
+        elif category_lower in ['mystery', 'mystery fiction']:
+            category = 'Mystery'
+        elif category_lower in ['romance', 'romance fiction']:
+            category = 'Romance'
+        elif category_lower in ['thriller', 'thriller fiction']:
+            category = 'Thriller'
+        elif category_lower in ['horror', 'horror fiction']:
+            category = 'Horror'
+        elif category_lower in ['historical fiction', 'historical']:
+            category = 'Historical Fiction'
+        elif category_lower in ['non-fiction', 'nonfiction', 'non fiction']:
+            category = 'Non-Fiction'
+        elif category_lower in ['biography', 'biographies']:
+            category = 'Biography'
+        elif category_lower in ['autobiography', 'autobiographies']:
+            category = 'Autobiography'
+        elif category_lower in ['self-help', 'self help', 'selfhelp']:
+            category = 'Self-Help'
+        elif category_lower in ['business', 'business & economics']:
+            category = 'Business'
+        elif category_lower in ['philosophy', 'philosophical']:
+            category = 'Philosophy'
+        elif category_lower in ['religion', 'religious']:
+            category = 'Religion'
+        elif category_lower in ['poetry', 'poems']:
+            category = 'Poetry'
+        elif category_lower in ['drama', 'plays', 'theater', 'theatre']:
+            category = 'Drama'
+        elif category_lower in ['children', "children's", 'kids', 'juvenile']:
+            category = "Children's"
+        elif category_lower in ['young adult', 'ya', 'teen']:
+            category = 'Young Adult'
+        elif category_lower in ['classic', 'classics', 'classical']:
+            category = 'Classic'
+        elif category_lower in ['contemporary', 'modern']:
+            category = 'Contemporary'
+        else:
+            # Capitalize first letter of each word for unknown categories
+            category = ' '.join(word.capitalize() for word in category.split())
+        
+        cleaned_categories.append(category)
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_categories = []
+    for category in cleaned_categories:
+        if category not in seen:
+            seen.add(category)
+            unique_categories.append(category)
+    
+    return ', '.join(unique_categories) if unique_categories else None
+
 def process_book_data(book_data):
     """Process book data to ensure HTTPS URLs and clean data."""
     if 'cover_url' in book_data and book_data['cover_url']:

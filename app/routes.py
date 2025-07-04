@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, jsonify, flash, send_file
 from flask_login import login_required, current_user
 from .models import Book, db, ReadingLog, User, SystemSettings, SharedBookData
-from .utils import fetch_book_data, get_reading_streak, get_google_books_cover, generate_month_review_image, ensure_https_url
+from .utils import fetch_book_data, get_reading_streak, get_google_books_cover, generate_month_review_image, ensure_https_url, standardize_categories
 from datetime import datetime, date, timedelta
 import pytz
 import secrets
@@ -295,6 +295,10 @@ def add_book():
             categories = categories or request.form.get('categories', '').strip() or None
             publisher = publisher or request.form.get('publisher', '').strip() or None
             language = language or request.form.get('language', '').strip() or None
+            
+            # Standardize categories
+            if categories:
+                categories = standardize_categories(categories)
 
             # Get reading options
             start_date_str = request.form.get('start_date') or None
@@ -682,7 +686,7 @@ def edit_book(uid):
         book.page_count = int(request.form.get('page_count')) if request.form.get('page_count', '').strip() else None
         book.publisher = request.form.get('publisher', '').strip() or None
         book.language = request.form.get('language', '').strip() or None
-        book.categories = request.form.get('categories', '').strip() or None
+        book.categories = standardize_categories(request.form.get('categories', '').strip()) or None
         book.average_rating = float(request.form.get('average_rating')) if request.form.get('average_rating', '').strip() else None
         book.rating_count = int(request.form.get('rating_count')) if request.form.get('rating_count', '').strip() else None
         
@@ -813,6 +817,10 @@ def add_book_from_search():
     else:
         description = published_date = page_count = categories = publisher = language = average_rating = rating_count = None
 
+    # Standardize categories
+    if categories:
+        categories = standardize_categories(categories)
+    
     book = Book(
         title=title,
         author=author,
@@ -1218,6 +1226,43 @@ def user_profile(user_id):
                          currently_reading=currently_reading,
                          recent_finished=recent_finished,
                          reading_logs_count=reading_logs_count)
+
+@bp.route('/api/categories', methods=['GET'])
+@login_required
+def get_category_suggestions():
+    """Get category suggestions for auto-complete"""
+    query = request.args.get('q', '').lower()
+    
+    # Get all categories from user's books
+    all_books = Book.query.filter_by(user_id=current_user.id).all()
+    user_categories = set()
+    
+    for book in all_books:
+        if book.categories:
+            categories = [cat.strip() for cat in book.categories.split(',')]
+            user_categories.update(categories)
+    
+    # Get categories from shared book data
+    shared_books = SharedBookData.query.all()
+    shared_categories = set()
+    
+    for book in shared_books:
+        if book.categories:
+            categories = [cat.strip() for cat in book.categories.split(',')]
+            shared_categories.update(categories)
+    
+    # Combine and filter categories
+    all_categories = list(user_categories | shared_categories)
+    
+    # Filter by query if provided
+    if query:
+        all_categories = [cat for cat in all_categories if query in cat.lower()]
+    
+    # Sort and limit results
+    all_categories.sort()
+    all_categories = all_categories[:20]  # Limit to 20 suggestions
+    
+    return jsonify(all_categories)
 
 @bp.route('/book/<uid>/assign', methods=['POST'])
 @login_required
