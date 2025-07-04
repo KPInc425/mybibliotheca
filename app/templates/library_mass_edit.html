@@ -56,7 +56,7 @@
           <button id="add-category-btn" class="btn btn-primary">Add to Selected</button>
         </div>
         <div class="label">
-          <span class="label-text-alt text-base-content/70">Instantly add this category to all selected books</span>
+          <span class="label-text-alt text-base-content/70 hidden sm:block">Instantly add this category to all selected books</span>
         </div>
       </div>
       
@@ -75,7 +75,7 @@
           <button id="remove-category-btn" class="btn btn-error">Remove from Selected</button>
         </div>
         <div class="label">
-          <span class="label-text-alt text-base-content/70">Instantly remove this category from all selected books</span>
+          <span class="label-text-alt text-base-content/70 hidden sm:block">Instantly remove this category from all selected books</span>
         </div>
       </div>
     </div>
@@ -83,7 +83,7 @@
     <!-- Recent Actions Log -->
     <div class="mt-4">
       <div class="divider">Recent Actions</div>
-      <div id="action-log" class="text-sm text-base-content/70">
+      <div id="action-log" class="text-sm text-base-content/70 max-h-32 overflow-y-auto">
         <div class="text-center py-2">No actions yet</div>
       </div>
     </div>
@@ -170,6 +170,72 @@
       <span class="text-base-content/70 font-semibold" id="book-count-display">Showing {{ books|length }} book(s)</span>
     </div>
   </form>
+</div>
+
+<!-- Mobile Filter Button -->
+<div class="lg:hidden mb-4">
+  <button id="mobile-filter-btn" class="btn btn-outline btn-primary w-full">
+    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+    </svg>
+    Filter Books
+  </button>
+</div>
+
+<!-- Mobile Filter Modal -->
+<div id="mobile-filter-modal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">Filter Books</h3>
+    <form method="GET" id="mobile-filter-form">
+      <div class="space-y-4">
+        <div class="form-control">
+          <label for="mobile-search" class="label">
+            <span class="label-text font-semibold">Search</span>
+          </label>
+          <input type="text" class="input input-bordered w-full" id="mobile-search" name="search" 
+                 value="{{ current_search }}" placeholder="Title, author, description...">
+        </div>
+        <div class="form-control">
+          <label for="mobile-category" class="label">
+            <span class="label-text font-semibold">Category</span>
+          </label>
+          <select class="select select-bordered w-full" id="mobile-category" name="category">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+              <option value="{{ category }}" {% if current_category == category %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-control">
+          <label for="mobile-publisher" class="label">
+            <span class="label-text font-semibold">Publisher</span>
+          </label>
+          <select class="select select-bordered w-full" id="mobile-publisher" name="publisher">
+            <option value="">All Publishers</option>
+            {% for publisher in publishers %}
+              <option value="{{ publisher }}" {% if current_publisher == publisher %}selected{% endif %}>{{ publisher }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-control">
+          <label for="mobile-language" class="label">
+            <span class="label-text font-semibold">Language</span>
+          </label>
+          <select class="select select-bordered w-full" id="mobile-language" name="language">
+            <option value="">All Languages</option>
+            {% for language in languages %}
+              <option value="{{ language }}" {% if current_language == language %}selected{% endif %}>{{ language }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-action">
+        <a href="{{ url_for('main.library_mass_edit') }}" class="btn btn-secondary">Clear</a>
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <button type="button" class="btn" onclick="closeMobileFilter()">Cancel</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- Books Grid -->
@@ -309,6 +375,64 @@
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 30px hsl(var(--p) / 0.6);
     }
 }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .book-card {
+        max-width: 160px !important;
+        height: 70vh !important;
+    }
+    
+    .book-title {
+        font-size: 0.75rem !important;
+        line-height: 1.2 !important;
+    }
+    
+    .book-author {
+        font-size: 0.625rem !important;
+    }
+    
+    .category-badges .badge {
+        font-size: 0.5rem !important;
+        padding: 0.125rem 0.25rem !important;
+    }
+    
+    .selection-checkmark {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+        font-size: 0.625rem !important;
+    }
+    
+    /* Prevent text overflow in action log */
+    #action-log div {
+        word-break: break-word;
+        hyphens: auto;
+    }
+    
+    /* Compact mass actions on mobile */
+    #mass-actions .grid {
+        gap: 1rem !important;
+    }
+    
+    #mass-actions .input-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    #mass-actions .input-group .btn {
+        width: 100%;
+    }
+    
+    /* Hide desktop filters on mobile */
+    .filter-form {
+        display: none !important;
+    }
+    
+    /* Hide the entire filter section on mobile */
+    .bg-base-100.border-2.border-secondary.rounded-2xl.p-4.mb-6.shadow-lg {
+        display: none !important;
+    }
+}
 </style>
 
 <script>
@@ -333,7 +457,33 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let selectedBooks = new Set();
     
-    // Mobile filter toggle
+    // Mobile filter modal
+    const mobileFilterBtn = document.getElementById('mobile-filter-btn');
+    const mobileFilterModal = document.getElementById('mobile-filter-modal');
+    
+    if (mobileFilterBtn && mobileFilterModal) {
+        mobileFilterBtn.addEventListener('click', function() {
+            mobileFilterModal.classList.add('modal-open');
+        });
+    }
+    
+    // Global function to close mobile filter
+    window.closeMobileFilter = function() {
+        if (mobileFilterModal) {
+            mobileFilterModal.classList.remove('modal-open');
+        }
+    };
+    
+    // Close modal when clicking outside
+    if (mobileFilterModal) {
+        mobileFilterModal.addEventListener('click', function(e) {
+            if (e.target === mobileFilterModal) {
+                closeMobileFilter();
+            }
+        });
+    }
+    
+    // Desktop filter toggle (for backward compatibility)
     if (filterToggle && filterForm) {
         filterToggle.addEventListener('click', function() {
             filterForm.classList.toggle('hidden');
@@ -445,29 +595,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Global function for handling card clicks
     window.handleCardClick = function(event, bookCard) {
-        console.log('=== Card Click Debug ===');
-        console.log('Event target:', event.target);
-        console.log('Event target tagName:', event.target.tagName);
-        console.log('Event target className:', event.target.className);
-        console.log('Event target innerHTML:', event.target.innerHTML?.substring(0, 50));
-        
         // Check if the click was on a link (title or cover) or checkbox
         const clickedElement = event.target;
         const isLink = clickedElement.tagName === 'A' || clickedElement.closest('a');
         const isCheckbox = clickedElement.type === 'checkbox' || clickedElement.closest('.book-checkbox');
-        const closestLink = clickedElement.closest('a');
-        
-        console.log('Is link tag?', clickedElement.tagName === 'A');
-        console.log('Is checkbox?', isCheckbox);
-        console.log('Closest link:', closestLink);
-        console.log('Is link?', isLink);
         
         if (isLink || isCheckbox) {
-            console.log('Clicking on link or checkbox - NOT toggling selection');
-            return;
+            return; // Don't toggle selection for links or checkboxes
         }
-        
-        console.log('Clicking on non-link, non-checkbox - toggling selection');
         
         // Toggle selection for other clicks
         const checkbox = bookCard.querySelector('.book-checkbox');

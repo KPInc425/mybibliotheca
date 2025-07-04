@@ -132,6 +132,72 @@
   </div>
 </div>
 
+<!-- Mobile Filter Button -->
+<div class="lg:hidden mb-4">
+  <button id="mobile-filter-btn" class="btn btn-outline btn-primary w-full">
+    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+    </svg>
+    Filter Books
+  </button>
+</div>
+
+<!-- Mobile Filter Modal -->
+<div id="mobile-filter-modal" class="modal">
+  <div class="modal-box w-11/12 max-w-2xl">
+    <h3 class="font-bold text-lg mb-4">Filter Books</h3>
+    <form method="GET" id="mobile-filter-form">
+      <div class="space-y-4">
+        <div class="form-control">
+          <label for="mobile-search" class="label">
+            <span class="label-text font-semibold">Search</span>
+          </label>
+          <input type="text" class="input input-bordered w-full" id="mobile-search" name="search" 
+                 value="{{ current_search }}" placeholder="Title, author, description...">
+        </div>
+        <div class="form-control">
+          <label for="mobile-category" class="label">
+            <span class="label-text font-semibold">Category</span>
+          </label>
+          <select class="select select-bordered w-full" id="mobile-category" name="category">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+              <option value="{{ category }}" {% if current_category == category %}selected{% endif %}>{{ category }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-control">
+          <label for="mobile-publisher" class="label">
+            <span class="label-text font-semibold">Publisher</span>
+          </label>
+          <select class="select select-bordered w-full" id="mobile-publisher" name="publisher">
+            <option value="">All Publishers</option>
+            {% for publisher in publishers %}
+              <option value="{{ publisher }}" {% if current_publisher == publisher %}selected{% endif %}>{{ publisher }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-control">
+          <label for="mobile-language" class="label">
+            <span class="label-text font-semibold">Language</span>
+          </label>
+          <select class="select select-bordered w-full" id="mobile-language" name="language">
+            <option value="">All Languages</option>
+            {% for language in languages %}
+              <option value="{{ language }}" {% if current_language == language %}selected{% endif %}>{{ language }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-action">
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">Clear All</a>
+        <button type="submit" class="btn btn-primary">Apply Filters</button>
+        <button type="button" class="btn" onclick="closeMobileFilter()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Books Grid -->
 <div class="bookshelf-container bg-gradient-to-br from-base-200 to-base-300 rounded-3xl p-6 shadow-inner relative">
   {% if books %}
@@ -234,7 +300,33 @@
 <script>
 // Enhanced mobile-optimized pagination and interactivity
 document.addEventListener('DOMContentLoaded', function() {
-    // Mobile filter toggle
+    // Mobile filter modal
+    const mobileFilterBtn = document.getElementById('mobile-filter-btn');
+    const mobileFilterModal = document.getElementById('mobile-filter-modal');
+    
+    if (mobileFilterBtn && mobileFilterModal) {
+        mobileFilterBtn.addEventListener('click', function() {
+            mobileFilterModal.classList.add('modal-open');
+        });
+    }
+    
+    // Global function to close mobile filter
+    window.closeMobileFilter = function() {
+        if (mobileFilterModal) {
+            mobileFilterModal.classList.remove('modal-open');
+        }
+    };
+    
+    // Close modal when clicking outside
+    if (mobileFilterModal) {
+        mobileFilterModal.addEventListener('click', function(e) {
+            if (e.target === mobileFilterModal) {
+                closeMobileFilter();
+            }
+        });
+    }
+    
+    // Desktop filter toggle (for backward compatibility)
     const filterToggle = document.getElementById('filter-toggle');
     const filterForm = document.getElementById('filter-form');
     
@@ -555,6 +647,16 @@ style.textContent = `
         .book-cover-shelf {
             max-width: 100%;
             height: auto;
+        }
+        
+        /* Hide desktop filters on mobile */
+        .filter-form {
+            display: none !important;
+        }
+        
+        /* Hide the entire filter section on mobile */
+        .bg-base-100.border-2.border-secondary.rounded-2xl.p-4.mb-6.shadow-lg {
+            display: none !important;
         }
     }
 `;
