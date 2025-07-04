@@ -35,25 +35,160 @@
   <!-- Notification Stack -->
   <div id="notificationStack" class="notification-stack"></div>
 
+  <!-- Mobile Sidebar Overlay -->
+  <div id="mobileSidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-[1000] lg:hidden hidden" onclick="closeMobileSidebar()"></div>
+
+  <!-- Mobile Sidebar -->
+  <div id="mobileSidebar" class="fixed top-0 left-0 h-full w-80 bg-base-100 shadow-xl backdrop-blur-md z-[1001] lg:hidden transform -translate-x-full transition-all duration-300 ease-in-out" style="transform: translateX(-100%);">
+    <div class="flex flex-col h-full">
+      <!-- Sidebar Header -->
+      <div class="flex items-center justify-between p-4 border-b border-base-300">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <span class="text-2xl">📖</span>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-primary">BookOracle</h1>
+            <p class="text-xs opacity-70">Your Library</p>
+          </div>
+        </div>
+        <button onclick="closeMobileSidebar()" class="btn btn-ghost btn-sm btn-circle" id="closeSidebarBtn">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Sidebar Navigation -->
+      <nav class="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin scrollbar-thumb-base-300 scrollbar-track-transparent">
+        <!-- Main Navigation Section -->
+        <div class="collapse collapse-arrow bg-base-200 border-0">
+          <input type="checkbox" checked /> 
+          <div class="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
+            📚 Main Navigation
+          </div>
+          <div class="collapse-content space-y-2 pt-2">
+            <a href="{{ url_for('main.index') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">📚</span>
+              <span class="font-medium">Library</span>
+            </a>
+            <a href="{{ url_for('main.library_mass_edit') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">✏️</span>
+              <span class="font-medium">Mass Edit</span>
+            </a>
+            <a href="{{ url_for('main.add_book') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">➕</span>
+              <span class="font-medium">Add Book</span>
+            </a>
+            <a href="{{ url_for('main.search_books') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">🔍</span>
+              <span class="font-medium">Search</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Tools & Reports Section -->
+        <div class="collapse collapse-arrow bg-base-200 border-0">
+          <input type="checkbox" /> 
+          <div class="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
+            🛠️ Tools & Reports
+          </div>
+          <div class="collapse-content space-y-2 pt-2">
+            <a href="{{ url_for('main.month_wrapup') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">📊</span>
+              <span class="font-medium">Month Wrap Up</span>
+            </a>
+            <a href="{{ url_for('main.bulk_import') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">📥</span>
+              <span class="font-medium">Bulk Import</span>
+            </a>
+            <a href="{{ url_for('main.community_activity') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">👥</span>
+              <span class="font-medium">Community</span>
+            </a>
+          </div>
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <!-- Account Section -->
+        <div class="collapse collapse-arrow bg-base-200 border-0">
+          <input type="checkbox" /> 
+          <div class="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
+            👤 Account
+          </div>
+          <div class="collapse-content space-y-2 pt-2">
+            <a href="{{ url_for('auth.profile') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">👤</span>
+              <span class="font-medium">Profile</span>
+            </a>
+            <a href="{{ url_for('auth.my_activity') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">📈</span>
+              <span class="font-medium">My Activity</span>
+            </a>
+            <a href="{{ url_for('auth.privacy_settings') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">🔒</span>
+              <span class="font-medium">Privacy</span>
+            </a>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">⚙️</span>
+              <span class="font-medium">Admin</span>
+            </a>
+            {% endif %}
+            <div class="border-t border-base-300 my-2"></div>
+            <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-error hover:text-error-content hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">🚪</span>
+              <span class="font-medium">Logout</span>
+            </a>
+          </div>
+        </div>
+        {% else %}
+        <!-- Account Section for non-authenticated users -->
+        <div class="collapse collapse-arrow bg-base-200 border-0">
+          <input type="checkbox" /> 
+          <div class="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
+            🔐 Account
+          </div>
+          <div class="collapse-content space-y-2 pt-2">
+            <a href="{{ url_for('auth.login') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">🔑</span>
+              <span class="font-medium">Login</span>
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200">
+              <span class="text-xl">📝</span>
+              <span class="font-medium">Register</span>
+            </a>
+          </div>
+        </div>
+        {% endif %}
+      </nav>
+
+      <!-- Sidebar Footer -->
+      <div class="p-4 border-t border-base-300">
+        <div class="flex items-center justify-between">
+          <div class="text-xs opacity-60">
+            <p>BookOracle v1.0</p>
+            <p>Your digital library</p>
+          </div>
+          <button id="themeToggleSidebar" class="btn btn-circle btn-sm btn-ghost">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Navigation -->
   <div class="navbar bg-base-100 shadow-lg" id="navbar">
     <div class="navbar-start">
-      <div class="dropdown">
-        <div tabindex="0" role="button" class="btn btn-ghost lg:hidden">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16"></path>
-          </svg>
-        </div>
-        <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[60] p-2 shadow bg-base-100 rounded-box w-52">
-          <li><a href="{{ url_for('main.index') }}">📚 Library</a></li>
-          <li><a href="{{ url_for('main.library_mass_edit') }}">✏️ Mass Edit</a></li>
-          <li><a href="{{ url_for('main.add_book') }}">➕ Add Book</a></li>
-          <li><a href="{{ url_for('main.search_books') }}">🔍 Search</a></li>
-          <li><a href="{{ url_for('main.month_wrapup') }}">📊 Month Wrap Up</a></li>
-          <li><a href="{{ url_for('main.bulk_import') }}">📥 Bulk Import</a></li>
-          <li><a href="{{ url_for('main.community_activity') }}">👥 Community</a></li>
-        </ul>
-      </div>
+      <!-- Mobile Menu Button -->
+      <button onclick="openMobileSidebar()" class="btn btn-ghost lg:hidden" id="mobileMenuBtn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
       <a href="{{ url_for('main.index') }}" class="btn btn-ghost text-xl font-bold text-primary">
         <span class="hidden sm:inline">📖 BookOracle</span>
         <span class="sm:hidden">📖 BookØ</span>
@@ -161,6 +296,98 @@
   <script src="{{ url_for('static', filename='auth-storage.js') }}"></script>
   <script src="{{ url_for('static', filename='category-autocomplete.js') }}"></script>
   <script>
+    // Mobile Sidebar Functions
+    function openMobileSidebar() {
+      console.log('Opening mobile sidebar...');
+      const sidebar = document.getElementById('mobileSidebar');
+      const overlay = document.getElementById('mobileSidebarOverlay');
+      
+      if (!sidebar || !overlay) {
+        console.error('Sidebar elements not found:', { sidebar, overlay });
+        return;
+      }
+      
+      sidebar.style.transform = 'translateX(0)';
+      overlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      console.log('Mobile sidebar opened');
+    }
+
+    function closeMobileSidebar() {
+      console.log('Closing mobile sidebar...');
+      const sidebar = document.getElementById('mobileSidebar');
+      const overlay = document.getElementById('mobileSidebarOverlay');
+      
+      if (!sidebar || !overlay) {
+        console.error('Sidebar elements not found:', { sidebar, overlay });
+        return;
+      }
+      
+      sidebar.style.transform = 'translateX(-100%)';
+      overlay.classList.add('hidden');
+      document.body.style.overflow = ''; // Restore scrolling
+      console.log('Mobile sidebar closed');
+    }
+
+    // Make functions globally accessible
+    window.openMobileSidebar = openMobileSidebar;
+    window.closeMobileSidebar = closeMobileSidebar;
+
+    // Close sidebar when clicking on navigation links
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM loaded, setting up sidebar links...');
+      
+      // Set up mobile menu button
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function(e) {
+          console.log('Mobile menu button clicked');
+          openMobileSidebar();
+        });
+      }
+      
+      // Set up close button
+      const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+      if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener('click', function(e) {
+          console.log('Close sidebar button clicked');
+          closeMobileSidebar();
+        });
+      }
+      
+      // Set up overlay click
+      const overlay = document.getElementById('mobileSidebarOverlay');
+      if (overlay) {
+        overlay.addEventListener('click', function(e) {
+          console.log('Overlay clicked');
+          closeMobileSidebar();
+        });
+      }
+      
+      // Set up navigation links (excluding collapse toggles)
+      const sidebarLinks = document.querySelectorAll('#mobileSidebar a:not(.collapse-title)');
+      console.log('Found sidebar links:', sidebarLinks.length);
+      
+      sidebarLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          // Don't close sidebar if clicking on collapse titles
+          if (link.closest('.collapse-title')) {
+            return;
+          }
+          console.log('Sidebar link clicked, closing sidebar...');
+          closeMobileSidebar();
+        });
+      });
+      
+      // Prevent collapse clicks from closing sidebar
+      const collapseTitles = document.querySelectorAll('#mobileSidebar .collapse-title');
+      collapseTitles.forEach(title => {
+        title.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
+      });
+    });
+
     // Detect if we're running in a Capacitor hybrid app
     if (typeof Capacitor !== 'undefined') {
       // Set a flag that can be used by the server
@@ -174,6 +401,15 @@
     }
     
     document.getElementById('themeToggle').addEventListener('click', function() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'mybibliotheca' ? 'dark' : 'mybibliotheca';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+    });
+
+    // Sidebar theme toggle
+    document.getElementById('themeToggleSidebar').addEventListener('click', function() {
       const html = document.documentElement;
       const currentTheme = html.getAttribute('data-theme');
       const newTheme = currentTheme === 'mybibliotheca' ? 'dark' : 'mybibliotheca';
