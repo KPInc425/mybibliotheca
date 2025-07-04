@@ -1282,3 +1282,188 @@ def assign_book(uid):
     db.session.commit()
     flash(f'Book "{book.title}" assigned to {user.username}.', 'success')
     return redirect(url_for('main.library'))
+
+@bp.route('/library/mass-edit')
+@login_required
+def library_mass_edit():
+    """Mass edit library view with selection capabilities"""
+    # Get filter parameters from URL
+    search = request.args.get('search', '').strip()
+    category = request.args.get('category', '').strip()
+    publisher = request.args.get('publisher', '').strip()
+    language = request.args.get('language', '').strip()
+    
+    # Start with all user's books
+    query = Book.query.filter_by(user_id=current_user.id)
+    
+    # Apply search filter
+    if search:
+        search_filter = or_(
+            Book.title.ilike(f'%{search}%'),
+            Book.author.ilike(f'%{search}%'),
+            Book.description.ilike(f'%{search}%'),
+            Book.categories.ilike(f'%{search}%'),
+            Book.publisher.ilike(f'%{search}%')
+        )
+        query = query.filter(search_filter)
+    
+    # Apply category filter
+    if category:
+        query = query.filter(Book.categories.ilike(f'%{category}%'))
+    
+    # Apply publisher filter
+    if publisher:
+        query = query.filter(Book.publisher == publisher)
+    
+    # Apply language filter
+    if language:
+        query = query.filter(Book.language == language)
+    
+    # Get filtered books
+    all_filtered_books = query.all()
+    
+    # Sort books by reading status priority
+    def get_sort_priority(book):
+        # Currently Reading = 1 (highest priority)
+        if not book.finish_date and not book.want_to_read and not book.library_only:
+            return 1
+        # Want to Read = 2
+        elif book.want_to_read:
+            return 2
+        # Finished = 3
+        elif book.finish_date:
+            return 3
+        # Library Only = 4 (lowest priority)
+        else:
+            return 4
+    
+    # Sort by priority first, then by title
+    books = sorted(all_filtered_books, key=lambda book: (get_sort_priority(book), book.title.lower()))
+    
+    # Get all books for filter options (unfiltered)
+    all_books = Book.query.filter_by(user_id=current_user.id).all()
+    
+    # Extract unique values for filters
+    categories = sorted(set([
+        cat.strip() for book in all_books 
+        if book.categories 
+        for cat in book.categories.split(',')
+    ]))
+    
+    publishers = sorted(set([
+        book.publisher for book in all_books 
+        if book.publisher and book.publisher.strip()
+    ]))
+    
+    languages = sorted(set([
+        book.language for book in all_books 
+        if book.language and book.language.strip()
+    ]))
+    
+    return render_template('library_mass_edit.html',
+                         books=books,
+                         categories=categories,
+                         publishers=publishers,
+                         languages=languages,
+                         current_search=search,
+                         current_category=category,
+                         current_publisher=publisher,
+                         current_language=language)
+
+@bp.route('/api/mass-edit-books', methods=['POST'])
+@login_required
+def mass_edit_books():
+    """API endpoint for mass editing books"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        book_uids = data.get('book_uids', [])
+        add_categories = data.get('add_categories', [])
+        remove_categories = data.get('remove_categories', [])
+        change_status = data.get('change_status')
+        
+        if not book_uids:
+            return jsonify({'success': False, 'error': 'No books selected'}), 400
+        
+        if not add_categories and not remove_categories and not change_status:
+            return jsonify({'success': False, 'error': 'No changes specified'}), 400
+        
+        # Get books that belong to the current user
+        books = Book.query.filter(
+            Book.uid.in_(book_uids),
+            Book.user_id == current_user.id
+        ).all()
+        
+        if not books:
+            return jsonify({'success': False, 'error': 'No valid books found'}), 404
+        
+        updated_count = 0
+        
+        for book in books:
+            updated = False
+            
+            # Handle category changes
+            if add_categories or remove_categories:
+                current_categories = set()
+                if book.categories:
+                    current_categories = set(cat.strip() for cat in book.categories.split(','))
+                
+                # Add new categories
+                for category in add_categories:
+                    if category.strip():
+                        current_categories.add(category.strip())
+                
+                # Remove specified categories
+                for category in remove_categories:
+                    if category.strip():
+                        current_categories.discard(category.strip())
+                
+                # Update book categories
+                book.categories = ', '.join(sorted(current_categories)) if current_categories else None
+                updated = True
+            
+            # Handle status changes
+            if change_status:
+                if change_status == 'library_only':
+                    book.library_only = True
+                    book.want_to_read = False
+                    book.start_date = None
+                    book.finish_date = None
+                elif change_status == 'want_to_read':
+                    book.library_only = False
+                    book.want_to_read = True
+                    book.start_date = None
+                    book.finish_date = None
+                elif change_status == 'reading':
+                    book.library_only = False
+                    book.want_to_read = False
+                    book.start_date = date.today()
+                    book.finish_date = None
+                elif change_status == 'finished':
+                    book.library_only = False
+                    book.want_to_read = False
+                    if not book.start_date:
+                        book.start_date = date.today()
+                    book.finish_date = date.today()
+                
+                updated = True
+            
+            if updated:
+                updated_count += 1
+        
+        # Commit changes
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'updated_count': updated_count,
+            'message': f'Successfully updated {updated_count} book(s)'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error in mass_edit_books: {e}")
+        return jsonify({'success': False, 'error': 'An error occurred while updating books'}), 500

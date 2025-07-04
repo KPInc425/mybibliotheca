@@ -1,0 +1,723 @@
+{% extends "base.html" %}
+{% block title %}BookOracle - Mass Edit Library{% endblock %}
+
+{% block content %}
+<!-- Library Header -->
+<div class="library-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
+  <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">📚 Mass Edit Library</h1>
+  <p class="text-xl opacity-90 mt-2">Select and categorize multiple books at once</p>
+</div>
+
+<!-- Navigation Tabs -->
+<div class="tabs tabs-boxed bg-base-200 p-2 mb-6 justify-center">
+  <a href="{{ url_for('main.index') }}" class="tab tab-lg">
+    📖 Browse Library
+  </a>
+  <a href="{{ url_for('main.library_mass_edit') }}" class="tab tab-lg tab-active">
+    ✏️ Mass Edit
+  </a>
+</div>
+
+<!-- Mass Edit Controls -->
+<div class="bg-base-100 border-2 border-secondary rounded-2xl p-6 mb-6 shadow-lg">
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+      <div class="flex items-center gap-2">
+        <input type="checkbox" id="select-all" class="checkbox checkbox-primary checkbox-lg">
+        <label for="select-all" class="text-lg font-semibold">Select All</label>
+      </div>
+      <div class="text-base-content/70">
+        <span id="selected-count">0</span> of <span id="total-count">{{ books|length }}</span> books selected
+      </div>
+    </div>
+    
+    <div class="flex flex-col sm:flex-row gap-2">
+      <button id="clear-selection" class="btn btn-outline btn-sm" disabled>
+        Clear Selection
+      </button>
+      <button id="invert-selection" class="btn btn-outline btn-sm" disabled>
+        Invert Selection
+      </button>
+    </div>
+  </div>
+  
+  <!-- Mass Actions -->
+  <div id="mass-actions" class="hidden">
+    <div class="divider">Category Management</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Add Categories -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">➕ Add Categories</span>
+        </label>
+        <div class="input-group">
+          <input type="text" id="add-category" class="input input-bordered flex-1" 
+                 placeholder="Enter category name">
+          <button id="add-category-btn" class="btn btn-primary">Add to Selected</button>
+        </div>
+        <div class="label">
+          <span class="label-text-alt text-base-content/70">Instantly add this category to all selected books</span>
+        </div>
+      </div>
+      
+      <!-- Remove Categories -->
+      <div class="form-control">
+        <label class="label">
+          <span class="label-text font-semibold">➖ Remove Categories</span>
+        </label>
+        <div class="input-group">
+          <select id="remove-category" class="select select-bordered flex-1">
+            <option value="">Select category to remove</option>
+            {% for category in categories %}
+              <option value="{{ category }}">{{ category }}</option>
+            {% endfor %}
+          </select>
+          <button id="remove-category-btn" class="btn btn-error">Remove from Selected</button>
+        </div>
+        <div class="label">
+          <span class="label-text-alt text-base-content/70">Instantly remove this category from all selected books</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Recent Actions Log -->
+    <div class="mt-4">
+      <div class="divider">Recent Actions</div>
+      <div id="action-log" class="text-sm text-base-content/70">
+        <div class="text-center py-2">No actions yet</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Compact Filter Section -->
+<div class="bg-base-100 border-2 border-secondary rounded-2xl p-4 mb-6 shadow-lg">
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+    <h5 class="text-xl font-semibold text-primary">Filters</h5>
+    
+    <!-- Mobile Filter Toggle -->
+    <div class="lg:hidden">
+      <button id="filter-toggle" class="btn btn-outline btn-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+        </svg>
+        Filters
+      </button>
+    </div>
+  </div>
+  
+  <!-- Filter Form -->
+  <form method="GET" class="filter-form mt-4" id="filter-form">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+      <div class="form-control w-full">
+        <label for="search" class="label">
+          <span class="label-text font-semibold">Search</span>
+        </label>
+        <input type="text" class="input input-bordered w-full" id="search" name="search" 
+               value="{{ current_search }}" placeholder="Title, author, description...">
+      </div>
+      <div class="form-control w-full">
+        <label for="category" class="label">
+          <span class="label-text font-semibold">Category</span>
+        </label>
+        <div class="relative">
+          <input type="text" class="input input-bordered w-full" id="category" name="category" 
+                 value="{{ current_category }}" placeholder="Search categories..." 
+                 autocomplete="off">
+          <div id="category-options" class="absolute top-full left-0 right-0 bg-base-100 border border-base-300 rounded-b-lg shadow-lg max-h-48 overflow-y-auto z-50 hidden">
+            <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="">All Categories</div>
+            {% for category in categories %}
+              <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="{{ category }}">{{ category }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="form-control w-full">
+        <label for="publisher" class="label">
+          <span class="label-text font-semibold">Publisher</span>
+        </label>
+        <div class="relative">
+          <input type="text" class="input input-bordered w-full" id="publisher" name="publisher" 
+                 value="{{ current_publisher }}" placeholder="Search publishers..." 
+                 autocomplete="off">
+          <div id="publisher-options" class="absolute top-full left-0 right-0 bg-base-100 border border-base-300 rounded-b-lg shadow-lg max-h-48 overflow-y-auto z-50 hidden">
+            <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="">All Publishers</div>
+            {% for publisher in publishers %}
+              <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="{{ publisher }}">{{ publisher }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="form-control w-full">
+        <label for="language" class="label">
+          <span class="label-text font-semibold">Language</span>
+        </label>
+        <div class="relative">
+          <input type="text" class="input input-bordered w-full" id="language" name="language" 
+                 value="{{ current_language }}" placeholder="Search languages..." 
+                 autocomplete="off">
+          <div id="language-options" class="absolute top-full left-0 right-0 bg-base-100 border border-base-300 rounded-b-lg shadow-lg max-h-48 overflow-y-auto z-50 hidden">
+            <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="">All Languages</div>
+            {% for language in languages %}
+              <div class="px-4 py-2 hover:bg-base-200 cursor-pointer text-sm" data-value="{{ language }}">{{ language }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 text-center">
+      <a href="{{ url_for('main.library_mass_edit') }}" class="btn btn-secondary btn-sm mr-4">Clear All Filters</a>
+      <span class="text-base-content/70 font-semibold" id="book-count-display">Showing {{ books|length }} book(s)</span>
+    </div>
+  </form>
+</div>
+
+<!-- Books Grid -->
+<div class="bookshelf-container bg-gradient-to-br from-base-200 to-base-300 rounded-3xl p-6 shadow-inner relative">
+  {% if books %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4" id="books-grid">
+      {% for book in books %}
+        <div class="book-card bg-base-100 border-2 border-secondary rounded-lg p-3 transition-all duration-300 hover:scale-105 hover:-translate-y-1 hover:shadow-xl cursor-pointer flex flex-col mx-auto h-80 w-full max-w-[200px] relative pb-6" data-book-uid="{{ book.uid }}" data-index="{{ loop.index0 }}" onclick="handleCardClick(event, this)">
+          <!-- Selection Checkbox -->
+          <div class="absolute top-2 left-2 z-20">
+            <input type="checkbox" class="book-checkbox checkbox checkbox-primary checkbox-sm" data-book-uid="{{ book.uid }}">
+          </div>
+          
+
+          
+          <div class="book-cover-wrapper relative mb-3 rounded-lg overflow-hidden shadow-lg aspect-[3/4] w-full h-40 bg-base-200 flex items-center justify-center">
+            <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="relative z-20">
+              <img 
+                src="{{ book.secure_cover_url or url_for('static', filename='bookshelf.png') }}"
+                {% if book.secure_cover_url %}
+                srcset="{{ book.secure_cover_url }} 1x"
+                {% endif %}
+                class="book-cover-shelf w-full h-full object-contain rounded"
+                alt="{{ book.title }} cover"
+                loading="lazy"
+                decoding="async"
+                onerror="this.onerror=null;this.src='{{ url_for('static', filename='bookshelf.png') }}';">
+            </a>
+          </div>
+
+          <div class="book-info flex-grow flex flex-col p-1">
+            <div class="book-title text-sm font-bold mb-1 line-clamp-2">
+              <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="text-primary hover:text-accent transition-colors relative z-20">
+                {{ book.title }}
+              </a>
+            </div>
+
+            <div class="book-author text-xs text-base-content/70 mb-3 italic line-clamp-1">{{ book.author }}</div>
+
+            <div class="book-meta mb-3 flex-grow">
+              {% if book.categories %}
+                <div class="category-badges mb-2 flex flex-wrap gap-1">
+                  {% for category in book.categories.split(',')[:2] %}
+                    <span class="badge badge-sm bg-secondary text-secondary-content border border-primary text-xs px-2 py-1 truncate max-w-full">{{ category.strip() }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+
+              {% if book.average_rating %}
+                <div class="rating-display text-accent text-xs font-medium mb-2">
+                  {% for i in range(5) %}
+                    {% if i < book.average_rating %}⭐{% else %}☆{% endif %}
+                  {% endfor %}
+                  {{ "%.1f"|format(book.average_rating) }}
+                  {% if book.rating_count %}<small class="text-base-content/60">({{ book.rating_count }})</small>{% endif %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Status badges positioned at bottom overlapping border -->
+          <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-10 text-center md:text-left">
+            {% if book.want_to_read %}
+              <span class="badge badge-sm badge-info md:whitespace-nowrap h-fit">Want to Read</span>
+            {% elif not book.finish_date and not book.library_only %}
+              <span class="badge badge-sm badge-warning md:whitespace-nowrap h-fit">Currently Reading</span>
+            {% elif book.finish_date %}
+              <span class="badge badge-sm badge-success md:whitespace-nowrap h-fit">Finished</span>
+            {% elif book.library_only %}
+              <span class="badge badge-sm badge-neutral md:whitespace-nowrap h-fit">Library Only</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-12">
+      <div class="text-6xl mb-4">📚</div>
+      <h3 class="text-2xl font-bold text-base-content mb-2">No Books Found</h3>
+      <p class="text-base-content/70 mb-6">Try adjusting your filters or add some books to your library.</p>
+      <a href="{{ url_for('main.add_book') }}" class="btn btn-primary">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        </svg>
+        Add Your First Book
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<style>
+/* Selection visual effects */
+.book-card {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.book-card.selected {
+    background: linear-gradient(135deg, hsl(var(--b1)) 0%, hsl(var(--p) / 0.1) 100%);
+}
+
+.selection-checkmark {
+    transition: all 0.2s ease;
+    animation: checkmarkPop 0.3s ease-out;
+}
+
+@keyframes checkmarkPop {
+    0% {
+        transform: scale(0) rotate(-180deg);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2) rotate(0deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+/* Enhanced hover effects for selected books */
+.book-card.selected:hover {
+    transform: scale(1.05) !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3), 0 0 30px hsl(var(--p) / 0.6) !important;
+}
+
+/* Glowing animation for selected books */
+.book-card.selected {
+    animation: selectedGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes selectedGlow {
+    0% {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 20px hsl(var(--p) / 0.4);
+    }
+    100% {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 30px hsl(var(--p) / 0.6);
+    }
+}
+</style>
+
+<script>
+// Mass Edit Library JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Starting mass edit JavaScript initialization...');
+    
+    // Get elements
+    const selectAllCheckbox = document.getElementById('select-all');
+    const bookCheckboxes = document.querySelectorAll('.book-checkbox');
+    const selectedCountSpan = document.getElementById('selected-count');
+    const totalCountSpan = document.getElementById('total-count');
+    const clearSelectionBtn = document.getElementById('clear-selection');
+    const invertSelectionBtn = document.getElementById('invert-selection');
+    const massActionsDiv = document.getElementById('mass-actions');
+    const addCategoryBtn = document.getElementById('add-category-btn');
+    const addCategoryInput = document.getElementById('add-category');
+    const removeCategorySelect = document.getElementById('remove-category');
+    const applyChangesBtn = document.getElementById('apply-changes');
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterForm = document.getElementById('filter-form');
+    
+    let selectedBooks = new Set();
+    
+    // Mobile filter toggle
+    if (filterToggle && filterForm) {
+        filterToggle.addEventListener('click', function() {
+            filterForm.classList.toggle('hidden');
+        });
+    }
+    
+    function updateSelectionUI() {
+        const selectedCount = selectedBooks.size;
+        const totalCount = bookCheckboxes.length;
+        
+        if (selectedCountSpan) selectedCountSpan.textContent = selectedCount;
+        if (totalCountSpan) totalCountSpan.textContent = totalCount;
+        
+        // Update select all checkbox
+        if (selectAllCheckbox) {
+            if (selectedCount === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            } else if (selectedCount === totalCount) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+            } else {
+                selectAllCheckbox.indeterminate = true;
+                selectAllCheckbox.checked = false;
+            }
+        }
+        
+        // Update action buttons
+        if (clearSelectionBtn) clearSelectionBtn.disabled = selectedCount === 0;
+        if (invertSelectionBtn) invertSelectionBtn.disabled = totalCount === 0;
+        
+        // Show/hide mass actions
+        if (massActionsDiv) {
+            if (selectedCount > 0) {
+                massActionsDiv.classList.remove('hidden');
+            } else {
+                massActionsDiv.classList.add('hidden');
+            }
+        }
+        
+        // Update visual indicators for all book cards
+        bookCheckboxes.forEach(checkbox => {
+            const bookCard = checkbox.closest('.book-card');
+            if (bookCard) {
+                if (checkbox.checked) {
+                    // Add selected visual effects
+                    bookCard.classList.add('selected');
+                    bookCard.style.borderColor = 'hsl(var(--p))'; // Primary color
+                    bookCard.style.borderWidth = '3px';
+                    bookCard.style.transform = 'scale(1.02)';
+                    bookCard.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.2), 0 0 20px hsl(var(--p) / 0.4)';
+                    
+                    // Add checkmark overlay
+                    let checkmark = bookCard.querySelector('.selection-checkmark');
+                    if (!checkmark) {
+                        checkmark = document.createElement('div');
+                        checkmark.className = 'selection-checkmark absolute top-2 right-2 z-30 bg-primary text-primary-content rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold';
+                        checkmark.innerHTML = '✓';
+                        bookCard.appendChild(checkmark);
+                    }
+                    checkmark.style.display = 'flex';
+                } else {
+                    // Remove selected visual effects
+                    bookCard.classList.remove('selected');
+                    bookCard.style.borderColor = 'hsl(var(--s))'; // Secondary color (default)
+                    bookCard.style.borderWidth = '2px';
+                    bookCard.style.transform = 'scale(1)';
+                    bookCard.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                    
+                    // Remove checkmark overlay
+                    const checkmark = bookCard.querySelector('.selection-checkmark');
+                    if (checkmark) {
+                        checkmark.style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
+    
+    // Select all functionality
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                bookCheckboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                    selectedBooks.add(checkbox.dataset.bookUid);
+                });
+            } else {
+                bookCheckboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                    selectedBooks.delete(checkbox.dataset.bookUid);
+                });
+            }
+            updateSelectionUI();
+        });
+    }
+    
+    // Individual book selection
+    bookCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                selectedBooks.add(this.dataset.bookUid);
+            } else {
+                selectedBooks.delete(this.dataset.bookUid);
+            }
+            updateSelectionUI();
+        });
+    });
+    
+    // Global function for handling card clicks
+    window.handleCardClick = function(event, bookCard) {
+        console.log('=== Card Click Debug ===');
+        console.log('Event target:', event.target);
+        console.log('Event target tagName:', event.target.tagName);
+        console.log('Event target className:', event.target.className);
+        console.log('Event target innerHTML:', event.target.innerHTML?.substring(0, 50));
+        
+        // Check if the click was on a link (title or cover) or checkbox
+        const clickedElement = event.target;
+        const isLink = clickedElement.tagName === 'A' || clickedElement.closest('a');
+        const isCheckbox = clickedElement.type === 'checkbox' || clickedElement.closest('.book-checkbox');
+        const closestLink = clickedElement.closest('a');
+        
+        console.log('Is link tag?', clickedElement.tagName === 'A');
+        console.log('Is checkbox?', isCheckbox);
+        console.log('Closest link:', closestLink);
+        console.log('Is link?', isLink);
+        
+        if (isLink || isCheckbox) {
+            console.log('Clicking on link or checkbox - NOT toggling selection');
+            return;
+        }
+        
+        console.log('Clicking on non-link, non-checkbox - toggling selection');
+        
+        // Toggle selection for other clicks
+        const checkbox = bookCard.querySelector('.book-checkbox');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            if (checkbox.checked) {
+                selectedBooks.add(checkbox.dataset.bookUid);
+            } else {
+                selectedBooks.delete(checkbox.dataset.bookUid);
+            }
+            updateSelectionUI();
+        }
+    };
+    
+    // Global function for clicking on book cards (legacy support)
+    window.toggleBookSelection = function(overlay) {
+        const bookCard = overlay.closest('.book-card');
+        const checkbox = bookCard.querySelector('.book-checkbox');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            if (checkbox.checked) {
+                selectedBooks.add(checkbox.dataset.bookUid);
+            } else {
+                selectedBooks.delete(checkbox.dataset.bookUid);
+            }
+            updateSelectionUI();
+        }
+    };
+    
+    // Clear selection
+    if (clearSelectionBtn) {
+        clearSelectionBtn.addEventListener('click', function() {
+            bookCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            selectedBooks.clear();
+            updateSelectionUI();
+        });
+    }
+    
+    // Invert selection
+    if (invertSelectionBtn) {
+        invertSelectionBtn.addEventListener('click', function() {
+            bookCheckboxes.forEach(checkbox => {
+                checkbox.checked = !checkbox.checked;
+                if (checkbox.checked) {
+                    selectedBooks.add(checkbox.dataset.bookUid);
+                } else {
+                    selectedBooks.delete(checkbox.dataset.bookUid);
+                }
+            });
+            updateSelectionUI();
+        });
+    }
+    
+            // Add category immediately
+        if (addCategoryBtn && addCategoryInput) {
+            addCategoryBtn.addEventListener('click', function() {
+                const category = addCategoryInput.value.trim();
+                if (!category) {
+                    showNotification('Please enter a category name', 'error');
+                    return;
+                }
+                
+                if (selectedBooks.size === 0) {
+                    showNotification('Please select at least one book', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                addCategoryBtn.disabled = true;
+                addCategoryBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Adding...';
+                
+                // Prepare data
+                const data = {
+                    book_uids: Array.from(selectedBooks),
+                    add_categories: [category],
+                    remove_categories: []
+                };
+                
+                // Make API call
+                fetch('/api/mass-edit-books', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const message = `Added "${category}" to ${data.updated_count} book(s)`;
+                        showNotification(message, 'success');
+                        addToActionLog(`✅ Added "${category}" to ${data.updated_count} book(s)`);
+                        
+                        // Clear input
+                        addCategoryInput.value = '';
+                        
+                        // Add to remove dropdown if not already there
+                        if (removeCategorySelect) {
+                            const existingOption = Array.from(removeCategorySelect.options).find(option => option.value === category);
+                            if (!existingOption) {
+                                const option = document.createElement('option');
+                                option.value = category;
+                                option.textContent = category;
+                                removeCategorySelect.appendChild(option);
+                            }
+                        }
+                        
+                        // Reload page after a short delay to show updated data
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showNotification(data.error || 'An error occurred', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('An error occurred while adding category', 'error');
+                })
+                .finally(() => {
+                    // Reset button state
+                    addCategoryBtn.disabled = false;
+                    addCategoryBtn.textContent = 'Add to Selected';
+                });
+            });
+        }
+        
+        // Remove category immediately
+        const removeCategoryBtn = document.getElementById('remove-category-btn');
+        if (removeCategoryBtn && removeCategorySelect) {
+            removeCategoryBtn.addEventListener('click', function() {
+                const category = removeCategorySelect.value;
+                if (!category) {
+                    showNotification('Please select a category to remove', 'error');
+                    return;
+                }
+                
+                if (selectedBooks.size === 0) {
+                    showNotification('Please select at least one book', 'error');
+                    return;
+                }
+                
+                // Show loading state
+                removeCategoryBtn.disabled = true;
+                removeCategoryBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Removing...';
+                
+                // Prepare data
+                const data = {
+                    book_uids: Array.from(selectedBooks),
+                    add_categories: [],
+                    remove_categories: [category]
+                };
+                
+                // Make API call
+                fetch('/api/mass-edit-books', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        const message = `Removed "${category}" from ${data.updated_count} book(s)`;
+                        showNotification(message, 'success');
+                        addToActionLog(`❌ Removed "${category}" from ${data.updated_count} book(s)`);
+                        
+                        // Clear selection
+                        removeCategorySelect.value = '';
+                        
+                        // Reload page after a short delay to show updated data
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showNotification(data.error || 'An error occurred', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('An error occurred while removing category', 'error');
+                })
+                .finally(() => {
+                    // Reset button state
+                    removeCategoryBtn.disabled = false;
+                    removeCategoryBtn.textContent = 'Remove from Selected';
+                });
+            });
+        }
+    
+    // Action log function
+    function addToActionLog(message) {
+        const actionLog = document.getElementById('action-log');
+        if (actionLog) {
+            // Remove "No actions yet" message if it exists
+            const noActions = actionLog.querySelector('.text-center');
+            if (noActions) {
+                noActions.remove();
+            }
+            
+            // Add new action with timestamp
+            const timestamp = new Date().toLocaleTimeString();
+            const actionEntry = document.createElement('div');
+            actionEntry.className = 'flex justify-between items-center py-1 border-b border-base-300 last:border-b-0';
+            actionEntry.innerHTML = `
+                <span>${message}</span>
+                <span class="text-xs opacity-60">${timestamp}</span>
+            `;
+            
+            actionLog.insertBefore(actionEntry, actionLog.firstChild);
+            
+            // Keep only last 5 actions
+            const entries = actionLog.querySelectorAll('div');
+            if (entries.length > 5) {
+                entries[entries.length - 1].remove();
+            }
+        }
+    }
+    
+    // Notification function
+    function showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'error' : type === 'success' ? 'success' : 'info'} fixed top-4 right-4 z-50 max-w-sm`;
+        notification.innerHTML = `
+            <span>${message}</span>
+            <button class="btn btn-sm btn-circle" onclick="this.parentElement.remove()">✕</button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+    
+    // Initialize UI
+    console.log('Mass edit functionality initialized successfully!');
+    updateSelectionUI();
+});
+</script>
+
+{% endblock %} 

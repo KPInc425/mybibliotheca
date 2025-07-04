@@ -5,6 +5,7 @@
   <title>{% block title %}BookOracle{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Your personal library and reading tracker">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
   
   <!-- PWA Meta Tags -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -45,6 +46,7 @@
         </div>
         <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[60] p-2 shadow bg-base-100 rounded-box w-52">
           <li><a href="{{ url_for('main.index') }}">📚 Library</a></li>
+          <li><a href="{{ url_for('main.library_mass_edit') }}">✏️ Mass Edit</a></li>
           <li><a href="{{ url_for('main.add_book') }}">➕ Add Book</a></li>
           <li><a href="{{ url_for('main.search_books') }}">🔍 Search</a></li>
           <li><a href="{{ url_for('main.month_wrapup') }}">📊 Month Wrap Up</a></li>
@@ -61,6 +63,7 @@
     <div class="navbar-center hidden lg:flex">
       <ul class="menu menu-horizontal px-1 gap-2">
         <li><a href="{{ url_for('main.index') }}" class="btn btn-outline btn-sm">📚 Library</a></li>
+        <li><a href="{{ url_for('main.library_mass_edit') }}" class="btn btn-outline btn-sm">✏️ Mass Edit</a></li>
         <li><a href="{{ url_for('main.add_book') }}" class="btn btn-outline btn-sm">➕ Add Book</a></li>
         <li><a href="{{ url_for('main.search_books') }}" class="btn btn-outline btn-sm">🔍 Search</a></li>
         <li><a href="{{ url_for('main.month_wrapup') }}" class="btn btn-outline btn-sm">📊 Month Wrap Up</a></li>
@@ -135,6 +138,7 @@
     <div>
       <div class="grid grid-cols-2 md:flex gap-4">
         <a href="{{ url_for('main.index') }}" class="link link-hover">Library</a>
+        <a href="{{ url_for('main.library_mass_edit') }}" class="link link-hover">Mass Edit</a>
         <a href="{{ url_for('main.add_book') }}" class="link link-hover">Add Book</a>
         <a href="{{ url_for('main.search_books') }}" class="link link-hover">Search</a>
         {% if current_user.is_authenticated and current_user.is_admin %}

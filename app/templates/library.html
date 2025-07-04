@@ -9,6 +9,16 @@
   <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">📚 BookOracle</h1>
 </div>
 
+<!-- Navigation Tabs -->
+<div class="tabs tabs-boxed bg-base-200 p-2 mb-6 justify-center">
+  <a href="{{ url_for('main.index') }}" class="tab tab-lg tab-active">
+    📖 Browse Library
+  </a>
+  <a href="{{ url_for('main.library_mass_edit') }}" class="tab tab-lg">
+    ✏️ Mass Edit
+  </a>
+</div>
+
 <!-- Prominent Add Book Button -->
 <div class="text-center mb-8">
   <a href="{{ url_for('main.add_book') }}" class="btn btn-primary btn-lg btn-wide text-lg">
@@ -44,9 +54,22 @@
 </div>
 
 <!-- Advanced Filter Section -->
-<div class="bg-base-100 border-2 border-secondary rounded-2xl p-6 mb-8 shadow-lg relative filter-section">
-  <h5 class="text-xl font-semibold text-primary mb-6 pl-12 relative z-10">Find Your Books</h5>
-  <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end filter-form">
+<div class="bg-base-100 border-2 border-secondary rounded-2xl p-4 mb-8 shadow-lg relative filter-section">
+  <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
+    <h5 class="text-xl font-semibold text-primary">Find Your Books</h5>
+    
+    <!-- Mobile Filter Toggle -->
+    <div class="lg:hidden">
+      <button id="filter-toggle" class="btn btn-outline btn-sm">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z"></path>
+        </svg>
+        Filters
+      </button>
+    </div>
+  </div>
+  
+  <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end filter-form" id="filter-form">
     <div class="form-control w-full">
       <label for="search" class="label">
         <span class="label-text font-semibold">Search</span>
@@ -211,6 +234,16 @@
 <script>
 // Enhanced mobile-optimized pagination and interactivity
 document.addEventListener('DOMContentLoaded', function() {
+    // Mobile filter toggle
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterForm = document.getElementById('filter-form');
+    
+    if (filterToggle && filterForm) {
+        filterToggle.addEventListener('click', function() {
+            filterForm.classList.toggle('hidden');
+        });
+    }
+    
     // Mobile-optimized books per page
     function getBooksPerPage() {
         const width = window.innerWidth;
