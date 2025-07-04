@@ -2,9 +2,11 @@
 
 {% block title %}Add Book - BookOracle{% endblock %}
 
+
+
 {% block content %}
-<!-- Add bottom padding for mobile to account for fixed button -->
-<div class="pb-28 md:pb-0">
+<!-- Add bottom padding for mobile to account for fixed button and footer -->
+<div class="pb-40 md:pb-0">
 <div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
   <div class="hero-content text-center">
     <div>
@@ -186,6 +188,17 @@
         </div>
       </div>
 
+      <!-- Submit Button for Desktop -->
+      <div class="hidden md:block mt-8">
+        <button type="submit" name="add" class="btn btn-primary btn-lg btn-wide w-full">
+          ➕ Add Book to Library
+        </button>
+      </div>
+      
+      <!-- Hidden submit button for mobile -->
+      <button type="submit" name="add" class="hidden" id="hiddenSubmitBtn">
+        ➕ Add Book to Library
+      </button>
     </form>
 
     <!-- Back Link -->
@@ -198,22 +211,12 @@
 </div>
 
 <!-- Fixed Submit Button for Mobile -->
-<div class="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-4 z-50 md:hidden shadow-lg" style="width: 100vw; margin-left: calc(-50vw + 50%);">
+<div class="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-4 z-50 md:hidden shadow-lg">
   <div class="container mx-auto px-4">
     <button id="mobileSubmitBtn" type="button" class="btn btn-primary btn-lg w-full">
       ➕ Add Book to Library
     </button>
   </div>
-</div>
-
-<!-- Desktop Submit Button (hidden on mobile) -->
-<div class="hidden md:block mt-8">
-  <form method="post" class="flex justify-center">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    <button type="submit" name="add" class="btn btn-primary btn-lg btn-wide">
-      ➕ Add Book to Library
-    </button>
-  </form>
 </div>
     </div>
   </div>
@@ -359,13 +362,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const mobileSubmitBtn = document.getElementById('mobileSubmitBtn');
   if (mobileSubmitBtn) {
     mobileSubmitBtn.addEventListener('click', function() {
-      // Find the main form and submit it
-      const mainForm = document.querySelector('form[method="post"]');
-      if (mainForm) {
-        mainForm.submit();
+      // Trigger the hidden submit button in the main form
+      const hiddenSubmitBtn = document.getElementById('hiddenSubmitBtn');
+      if (hiddenSubmitBtn) {
+        hiddenSubmitBtn.click();
       }
     });
   }
+  
+
   
   // Initialize scanner modules
   if (window.ScannerCore) {
