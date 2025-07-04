@@ -190,15 +190,10 @@
 
       <!-- Submit Button for Desktop -->
       <div class="hidden md:block mt-8">
-        <button type="submit" name="add" class="btn btn-primary btn-lg btn-wide w-full">
+        <button type="submit" name="add" class="btn btn-primary btn-lg btn-wide w-full" id="desktopSubmitBtn">
           ➕ Add Book to Library
         </button>
       </div>
-      
-      <!-- Hidden submit button for mobile -->
-      <button type="submit" name="add" class="hidden" id="hiddenSubmitBtn">
-        ➕ Add Book to Library
-      </button>
     </form>
 
     <!-- Back Link -->
@@ -212,7 +207,7 @@
 
 <!-- Fixed Submit Button for Mobile -->
 <div class="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-4 z-50 md:hidden shadow-lg">
-  <div class="container mx-auto px-4">
+  <div class="px-4">
     <button id="mobileSubmitBtn" type="button" class="btn btn-primary btn-lg w-full">
       ➕ Add Book to Library
     </button>
@@ -355,18 +350,136 @@ waitForCapacitor();
 <script src="{{ url_for('static', filename='scanner.js', v='1.1') }}"></script>
 
 <script>
+console.log('[AddBook] Script block loaded');
+
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('[AddBook] DOMContentLoaded event fired');
   console.log('[AddBook] Page loaded, initializing scanner...');
   
+  // Debug form structure
+  console.log('[AddBook] Looking for main form...');
+  const mainForm = document.querySelector('form[method="post"]');
+  console.log('[AddBook] Main form found:', mainForm);
+  
+  if (mainForm) {
+    console.log('[AddBook] Main form found on page load:', {
+      action: mainForm.action,
+      method: mainForm.method,
+      id: mainForm.id,
+      elements: mainForm.elements.length
+    });
+    
+    // Log all form elements
+    console.log('[AddBook] Form elements:');
+    for (let i = 0; i < mainForm.elements.length; i++) {
+      const element = mainForm.elements[i];
+      console.log(`  ${element.name}: ${element.type} = ${element.value}`);
+    }
+  } else {
+    console.error('[AddBook] No main form found on page load!');
+  }
+  
   // Handle mobile submit button
+  console.log('[AddBook] Looking for mobile submit button...');
   const mobileSubmitBtn = document.getElementById('mobileSubmitBtn');
+  console.log('[AddBook] Mobile submit button found:', mobileSubmitBtn);
+  
+  // Also try to find it by other selectors
+  const mobileBtnBySelector = document.querySelector('#mobileSubmitBtn');
+  console.log('[AddBook] Mobile button by selector:', mobileBtnBySelector);
+  
+  const allButtons = document.querySelectorAll('button');
+  console.log('[AddBook] All buttons on page:', allButtons.length);
+  allButtons.forEach((btn, index) => {
+    console.log(`[AddBook] Button ${index}:`, btn.id, btn.textContent);
+  });
+  
   if (mobileSubmitBtn) {
-    mobileSubmitBtn.addEventListener('click', function() {
-      // Trigger the hidden submit button in the main form
-      const hiddenSubmitBtn = document.getElementById('hiddenSubmitBtn');
-      if (hiddenSubmitBtn) {
-        hiddenSubmitBtn.click();
+    console.log('[AddBook] Adding click event listener to mobile button');
+        mobileSubmitBtn.addEventListener('click', function(e) {
+      console.log('[AddBook] Mobile button clicked!');
+      e.preventDefault(); // Prevent any default behavior
+      console.log('[AddBook] Mobile submit button clicked');
+      
+      // Find the main form
+      const mainForm = document.querySelector('form[method="post"]');
+      if (!mainForm) {
+        console.error('[AddBook] Main form not found!');
+        return;
       }
+      
+      console.log('[AddBook] Main form found:', mainForm);
+      
+      // Validate required fields
+      const titleInput = document.getElementById('title');
+      const title = titleInput ? titleInput.value.trim() : '';
+      
+      console.log('[AddBook] Title value:', title);
+      
+      if (!title) {
+        console.error('[AddBook] Title is required!');
+        alert('Please enter a book title before adding the book.');
+        if (titleInput) {
+          titleInput.focus();
+        }
+        return;
+      }
+      
+      // Create a hidden input for the 'add' parameter
+      const addInput = document.createElement('input');
+      addInput.type = 'hidden';
+      addInput.name = 'add';
+      addInput.value = '1';
+      
+      console.log('[AddBook] Created add input:', addInput);
+      
+      // Add it to the form temporarily
+      mainForm.appendChild(addInput);
+      
+      console.log('[AddBook] Added add input to form');
+      console.log('[AddBook] Form action:', mainForm.action);
+      console.log('[AddBook] Form method:', mainForm.method);
+      
+      // Log all form data before submission
+      const formData = new FormData(mainForm);
+      console.log('[AddBook] Form data before submission:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}: ${value}`);
+      }
+      
+      // Show loading state
+      mobileSubmitBtn.disabled = true;
+      mobileSubmitBtn.textContent = '🔄 Adding Book...';
+      
+      // Submit the form
+      console.log('[AddBook] Submitting form...');
+      mainForm.submit();
+    });
+  }
+  
+  // Handle desktop submit button validation
+  const desktopSubmitBtn = document.getElementById('desktopSubmitBtn');
+  if (desktopSubmitBtn) {
+    desktopSubmitBtn.addEventListener('click', function(e) {
+      console.log('[AddBook] Desktop submit button clicked');
+      
+      // Validate required fields
+      const titleInput = document.getElementById('title');
+      const title = titleInput ? titleInput.value.trim() : '';
+      
+      console.log('[AddBook] Desktop - Title value:', title);
+      
+      if (!title) {
+        console.error('[AddBook] Desktop - Title is required!');
+        e.preventDefault(); // Prevent form submission
+        alert('Please enter a book title before adding the book.');
+        if (titleInput) {
+          titleInput.focus();
+        }
+        return false;
+      }
+      
+      console.log('[AddBook] Desktop - Validation passed, allowing form submission');
     });
   }
   
