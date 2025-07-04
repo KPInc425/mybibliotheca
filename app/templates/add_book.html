@@ -3,6 +3,8 @@
 {% block title %}Add Book - BookOracle{% endblock %}
 
 {% block content %}
+<!-- Add bottom padding for mobile to account for fixed button -->
+<div class="pb-28 md:pb-0">
 <div class="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
   <div class="hero-content text-center">
     <div>
@@ -173,23 +175,17 @@
             <label class="label cursor-pointer justify-start gap-4">
               <input type="checkbox" name="want_to_read" class="checkbox checkbox-primary" 
                      {% if request.form.want_to_read %}checked{% endif %}>
-              <span class="label-text text-lg">📋 Want to Read (Add to reading list)</span>
+              <span class="label-text md:text-lg">📋 Want to Read (Add to reading list)</span>
             </label>
             <label class="label cursor-pointer justify-start gap-4">
               <input type="checkbox" name="library_only" class="checkbox checkbox-primary" 
                      {% if request.form.library_only %}checked{% endif %}>
-              <span class="label-text text-lg">📚 Library Only (Reference/Collection)</span>
+              <span class="label-text md:text-lg">📚 Library Only (Reference/Collection)</span>
             </label>
           </div>
         </div>
       </div>
 
-      <!-- Submit Button -->
-      <div class="flex justify-center">
-        <button type="submit" name="add" class="btn btn-primary btn-lg btn-wide">
-          ➕ Add Book to Library
-        </button>
-      </div>
     </form>
 
     <!-- Back Link -->
@@ -197,6 +193,28 @@
       <a href="{{ url_for('main.index') }}" class="btn btn-outline btn-wide">
         ⬅️ Back to Library
       </a>
+    </div>
+  </div>
+</div>
+
+<!-- Fixed Submit Button for Mobile -->
+<div class="fixed bottom-0 left-0 right-0 bg-base-100 border-t border-base-300 p-4 z-50 md:hidden shadow-lg" style="width: 100vw; margin-left: calc(-50vw + 50%);">
+  <div class="container mx-auto px-4">
+    <button id="mobileSubmitBtn" type="button" class="btn btn-primary btn-lg w-full">
+      ➕ Add Book to Library
+    </button>
+  </div>
+</div>
+
+<!-- Desktop Submit Button (hidden on mobile) -->
+<div class="hidden md:block mt-8">
+  <form method="post" class="flex justify-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <button type="submit" name="add" class="btn btn-primary btn-lg btn-wide">
+      ➕ Add Book to Library
+    </button>
+  </form>
+</div>
     </div>
   </div>
 </div>
@@ -336,6 +354,18 @@ waitForCapacitor();
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   console.log('[AddBook] Page loaded, initializing scanner...');
+  
+  // Handle mobile submit button
+  const mobileSubmitBtn = document.getElementById('mobileSubmitBtn');
+  if (mobileSubmitBtn) {
+    mobileSubmitBtn.addEventListener('click', function() {
+      // Find the main form and submit it
+      const mainForm = document.querySelector('form[method="post"]');
+      if (mainForm) {
+        mainForm.submit();
+      }
+    });
+  }
   
   // Initialize scanner modules
   if (window.ScannerCore) {
