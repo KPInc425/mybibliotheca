@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, jsonify, flash, send_file
 from flask_login import login_required, current_user
-from .models import Book, db, ReadingLog, User, SystemSettings
+from .models import Book, db, ReadingLog, User, SystemSettings, SharedBookData
 from .utils import fetch_book_data, get_reading_streak, get_google_books_cover, generate_month_review_image, ensure_https_url
 from datetime import datetime, date, timedelta
 import pytz
@@ -177,6 +177,7 @@ def index():
 def add_book():
     form = AddBookForm()
     book_data = None
+    shared_book_data = None
     
     # Get debug setting from current user
     debug_enabled = current_user.is_debug_enabled()
@@ -187,8 +188,11 @@ def add_book():
             isbn = request.form['isbn'].strip()
             if not isbn:
                 flash('Error: ISBN is required to fetch book data.', 'danger')
-                return render_template('add_book.html', form=form, book_data=None, debug_enabled=debug_enabled)
+                return render_template('add_book.html', form=form, book_data=None, shared_book_data=None, debug_enabled=debug_enabled)
 
+            # First check if we have shared book data for this ISBN
+            shared_book_data = SharedBookData.find_by_isbn(isbn)
+            
             book_data = fetch_book_data(isbn)
             if not book_data:
                 flash('No book data found for the provided ISBN.', 'warning')
@@ -199,22 +203,100 @@ def add_book():
                     book_data['cover'] = google_cover
 
             # Re-render the form with fetched data
-            return render_template('add_book.html', form=form, book_data=book_data, debug_enabled=debug_enabled)
+            return render_template('add_book.html', form=form, book_data=book_data, shared_book_data=shared_book_data, debug_enabled=debug_enabled)
 
         elif 'add' in request.form:
             # Validate required fields
             title = request.form['title'].strip()
+            author = request.form['author'].strip()
+            
             if not title:
                 flash('Error: Title is required to add a book.', 'danger')
-                return render_template('add_book.html', form=form, book_data=None, debug_enabled=debug_enabled)
+                return render_template('add_book.html', form=form, book_data=None, shared_book_data=None, debug_enabled=debug_enabled)
+            
+            if not author:
+                flash('Error: Author is required to add a book.', 'danger')
+                return render_template('add_book.html', form=form, book_data=None, shared_book_data=None, debug_enabled=debug_enabled)
 
-            isbn = request.form['isbn']
-            # Check for duplicate ISBN
-            if Book.query.filter_by(isbn=isbn, user_id=current_user.id).first():
-                flash('A book with this ISBN already exists.', 'danger')
-                return render_template('add_book.html', form=form, book_data=None, debug_enabled=debug_enabled)
+            isbn = request.form['isbn'].strip() if request.form['isbn'] else None
+            
+            # Check for duplicate ISBN (only if ISBN is provided)
+            if isbn and Book.query.filter_by(isbn=isbn, user_id=current_user.id).first():
+                flash('A book with this ISBN already exists in your library.', 'danger')
+                return render_template('add_book.html', form=form, book_data=None, shared_book_data=None, debug_enabled=debug_enabled)
 
-            author = request.form['author']
+            # Check for existing shared book data
+            shared_book_data = None
+            if isbn:
+                shared_book_data = SharedBookData.find_by_isbn(isbn)
+            else:
+                # For manual books, check by title and author
+                shared_book_data = SharedBookData.find_by_title_author(title, author)
+
+            # If no shared data exists, create it
+            if not shared_book_data:
+                shared_book_data = SharedBookData(
+                    title=title,
+                    author=author,
+                    isbn=isbn,
+                    created_by=current_user.id,
+                    cover_url=request.form.get('cover_url', '').strip() or None,
+                    description=request.form.get('description', '').strip() or None,
+                    published_date=request.form.get('publication_date', '').strip() or None,
+                    page_count=int(request.form.get('pages')) if request.form.get('pages', '').strip() else None,
+                    publisher=request.form.get('publisher', '').strip() or None,
+                    language=request.form.get('language', '').strip() or None,
+                    categories=request.form.get('categories', '').strip() or None
+                )
+                shared_book_data.save()
+                flash(f'Created new shared book data for "{title}" by {author}.', 'info')
+
+            # Get additional metadata if ISBN is provided
+            cover_url = None
+            description = None
+            published_date = None
+            page_count = None
+            categories = None
+            publisher = None
+            language = None
+            average_rating = None
+            rating_count = None
+
+            if isbn:
+                # Try to get metadata from APIs
+                google_data = get_google_books_cover(isbn, fetch_title_author=True)
+                if google_data:
+                    cover_url = google_data.get('cover')
+                    description = google_data.get('description')
+                    published_date = google_data.get('published_date')
+                    page_count = google_data.get('page_count')
+                    categories = google_data.get('categories')
+                    publisher = google_data.get('publisher')
+                    language = google_data.get('language')
+                    average_rating = google_data.get('average_rating')
+                    rating_count = google_data.get('rating_count')
+                else:
+                    # Fallback to OpenLibrary data
+                    ol_data = fetch_book_data(isbn)
+                    if ol_data:
+                        cover_url = ol_data.get('cover')
+                        description = ol_data.get('description')
+                        published_date = ol_data.get('published_date')
+                        page_count = ol_data.get('page_count')
+                        categories = ol_data.get('categories')
+                        publisher = ol_data.get('publisher')
+                        language = ol_data.get('language')
+
+            # Use form data to override API data or fill in manual data
+            cover_url = cover_url or request.form.get('cover_url', '').strip() or None
+            description = description or request.form.get('description', '').strip() or None
+            published_date = published_date or request.form.get('publication_date', '').strip() or None
+            page_count = page_count or (int(request.form.get('pages')) if request.form.get('pages', '').strip() else None)
+            categories = categories or request.form.get('categories', '').strip() or None
+            publisher = publisher or request.form.get('publisher', '').strip() or None
+            language = language or request.form.get('language', '').strip() or None
+
+            # Get reading options
             start_date_str = request.form.get('start_date') or None
             finish_date_str = request.form.get('finish_date') or None
             start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date() if start_date_str else None
@@ -222,42 +304,13 @@ def add_book():
             want_to_read = 'want_to_read' in request.form
             library_only = 'library_only' in request.form
 
-            cover_url = get_google_books_cover(isbn)
-
-            # Get additional metadata from Google Books API first, then fallback to OpenLibrary
-            google_data = get_google_books_cover(isbn, fetch_title_author=True)
-            if google_data:
-                description = google_data.get('description')
-                published_date = google_data.get('published_date')
-                page_count = google_data.get('page_count')
-                categories = google_data.get('categories')
-                publisher = google_data.get('publisher')
-                language = google_data.get('language')
-                average_rating = google_data.get('average_rating')
-                rating_count = google_data.get('rating_count')
-            else:
-                # Fallback to OpenLibrary data
-                ol_data = fetch_book_data(isbn)
-                if ol_data:
-                    description = ol_data.get('description')
-                    published_date = ol_data.get('published_date')
-                    page_count = ol_data.get('page_count')
-                    categories = ol_data.get('categories')
-                    publisher = ol_data.get('publisher')
-                    language = ol_data.get('language')
-                    average_rating = None
-                    rating_count = None
-                else:
-                    description = published_date = page_count = categories = publisher = language = average_rating = rating_count = None
-
-            if not cover_url:
-                flash('Warning: No cover image found on Google Books for this ISBN. A default image will be used. A manual cover URL can be added in the "edit book" section.', 'warning')
-
+            # Create the book
             book = Book(
                 title=title,
                 author=author,
+                user_id=current_user.id,
                 isbn=isbn,
-                user_id=current_user.id,  # Add user_id for multi-user support
+                shared_book_id=shared_book_data.id,
                 start_date=start_date,
                 finish_date=finish_date,
                 cover_url=cover_url,
@@ -273,10 +326,28 @@ def add_book():
                 rating_count=rating_count
             )
             book.save()
+            
+            # Update shared book data with any new information
+            if not shared_book_data.cover_url and cover_url:
+                shared_book_data.cover_url = cover_url
+            if not shared_book_data.description and description:
+                shared_book_data.description = description
+            if not shared_book_data.published_date and published_date:
+                shared_book_data.published_date = published_date
+            if not shared_book_data.page_count and page_count:
+                shared_book_data.page_count = page_count
+            if not shared_book_data.categories and categories:
+                shared_book_data.categories = categories
+            if not shared_book_data.publisher and publisher:
+                shared_book_data.publisher = publisher
+            if not shared_book_data.language and language:
+                shared_book_data.language = language
+            db.session.commit()
+            
             flash(f'Book "{title}" added successfully.', 'success')
             return redirect(url_for('main.index'))
 
-    return render_template('add_book.html', form=form, book_data=book_data, debug_enabled=debug_enabled)
+    return render_template('add_book.html', form=form, book_data=book_data, shared_book_data=shared_book_data, debug_enabled=debug_enabled)
 
 @bp.route('/book/<uid>', methods=['GET', 'POST'])
 @login_required
@@ -591,18 +662,21 @@ def public_library():
 def edit_book(uid):
     book = Book.query.filter_by(uid=uid, user_id=current_user.id).first_or_404()
     if request.method == 'POST':
-        new_isbn = request.form['isbn']
-        # Check for duplicate ISBN (excluding the current book)
-        if Book.query.filter(Book.isbn == new_isbn, Book.uid != book.uid, Book.user_id == current_user.id).first():
-            flash('A book with this ISBN already exists.', 'danger')
+        new_isbn = request.form['isbn'].strip() if request.form['isbn'] else None
+        
+        # Check for duplicate ISBN (only if ISBN is provided and excluding the current book)
+        if new_isbn and Book.query.filter(Book.isbn == new_isbn, Book.uid != book.uid, Book.user_id == current_user.id).first():
+            flash('A book with this ISBN already exists in your library.', 'danger')
             return render_template('edit_book.html', book=book)
+        
+        # Update book fields
         book.title = request.form['title']
         book.author = request.form['author']
         book.isbn = new_isbn
         cover_url = request.form.get('cover_url', '').strip()
         book.cover_url = cover_url if cover_url else None
         
-        # Update new metadata fields
+        # Update metadata fields
         book.description = request.form.get('description', '').strip() or None
         book.published_date = request.form.get('published_date', '').strip() or None
         book.page_count = int(request.form.get('page_count')) if request.form.get('page_count', '').strip() else None
@@ -611,8 +685,30 @@ def edit_book(uid):
         book.categories = request.form.get('categories', '').strip() or None
         book.average_rating = float(request.form.get('average_rating')) if request.form.get('average_rating', '').strip() else None
         book.rating_count = int(request.form.get('rating_count')) if request.form.get('rating_count', '').strip() else None
+        
+        # Update shared book data if it exists
+        if book.shared_book:
+            shared_book = book.shared_book
+            # Only update shared data if it's missing information
+            if not shared_book.cover_url and cover_url:
+                shared_book.cover_url = cover_url
+            if not shared_book.description and book.description:
+                shared_book.description = book.description
+            if not shared_book.published_date and book.published_date:
+                shared_book.published_date = book.published_date
+            if not shared_book.page_count and book.page_count:
+                shared_book.page_count = book.page_count
+            if not shared_book.categories and book.categories:
+                shared_book.categories = book.categories
+            if not shared_book.publisher and book.publisher:
+                shared_book.publisher = book.publisher
+            if not shared_book.language and book.language:
+                shared_book.language = book.language
+            if not shared_book.isbn and new_isbn:
+                shared_book.isbn = new_isbn
+        
         db.session.commit()
-        flash('Book updated.', 'success')
+        flash('Book updated successfully.', 'success')
         return redirect(url_for('main.view_book', uid=book.uid))
     return render_template('edit_book.html', book=book)
 
@@ -679,8 +775,26 @@ def add_book_from_search():
 
     # Prevent duplicate ISBNs
     if isbn and Book.query.filter_by(isbn=isbn, user_id=current_user.id).first():
-        flash('A book with this ISBN already exists.', 'danger')
+        flash('A book with this ISBN already exists in your library.', 'danger')
         return redirect(url_for('main.search_books'))
+
+    # Check for existing shared book data
+    shared_book_data = None
+    if isbn:
+        shared_book_data = SharedBookData.find_by_isbn(isbn)
+    else:
+        shared_book_data = SharedBookData.find_by_title_author(title, author)
+
+    # If no shared data exists, create it
+    if not shared_book_data:
+        shared_book_data = SharedBookData(
+            title=title,
+            author=author,
+            isbn=isbn,
+            created_by=current_user.id,
+            cover_url=cover_url
+        )
+        shared_book_data.save()
 
     # Get additional metadata if available
     if isbn:
@@ -702,8 +816,9 @@ def add_book_from_search():
     book = Book(
         title=title,
         author=author,
+        user_id=current_user.id,
         isbn=isbn,
-        user_id=current_user.id,  # Add user_id for multi-user support
+        shared_book_id=shared_book_data.id,
         cover_url=cover_url,
         description=description,
         published_date=published_date,

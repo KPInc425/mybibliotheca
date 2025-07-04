@@ -90,8 +90,15 @@
         
         <div class="flex items-center">
           <span class="font-semibold text-primary min-w-32 mr-4">📚 ISBN:</span>
-          <span class="flex-1">{{ book.isbn or 'Unknown' }}</span>
+          <span class="flex-1">{{ book.isbn or 'No ISBN' }}</span>
         </div>
+        
+        {% if book.custom_id %}
+        <div class="flex items-center">
+          <span class="font-semibold text-primary min-w-32 mr-4">🆔 Custom ID:</span>
+          <span class="flex-1 font-mono text-sm">{{ book.custom_id }}</span>
+        </div>
+        {% endif %}
       </div>
 
       <!-- Categories -->

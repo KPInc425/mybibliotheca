@@ -66,37 +66,58 @@
       <!-- ISBN and Fetch Section -->
       <div class="form-control">
         <label class="label">
-          <span class="label-text text-lg font-semibold">📖 ISBN Number</span>
+          <span class="label-text text-lg font-semibold">📖 ISBN Number (Optional)</span>
         </label>
         <div class="join w-full">
           <input id="isbn" name="isbn" class="input input-bordered join-item flex-1" 
                  value="{{ request.form.isbn or '' }}" 
                  type="text" pattern="[0-9\-]+" title="Enter a valid ISBN (digits and hyphens only)"
-                 placeholder="Enter ISBN or scan barcode above">
+                 placeholder="Enter ISBN or scan barcode above (optional for manual books)">
           <button id="fetchBtn" name="fetch" value="1" type="button" class="btn btn-secondary join-item">
             🔍 Fetch Book
           </button>
         </div>
+        <label class="label">
+          <span class="label-text-alt text-base-content/70">💡 Leave empty to add a book manually without ISBN</span>
+        </label>
       </div>
+
+      <!-- Shared Book Data Notification -->
+      {% if shared_book_data %}
+      <div class="alert alert-info">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+          <h3 class="font-bold">📚 Book Found in Community Database!</h3>
+          <div class="text-sm">
+            This book has been added by another user. You can use the existing data or add your own copy.
+            {% if shared_book_data.custom_id %}
+            <br><strong>Custom ID:</strong> {{ shared_book_data.custom_id }}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
 
       <!-- Book Details -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="form-control">
           <label class="label">
-            <span class="label-text text-lg font-semibold">📚 Title</span>
+            <span class="label-text text-lg font-semibold">📚 Title *</span>
           </label>
           <input id="title" name="title" class="input input-bordered" 
                  value="{{ book_data.title if book_data else request.form.title or '' }}"
-                 placeholder="Enter book title">
+                 placeholder="Enter book title" required>
         </div>
         
         <div class="form-control">
           <label class="label">
-            <span class="label-text text-lg font-semibold">✍️ Author</span>
+            <span class="label-text text-lg font-semibold">✍️ Author *</span>
           </label>
           <input id="author" name="author" class="input input-bordered" 
                  value="{{ book_data.author if book_data else request.form.author or '' }}"
-                 placeholder="Enter author name">
+                 placeholder="Enter author name" required>
         </div>
         
         <div class="form-control">

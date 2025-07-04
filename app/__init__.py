@@ -307,11 +307,70 @@ def create_app():
                             except Exception as e:
                                 trans.rollback()
                                 raise e
-                        
                 except Exception as e:
                     print(f"⚠️  Book schema migration failed: {e}")
-            
-            # Check for reading_log table updates
+
+            # --- SHARED BOOK DATA MIGRATION ---
+            # Check for shared_book_data table
+            if 'shared_book_data' not in existing_tables:
+                print("🔄 Creating shared_book_data table...")
+                try:
+                    with db.engine.connect() as conn:
+                        trans = conn.begin()
+                        try:
+                            conn.execute(text('''
+                                CREATE TABLE shared_book_data (
+                                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    custom_id VARCHAR(20) UNIQUE NOT NULL,
+                                    title VARCHAR(255) NOT NULL,
+                                    author VARCHAR(255) NOT NULL,
+                                    isbn VARCHAR(13),
+                                    cover_url VARCHAR(512),
+                                    description TEXT,
+                                    published_date VARCHAR(50),
+                                    page_count INTEGER,
+                                    categories VARCHAR(500),
+                                    publisher VARCHAR(255),
+                                    language VARCHAR(10),
+                                    average_rating REAL,
+                                    rating_count INTEGER,
+                                    created_at DATETIME,
+                                    updated_at DATETIME,
+                                    created_by INTEGER NOT NULL,
+                                    FOREIGN KEY (created_by) REFERENCES user (id)
+                                )
+                            '''))
+                            trans.commit()
+                            print("✅ shared_book_data table created.")
+                        except Exception as e:
+                            trans.rollback()
+                            raise e
+                except Exception as e:
+                    print(f"⚠️  shared_book_data table creation failed: {e}")
+            else:
+                print("✅ shared_book_data table already exists.")
+
+            # Check for shared_book_id column in book table
+            if 'book' in existing_tables:
+                try:
+                    columns = [column['name'] for column in inspector.get_columns('book')]
+                    if 'shared_book_id' not in columns:
+                        print("🔄 Adding shared_book_id column to book table...")
+                        with db.engine.connect() as conn:
+                            trans = conn.begin()
+                            try:
+                                conn.execute(text("ALTER TABLE book ADD COLUMN shared_book_id INTEGER REFERENCES shared_book_data(id)"))
+                                trans.commit()
+                                print("✅ shared_book_id column added to book table.")
+                            except Exception as e:
+                                trans.rollback()
+                                raise e
+                    else:
+                        print("✅ shared_book_id column already exists in book table.")
+                except Exception as e:
+                    print(f"⚠️  shared_book_id column migration failed: {e}")
+        
+        # Check for reading_log table updates
             if 'reading_log' in existing_tables:
                 try:
                     columns = [column['name'] for column in inspector.get_columns('reading_log')]

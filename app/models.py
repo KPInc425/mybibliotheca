@@ -161,7 +161,8 @@ class Book(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     author = db.Column(db.String(255), nullable=False)
-    isbn = db.Column(db.String(13), nullable=False)  # Removed unique constraint for multi-user
+    isbn = db.Column(db.String(13), nullable=True)  # Made optional for manual books
+    shared_book_id = db.Column(db.Integer, db.ForeignKey('shared_book_data.id'), nullable=True)  # Reference to shared data
     start_date = db.Column(db.Date, nullable=True)
     finish_date = db.Column(db.Date, nullable=True)
     cover_url = db.Column(db.String(512), nullable=True)
@@ -178,16 +179,20 @@ class Book(db.Model):
     rating_count = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
-    # Add unique constraint for ISBN per user
+    # Add unique constraint for ISBN per user (only when ISBN is not null)
     __table_args__ = (
         db.UniqueConstraint('user_id', 'isbn', name='unique_user_isbn'),
     )
+    
+    # Relationship to shared book data
+    shared_book = db.relationship('SharedBookData', backref='books')
 
-    def __init__(self, title, author, isbn, user_id, start_date=None, finish_date=None, cover_url=None, want_to_read=False, library_only=False, description=None, published_date=None, page_count=None, categories=None, publisher=None, language=None, average_rating=None, rating_count=None, **kwargs):
+    def __init__(self, title, author, user_id, isbn=None, shared_book_id=None, start_date=None, finish_date=None, cover_url=None, want_to_read=False, library_only=False, description=None, published_date=None, page_count=None, categories=None, publisher=None, language=None, average_rating=None, rating_count=None, **kwargs):
         self.title = title
         self.author = author
         self.isbn = isbn
         self.user_id = user_id
+        self.shared_book_id = shared_book_id
         self.start_date = start_date
         self.finish_date = finish_date
         self.cover_url = cover_url
@@ -223,12 +228,32 @@ class Book(db.Model):
     def get_user_book_by_isbn(cls, user_id, isbn):
         return cls.query.filter_by(user_id=user_id, isbn=isbn).first()
     
+    @classmethod
+    def get_user_book_by_shared_id(cls, user_id, shared_book_id):
+        """Get a user's book by shared book ID"""
+        return cls.query.filter_by(user_id=user_id, shared_book_id=shared_book_id).first()
+    
+    @classmethod
+    def find_by_title_author(cls, title, author):
+        """Find books by title and author (case-insensitive)"""
+        return cls.query.filter(
+            db.func.lower(cls.title) == db.func.lower(title),
+            db.func.lower(cls.author) == db.func.lower(author)
+        ).all()
+    
     @property
     def secure_cover_url(self):
         """Return HTTPS version of cover URL for security."""
         if self.cover_url and self.cover_url.startswith('http://'):
             return self.cover_url.replace('http://', 'https://')
         return self.cover_url
+    
+    @property
+    def custom_id(self):
+        """Get the custom ID from shared book data if available"""
+        if self.shared_book:
+            return self.shared_book.custom_id
+        return None
     
     def __repr__(self):
         return f'<Book {self.title} by {self.author}>'
@@ -287,3 +312,73 @@ class SystemSettings(db.Model):
     def is_debug_enabled(cls):
         """Check if debug mode is enabled"""
         return cls.get_setting('debug_mode', 'false').lower() == 'true'
+
+class SharedBookData(db.Model):
+    """Shared book data that can be referenced by multiple users"""
+    id = db.Column(db.Integer, primary_key=True)
+    custom_id = db.Column(db.String(20), unique=True, nullable=False)  # Custom ID for books without ISBN
+    title = db.Column(db.String(255), nullable=False)
+    author = db.Column(db.String(255), nullable=False)
+    isbn = db.Column(db.String(13), nullable=True)  # Optional ISBN
+    cover_url = db.Column(db.String(512), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    published_date = db.Column(db.String(50), nullable=True)
+    page_count = db.Column(db.Integer, nullable=True)
+    categories = db.Column(db.String(500), nullable=True)
+    publisher = db.Column(db.String(255), nullable=True)
+    language = db.Column(db.String(10), nullable=True)
+    average_rating = db.Column(db.Float, nullable=True)
+    rating_count = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Relationships
+    creator = db.relationship('User', backref='shared_books_created')
+    
+    def __init__(self, title, author, custom_id=None, isbn=None, created_by=None, **kwargs):
+        self.title = title
+        self.author = author
+        self.isbn = isbn
+        self.created_by = created_by
+        self.custom_id = custom_id or self._generate_custom_id(title, author)
+        
+        # Set other fields from kwargs
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+    
+    def _generate_custom_id(self, title, author):
+        """Generate a custom ID based on title and author"""
+        # Create a base from title and author
+        base = f"{title[:10]}_{author[:10]}".replace(' ', '_').lower()
+        # Remove special characters
+        base = re.sub(r'[^a-z0-9_]', '', base)
+        # Add a random suffix
+        suffix = secrets.token_urlsafe(4)
+        return f"{base}_{suffix}"
+    
+    @classmethod
+    def find_by_title_author(cls, title, author):
+        """Find shared book data by title and author (case-insensitive)"""
+        return cls.query.filter(
+            db.func.lower(cls.title) == db.func.lower(title),
+            db.func.lower(cls.author) == db.func.lower(author)
+        ).first()
+    
+    @classmethod
+    def find_by_isbn(cls, isbn):
+        """Find shared book data by ISBN"""
+        return cls.query.filter_by(isbn=isbn).first()
+    
+    @classmethod
+    def find_by_custom_id(cls, custom_id):
+        """Find shared book data by custom ID"""
+        return cls.query.filter_by(custom_id=custom_id).first()
+    
+    def save(self):
+        db.session.add(self)
+        db.session.commit()
+    
+    def __repr__(self):
+        return f'<SharedBookData {self.title} by {self.author} (ID: {self.custom_id})>'

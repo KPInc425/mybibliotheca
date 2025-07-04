@@ -36,11 +36,24 @@
         
         <div class="form-control">
           <label class="label">
-            <span class="label-text text-lg font-semibold">📖 ISBN</span>
+            <span class="label-text text-lg font-semibold">📖 ISBN (Optional)</span>
           </label>
           <input type="text" class="input input-bordered" id="isbn" name="isbn" 
-                 value="{{ book.isbn }}" required>
+                 value="{{ book.isbn or '' }}" placeholder="Enter ISBN or leave empty for manual books">
         </div>
+        
+        {% if book.custom_id %}
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text text-lg font-semibold">🆔 Custom ID</span>
+          </label>
+          <input type="text" class="input input-bordered bg-base-200" id="custom_id" 
+                 value="{{ book.custom_id }}" readonly>
+          <label class="label">
+            <span class="label-text-alt">This ID is automatically generated and cannot be changed</span>
+          </label>
+        </div>
+        {% endif %}
         
         <div class="form-control">
           <label class="label">
