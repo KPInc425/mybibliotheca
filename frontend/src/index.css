@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/* DaisyUI v5 Theme Configuration */
+@layer base {
+  :root {
+    --color-primary: 14 165 233;
+    --color-primary-content: 255 255 255;
+    --color-secondary: 100 116 139;
+    --color-accent: 168 85 247;
+    --color-neutral: 51 65 85;
+    --color-base-100: 255 255 255;
+    --color-base-200: 248 250 252;
+    --color-base-300: 241 245 249;
+    --color-base-content: 15 23 42;
+    --color-info: 59 130 246;
+    --color-success: 34 197 94;
+    --color-warning: 251 191 36;
+    --color-error: 239 68 68;
+  }
+
+  .dark {
+    --color-primary: 14 165 233;
+    --color-primary-content: 15 23 42;
+    --color-secondary: 148 163 184;
+    --color-accent: 168 85 247;
+    --color-neutral: 148 163 184;
+    --color-base-100: 15 23 42;
+    --color-base-200: 30 41 59;
+    --color-base-300: 51 65 85;
+    --color-base-content: 248 250 252;
+    --color-info: 59 130 246;
+    --color-success: 34 197 94;
+    --color-warning: 251 191 36;
+    --color-error: 239 68 68;
+  }
+}
+
+/* Custom Styles */
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  }
+  
+  .btn-primary {
+    @apply bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary-200 text-secondary-800 hover:bg-secondary-300 active:bg-secondary-400;
+  }
+  
+  .card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700;
+  }
+  
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white;
+  }
+}
+
+/* Animations */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+}
+
+/* Global Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.6;
+  color: var(--color-base-content);
+  background-color: var(--color-base-100);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-base-200);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-base-300);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-base-content);
+}
