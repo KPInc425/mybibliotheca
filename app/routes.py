@@ -89,7 +89,44 @@ def fetch_book(isbn):
 @bp.route('/')
 @login_required
 def index():
-    # This now serves the library functionality as the homepage
+    # This now serves as the dashboard/homepage
+    # Get user's books for statistics
+    all_books = Book.query.filter_by(user_id=current_user.id).all()
+    
+    # Get recent books (last 10 added)
+    recent_books = Book.query.filter_by(user_id=current_user.id).order_by(Book.id.desc()).limit(10).all()
+    
+    # Get currently reading books
+    currently_reading = [book for book in all_books if not book.finish_date and not book.want_to_read and not book.library_only]
+    
+    # Get recently finished books (last 5)
+    recently_finished = Book.query.filter_by(user_id=current_user.id).filter(Book.finish_date.isnot(None)).order_by(Book.finish_date.desc()).limit(5).all()
+    
+    # Get reading statistics
+    total_books = len(all_books)
+    finished_books = len([book for book in all_books if book.finish_date])
+    want_to_read = len([book for book in all_books if book.want_to_read])
+    currently_reading_count = len(currently_reading)
+    library_only = len([book for book in all_books if book.library_only])
+    
+    # Get reading streak
+    reading_streak = current_user.get_reading_streak()
+    
+    return render_template('dashboard.html',
+                         total_books=total_books,
+                         finished_books=finished_books,
+                         want_to_read=want_to_read,
+                         currently_reading_count=currently_reading_count,
+                         library_only=library_only,
+                         reading_streak=reading_streak,
+                         recent_books=recent_books,
+                         currently_reading=currently_reading,
+                         recently_finished=recently_finished)
+
+@bp.route('/library')
+@login_required
+def library():
+    # This now serves the dedicated library browse functionality
     search = request.args.get('search', '').strip()
     category = request.args.get('category', '').strip()
     publisher = request.args.get('publisher', '').strip()

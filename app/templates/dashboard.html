@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}BookOracle - Dashboard{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
+  <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">📚 BookOracle</h1>
+  <p class="text-xl opacity-90 mt-2">Welcome back, {{ current_user.username }}!</p>
+</div>
+
+<!-- Quick Actions -->
+<div class="text-center mb-8">
+  <div class="flex flex-wrap justify-center gap-4">
+    <a href="{{ url_for('main.library') }}" class="btn btn-primary btn-lg">
+      📖 Browse Library
+    </a>
+    <a href="{{ url_for('main.add_book') }}" class="btn btn-secondary btn-lg">
+      ➕ Add New Book
+    </a>
+    <a href="{{ url_for('main.library_mass_edit') }}" class="btn btn-accent btn-lg">
+      ✏️ Mass Edit
+    </a>
+  </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+  <div class="stat-item bg-base-100 border-2 border-secondary rounded-xl p-4 text-center shadow-lg">
+    <span class="stat-number text-2xl md:text-3xl font-bold text-primary block">{{ total_books }}</span>
+    <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Total Books</span>
+  </div>
+  <div class="stat-item bg-base-100 border-2 border-secondary rounded-xl p-4 text-center shadow-lg">
+    <span class="stat-number text-2xl md:text-3xl font-bold text-success block">{{ finished_books }}</span>
+    <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Finished</span>
+  </div>
+  <div class="stat-item bg-base-100 border-2 border-secondary rounded-xl p-4 text-center shadow-lg">
+    <span class="stat-number text-2xl md:text-3xl font-bold text-warning block">{{ currently_reading_count }}</span>
+    <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Currently Reading</span>
+  </div>
+  <div class="stat-item bg-base-100 border-2 border-secondary rounded-xl p-4 text-center shadow-lg">
+    <span class="stat-number text-2xl md:text-3xl font-bold text-info block">{{ want_to_read }}</span>
+    <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Want to Read</span>
+  </div>
+  <div class="stat-item bg-base-100 border-2 border-secondary rounded-xl p-4 text-center shadow-lg">
+    <span class="stat-number text-2xl md:text-3xl font-bold text-neutral block">{{ library_only }}</span>
+    <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Library Only</span>
+  </div>
+  <div class="stat-item bg-base-100 border-2 border-secondary rounded-xl p-4 text-center shadow-lg">
+    <span class="stat-number text-2xl md:text-3xl font-bold text-error block">{{ reading_streak }}</span>
+    <span class="stat-label text-sm text-base-content/70 uppercase tracking-wide">Day Streak 🔥</span>
+  </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+  <!-- Currently Reading Section -->
+  <div class="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
+    <h2 class="text-2xl font-bold text-primary mb-4 flex items-center gap-2">
+      📖 Currently Reading
+      <span class="badge badge-primary">{{ currently_reading_count }}</span>
+    </h2>
+    
+    {% if currently_reading %}
+      <div class="space-y-4">
+        {% for book in currently_reading[:5] %}
+          <div class="flex items-center gap-4 p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+            <div class="w-16 h-20 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
+              <img src="{{ book.secure_cover_url or url_for('static', filename='bookshelf.png') }}"
+                   class="w-full h-full object-cover"
+                   alt="{{ book.title }} cover"
+                   loading="lazy">
+            </div>
+            <div class="flex-grow min-w-0">
+              <h3 class="font-semibold text-base truncate">
+                <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="hover:text-primary">
+                  {{ book.title }}
+                </a>
+              </h3>
+              <p class="text-sm text-base-content/70 truncate">{{ book.author }}</p>
+              {% if book.pages_read and book.total_pages %}
+                <div class="progress progress-sm w-full mt-2">
+                  <div class="progress-bar bg-primary" style="width: {{ (book.pages_read / book.total_pages * 100)|round(1) }}%"></div>
+                </div>
+                <p class="text-xs text-base-content/60 mt-1">
+                  {{ book.pages_read }} / {{ book.total_pages }} pages ({{ (book.pages_read / book.total_pages * 100)|round(1) }}%)
+                </p>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+        
+        {% if currently_reading|length > 5 %}
+          <div class="text-center pt-2">
+            <a href="{{ url_for('main.library') }}?status=reading" class="btn btn-outline btn-sm">
+              View All Currently Reading ({{ currently_reading|length }})
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="text-center py-8">
+        <div class="text-4xl mb-2">📚</div>
+        <p class="text-base-content/70">No books currently being read</p>
+        <a href="{{ url_for('main.add_book') }}" class="btn btn-primary btn-sm mt-2">Start Reading</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Recently Added Section -->
+  <div class="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
+    <h2 class="text-2xl font-bold text-primary mb-4 flex items-center gap-2">
+      📥 Recently Added
+      <span class="badge badge-secondary">{{ recent_books|length }}</span>
+    </h2>
+    
+    {% if recent_books %}
+      <div class="space-y-4">
+        {% for book in recent_books[:5] %}
+          <div class="flex items-center gap-4 p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors">
+            <div class="w-16 h-20 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
+              <img src="{{ book.secure_cover_url or url_for('static', filename='bookshelf.png') }}"
+                   class="w-full h-full object-cover"
+                   alt="{{ book.title }} cover"
+                   loading="lazy">
+            </div>
+            <div class="flex-grow min-w-0">
+              <h3 class="font-semibold text-base truncate">
+                <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="hover:text-primary">
+                  {{ book.title }}
+                </a>
+              </h3>
+              <p class="text-sm text-base-content/70 truncate">{{ book.author }}</p>
+              <div class="flex gap-1 mt-1">
+                {% if book.want_to_read %}
+                  <span class="badge badge-sm badge-info">Want to Read</span>
+                {% elif not book.finish_date and not book.library_only %}
+                  <span class="badge badge-sm badge-warning">Currently Reading</span>
+                {% elif book.finish_date %}
+                  <span class="badge badge-sm badge-success">Finished</span>
+                {% elif book.library_only %}
+                  <span class="badge badge-sm badge-neutral">Library Only</span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+        
+        {% if recent_books|length > 5 %}
+          <div class="text-center pt-2">
+            <a href="{{ url_for('main.library') }}" class="btn btn-outline btn-sm">
+              View All Books ({{ total_books }})
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="text-center py-8">
+        <div class="text-4xl mb-2">📚</div>
+        <p class="text-base-content/70">No books in your library yet</p>
+        <a href="{{ url_for('main.add_book') }}" class="btn btn-primary btn-sm mt-2">Add Your First Book</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Recently Finished Section -->
+{% if recently_finished %}
+<div class="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg mb-8">
+  <h2 class="text-2xl font-bold text-success mb-4 flex items-center gap-2">
+    ✅ Recently Finished
+    <span class="badge badge-success">{{ recently_finished|length }}</span>
+  </h2>
+  
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    {% for book in recently_finished %}
+      <div class="text-center">
+        <div class="w-20 h-28 bg-base-300 rounded-lg overflow-hidden mx-auto mb-2">
+          <img src="{{ book.secure_cover_url or url_for('static', filename='bookshelf.png') }}"
+               class="w-full h-full object-cover"
+               alt="{{ book.title }} cover"
+               loading="lazy">
+        </div>
+        <h3 class="font-semibold text-sm truncate">
+          <a href="{{ url_for('main.view_book', uid=book.uid) }}" class="hover:text-success">
+            {{ book.title }}
+          </a>
+        </h3>
+        <p class="text-xs text-base-content/70 truncate">{{ book.author }}</p>
+        {% if book.finish_date %}
+          <p class="text-xs text-base-content/60 mt-1">
+            Finished {{ book.finish_date.strftime('%b %d, %Y') }}
+          </p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  
+  <div class="text-center pt-4">
+    <a href="{{ url_for('main.library') }}?status=finished" class="btn btn-outline btn-success btn-sm">
+      View All Finished Books ({{ finished_books }})
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick Stats Summary -->
+<div class="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
+  <h2 class="text-2xl font-bold text-primary mb-4">📊 Reading Summary</h2>
+  
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="text-center">
+      <div class="text-3xl font-bold text-primary">{{ total_books }}</div>
+      <div class="text-sm text-base-content/70">Total Books in Library</div>
+    </div>
+    
+    <div class="text-center">
+      <div class="text-3xl font-bold text-success">{{ finished_books }}</div>
+      <div class="text-sm text-base-content/70">Books Completed</div>
+      {% if total_books > 0 %}
+        <div class="text-xs text-base-content/60">({{ (finished_books / total_books * 100)|round(1) }}%)</div>
+      {% endif %}
+    </div>
+    
+    <div class="text-center">
+      <div class="text-3xl font-bold text-warning">{{ currently_reading_count }}</div>
+      <div class="text-sm text-base-content/70">Currently Reading</div>
+    </div>
+    
+    <div class="text-center">
+      <div class="text-3xl font-bold text-error">{{ reading_streak }}</div>
+      <div class="text-sm text-base-content/70">Day Reading Streak 🔥</div>
+    </div>
+  </div>
+  
+  <div class="text-center pt-6">
+    <a href="{{ url_for('main.month_wrapup') }}" class="btn btn-primary">
+      📊 View Month Wrap Up
+    </a>
+    <a href="{{ url_for('main.community_activity') }}" class="btn btn-secondary ml-2">
+      👥 Community Activity
+    </a>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add any dashboard-specific JavaScript here
+    console.log('Dashboard loaded');
+});
+</script>
+{% endblock %} 

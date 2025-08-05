@@ -243,3 +243,6 @@ tailwindcss.exe
 .cursor/
 
 BookOracle-debug.apk
+
+__buildDocs/
+___analysis/
