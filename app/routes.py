@@ -86,6 +86,11 @@ def fetch_book(isbn):
     
     return jsonify(book_data), 200 if book_data else 404
 
+@bp.route('/api-docs')
+def api_docs():
+    """Serve API documentation page"""
+    return send_file('static/api-docs.html')
+
 @bp.route('/')
 @login_required
 def index():
@@ -199,6 +204,9 @@ def library():
         if book.language and book.language.strip()
     ]))
     
+    # Fetch all users for assignment functionality
+    users = User.query.all()
+    
     return render_template('library.html',
                          books=books,
                          categories=categories,
@@ -207,7 +215,8 @@ def library():
                          current_search=search,
                          current_category=category,
                          current_publisher=publisher,
-                         current_language=language)
+                         current_language=language,
+                         users=users)
 
 @bp.route('/add', methods=['GET', 'POST'])
 @login_required
@@ -621,63 +630,7 @@ def search_books():
                 })
     return render_template('search_books.html', results=results, query=query)
 
-@bp.route('/library')
-@login_required
-def library():
-    # Get filter parameters from URL
-    category_filter = request.args.get('category', '')
-    publisher_filter = request.args.get('publisher', '')
-    language_filter = request.args.get('language', '')
-    search_query = request.args.get('search', '')
 
-    # Start with books belonging to current user
-    books_query = Book.query.filter_by(user_id=current_user.id)
-
-    # Apply additional filters
-    if category_filter:
-        books_query = books_query.filter(Book.categories.contains(category_filter))
-    if publisher_filter:
-        books_query = books_query.filter(Book.publisher.ilike(f'%{publisher_filter}%'))
-    if language_filter:
-        books_query = books_query.filter(Book.language == language_filter)
-    if search_query:
-        books_query = books_query.filter(
-            (Book.title.ilike(f'%{search_query}%')) |
-            (Book.author.ilike(f'%{search_query}%')) |
-            (Book.description.ilike(f'%{search_query}%'))
-        )
-
-    books = books_query.all()
-
-    # Get distinct values for filter dropdowns
-    all_books = Book.query.filter_by(user_id=current_user.id).all()
-    categories = set()
-    publishers = set()
-    languages = set()
-
-    for book in all_books:
-        if book.categories:
-            categories.update([cat.strip() for cat in book.categories.split(',')])
-        if book.publisher:
-            publishers.add(book.publisher)
-        if book.language:
-            languages.add(book.language)
-
-    # Fetch all users for assignment
-    users = User.query.all()
-
-    return render_template(
-        'library.html',
-        books=books,
-        categories=sorted(categories),
-        publishers=sorted(publishers),
-        languages=sorted(languages),
-        current_category=category_filter,
-        current_publisher=publisher_filter,
-        current_language=language_filter,
-        current_search=search_query,
-        users=users  # Pass users to the template
-    )
 
 @bp.route('/public-library')
 def public_library():

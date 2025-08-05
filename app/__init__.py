@@ -455,8 +455,10 @@ def create_app():
     from .routes import bp
     from .auth import auth
     from .admin import admin
+    from .api import api
     app.register_blueprint(bp)
     app.register_blueprint(auth, url_prefix='/auth')
     app.register_blueprint(admin, url_prefix='/admin')
+    app.register_blueprint(api)
 
     return app
