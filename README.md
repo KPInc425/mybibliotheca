@@ -2,16 +2,13 @@
 
 **BookOracle** is a self-hosted personal library and reading-tracker—your open-source alternative to Goodreads, StoryGraph, and Fable! It lets you log, organize, and visualize your reading journey. Add books by ISBN, track reading progress, log daily reading, and generate monthly wrap-up images of your finished titles.
 
-
 🆕 **Multi-User Features**: Multi-user authentication, user data isolation, admin management, and secure password handling.
 
+🆕 **Modern React Frontend**: Complete React frontend with full feature parity to the legacy Flask app, featuring modern UI/UX, responsive design, and React Native readiness.
 
 [![Documentation](https://img.shields.io/badge/Documentation-BookOracle-4a90e2?style=for-the-badge&logo=read-the-docs&logoColor=white)](https://bookoracle.org)
 
-
 [![Discord](https://img.shields.io/badge/Discord-7289DA?logo=discord&logoColor=white&labelColor=7289DA&style=for-the-badge)](https://discord.gg/Hc8C5eRm7Q)
-
-
 
 ---
 
@@ -22,10 +19,11 @@
 - 📅 **Reading Logs**: Log daily reading activity and maintain streaks.
 - 🖼️ **Monthly Wrap-Ups**: Generate shareable image collages of books completed each month.
 - 🔎 **Search**: Find and import books using the Google Books API.
-- 📱 **Responsive UI**: Clean, mobile-friendly interface built with Bootstrap.
+- 📱 **Responsive UI**: Clean, mobile-friendly interface built with React and Tailwind CSS.
 - 🔐 **Multi-User Support**: Secure authentication with user data isolation
 - 👤 **Admin Management**: Administrative tools and user management
 - 📱 **Smart Barcode Scanner**: Intelligent scanner that automatically chooses between native MLKit (Android) and browser-based scanning with seamless fallback
+- 🎨 **Modern Frontend**: React 18 + TypeScript + Tailwind CSS with full feature parity
 
 ---
 
@@ -36,9 +34,35 @@
 
 ---
 
+## 🏗️ Architecture
+
+BookOracle now features a **hybrid architecture** with both legacy and modern frontends:
+
+### **Backend (Flask)**
+- **Framework**: Flask 2.2.2 with SQLAlchemy ORM
+- **Database**: SQLite with automatic migrations
+- **Authentication**: Flask-Login with session management
+- **API**: Complete REST API for frontend integration
+
+### **Frontend Options**
+
+#### **🆕 Modern React Frontend (Recommended)**
+- **Framework**: React 18 + TypeScript
+- **State Management**: Zustand
+- **Styling**: Tailwind CSS + DaisyUI
+- **Build Tool**: Vite
+- **Features**: Full feature parity with enhanced UX
+
+#### **Legacy Template Frontend**
+- **Templating**: Jinja2 with server-side rendering
+- **Styling**: Tailwind CSS + DaisyUI
+- **Mobile**: Capacitor for native mobile app
+
+---
+
 ## 🚀 Getting Started
 
-### 📦 Run with Docker
+### 📦 Run with Docker (Recommended)
 
 BookOracle can be run completely in Docker — no need to install Python or dependencies on your machine.
 
@@ -90,6 +114,7 @@ Then run:
 ```bash
 docker compose up -d
 ```
+
 ### 🔧 Configurable Environment Variables
 
 | Variable              | Description                                | Default / Example         |
@@ -98,6 +123,34 @@ docker compose up -d
 | `SECURITY_PASSWORD_SALT` | Password hashing salt               | `auto-generated`          |
 | `TIMEZONE`            | Sets the app's timezone                    | `America/Chicago`         |
 | `WORKERS`             | Number of Gunicorn worker processes        | `6`                      |
+
+---
+
+## 🎨 Frontend Options
+
+### **🆕 Modern React Frontend (Default)**
+
+The React frontend provides a modern, responsive experience with full feature parity:
+
+**Features:**
+- ✅ Complete feature parity with legacy app
+- ✅ Modern React 18 + TypeScript
+- ✅ Responsive design with mobile-first approach
+- ✅ Enhanced user experience with client-side state management
+- ✅ React Native ready for future mobile development
+- ✅ Barcode scanner with intelligent native/browser fallback
+- ✅ User preferences (HeroIcons vs Emojis)
+- ✅ Advanced filtering and search
+- ✅ Mass edit functionality
+- ✅ Complete admin panel
+
+**Access:** Visit `http://localhost:5054` - the React frontend is now the default interface.
+
+### **Legacy Template Frontend**
+
+The original Flask template-based frontend is still available:
+
+**Access:** Visit `http://localhost:5054/legacy` for the original interface.
 
 ---
 
@@ -155,6 +208,7 @@ Existing single-user installations are **automatically migrated** to multi-user:
 - **[ADMIN_TOOLS.md](ADMIN_TOOLS.md)** - Admin tools and user management
 - **[TESTING.md](TESTING.md)** - Comprehensive testing documentation and procedures
 - **[NATIVE_BARCODE_SCANNER.md](NATIVE_BARCODE_SCANNER.md)** - Native Android barcode scanner implementation guide
+- **[FRONTEND_MIGRATION_SUMMARY.md](FRONTEND_MIGRATION_SUMMARY.md)** - Complete React frontend migration summary
 
 ---
 
@@ -164,6 +218,7 @@ Existing single-user installations are **automatically migrated** to multi-user:
 
 * Python 3.8+
 * `pip`
+* Node.js 18+ (for React frontend development)
 
 ---
 
@@ -207,7 +262,7 @@ Existing single-user installations are **automatically migrated** to multi-user:
 
    This step creates the `data` directory and database file with proper permissions for your platform.
 
-5. **Run the app**
+5. **Run the backend**
 
    **On Linux/macOS:**
    ```bash
@@ -223,7 +278,17 @@ Existing single-user installations are **automatically migrated** to multi-user:
    python -m gunicorn -w NUMBER_OF_WORKERS -b 0.0.0.0:5054 run:app
    ```
 
-   Visit: [http://127.0.0.1:5054](http://127.0.0.1:5054)
+6. **Run the React frontend (Optional)**
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+   The React frontend will be available at `http://localhost:3001` and will proxy API requests to the backend at `http://localhost:5054`.
+
+Visit: [http://127.0.0.1:5054](http://127.0.0.1:5054) for the main application
 
 > 💡 No need to manually set up the database — it is created automatically on first run.
 
@@ -303,15 +368,25 @@ docker compose -f docker-compose.dev.yml --profile test up bookoracle-test
 
 ```
 BookOracle/
-├── app/
+├── app/                    # Flask backend
 │   ├── __init__.py
 │   ├── models.py
 │   ├── routes.py
+│   ├── api.py             # REST API endpoints
 │   ├── utils.py
-│   └── templates/
-├── static/
-├── requirements.txt
-├── run.py
+│   └── templates/         # Legacy templates
+├── frontend/              # React frontend
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── pages/         # Application pages
+│   │   ├── stores/        # Zustand state management
+│   │   ├── services/      # API services
+│   │   └── types/         # TypeScript types
+│   ├── package.json
+│   └── vite.config.ts
+├── static/                # Static assets
+├── requirements.txt       # Python dependencies
+├── run.py                # Flask application entry
 ├── docker-compose.yml
 └── README.md
 ```
