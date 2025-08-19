@@ -255,6 +255,32 @@ class Book(db.Model):
             return self.shared_book.custom_id
         return None
     
+    def to_dict(self):
+        """Convert book to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'uid': self.uid,
+            'user_id': self.user_id,
+            'title': self.title,
+            'author': self.author,
+            'isbn': self.isbn,
+            'shared_book_id': self.shared_book_id,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'finish_date': self.finish_date.isoformat() if self.finish_date else None,
+            'cover_url': self.cover_url,
+            'want_to_read': self.want_to_read,
+            'library_only': self.library_only,
+            'description': self.description,
+            'published_date': self.published_date,
+            'page_count': self.page_count,
+            'categories': self.categories,
+            'publisher': self.publisher,
+            'language': self.language,
+            'average_rating': self.average_rating,
+            'rating_count': self.rating_count,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+    
     def __repr__(self):
         return f'<Book {self.title} by {self.author}>'
 
@@ -273,6 +299,17 @@ class ReadingLog(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'book_id', 'date', name='unique_user_book_date'),
     )
+    
+    def to_dict(self):
+        """Convert reading log to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'book_id': self.book_id,
+            'user_id': self.user_id,
+            'date': self.date.isoformat() if self.date else None,
+            'pages_read': self.pages_read,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
     
     def __repr__(self):
         return f'<ReadingLog {self.book_id} {self.user_id} {self.date}>'

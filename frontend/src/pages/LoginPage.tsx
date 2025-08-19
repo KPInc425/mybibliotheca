@@ -20,7 +20,7 @@ const LoginPage = () => {
     setError('');
 
     try {
-      const response = await fetch('/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -29,22 +29,14 @@ const LoginPage = () => {
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
-        // Get user profile after successful login
-        const profileResponse = await fetch('/api/user/profile', {
-          credentials: 'include',
-        });
-        
-        if (profileResponse.ok) {
-          const userData = await profileResponse.json();
-          if (userData.success && userData.data) {
-            setUser(userData.data);
-            navigate('/');
-          }
-        }
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success) {
+        // Set user data from login response
+        setUser(responseData.data);
+        navigate('/');
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Login failed');
+        setError(responseData.error || 'Login failed');
       }
     } catch (error) {
       setError('An error occurred during login');

@@ -4,15 +4,143 @@ Uses service layer for business logic separation
 """
 
 from flask import Blueprint, request, jsonify, current_app
-from flask_login import login_required, current_user
-from datetime import date
+from flask_login import login_required, current_user, login_user, logout_user
+from datetime import date, datetime, timezone
 from typing import Dict, Any
 
 from .services.book_service import BookService, BookNotFoundError
 from .services.user_service import UserService, UserNotFoundError
-from .models import db
+from .models import db, User, Book
 
 api = Blueprint('api', __name__, url_prefix='/api')
+
+
+# Authentication endpoints
+@api.route('/auth/login', methods=['POST'])
+def api_login():
+    """
+    JSON-based login endpoint for API clients
+    
+    POST /api/auth/login
+    Body: {
+        "username": "user@example.com",
+        "password": "password",
+        "remember_me": false
+    }
+    
+    Returns:
+        200: Login successful
+        401: Invalid credentials
+        400: Invalid data
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        username = data.get('username')
+        password = data.get('password')
+        remember_me = data.get('remember_me', False)
+        
+        if not username or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Username and password are required'
+            }), 400
+        
+        # Find user by username or email
+        user = User.query.filter(
+            (User.username == username) | 
+            (User.email == username)
+        ).first()
+        
+        if not user:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid username or password'
+            }), 401
+        
+        # Check if account is locked
+        if user.is_locked():
+            return jsonify({
+                'success': False,
+                'error': 'Account is temporarily locked due to too many failed login attempts'
+            }), 401
+        
+        # Check if account is active
+        if not user.is_active:
+            return jsonify({
+                'success': False,
+                'error': 'Account has been deactivated'
+            }), 401
+        
+        # Check password
+        if not user.check_password(password):
+            # Increment failed login attempts
+            user.increment_failed_login()
+            db.session.commit()
+            
+            return jsonify({
+                'success': False,
+                'error': 'Invalid username or password'
+            }), 401
+        
+        # Successful login
+        user.reset_failed_login()
+        user.last_login = datetime.now(timezone.utc)
+        db.session.commit()
+        
+        # Log in user
+        login_user(user, remember=remember_me)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'data': {
+                'user_id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'is_admin': user.is_admin
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in API login: {e}")
+        import traceback
+        current_app.logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+@api.route('/auth/logout', methods=['POST'])
+@login_required
+def api_logout():
+    """
+    JSON-based logout endpoint for API clients
+    
+    POST /api/auth/logout
+    
+    Returns:
+        200: Logout successful
+    """
+    try:
+        logout_user()
+        return jsonify({
+            'success': True,
+            'message': 'Logout successful'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in API logout: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
 
 
 # Book-related endpoints
@@ -359,6 +487,7 @@ def get_user_profile():
                 'username': current_user.username,
                 'email': current_user.email,
                 'is_admin': current_user.is_admin,
+                'created_at': current_user.created_at.isoformat() if current_user.created_at else None,
                 'share_current_reading': current_user.share_current_reading,
                 'share_reading_activity': current_user.share_reading_activity,
                 'share_library': current_user.share_library,
@@ -409,6 +538,7 @@ def update_user_profile():
                 'id': user.id,
                 'username': user.username,
                 'email': user.email,
+                'created_at': user.created_at.isoformat() if user.created_at else None,
                 'share_current_reading': user.share_current_reading,
                 'share_reading_activity': user.share_reading_activity,
                 'share_library': user.share_library,
@@ -1279,6 +1409,124 @@ def update_system_settings():
         
     except Exception as e:
         current_app.logger.error(f"Error updating system settings: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+# Admin endpoints
+@api.route('/admin/stats', methods=['GET'])
+@login_required
+def get_admin_stats():
+    """
+    Get admin dashboard statistics
+    
+    GET /api/admin/stats
+    
+    Returns:
+        200: Admin statistics
+        403: Admin access required
+    """
+    try:
+        if not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Admin access required'
+            }), 403
+        
+        from datetime import datetime, timedelta, timezone
+        from sqlalchemy import func
+        
+        # Get system statistics
+        total_users = User.query.count()
+        active_users = User.query.filter_by(is_active=True).count()
+        admin_users = User.query.filter_by(is_admin=True).count()
+        total_books = Book.query.count()
+        
+        # Users registered in last 30 days
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        new_users_30d = User.query.filter(User.created_at >= thirty_days_ago).count()
+        
+        # Books added in last 30 days
+        new_books_30d = Book.query.filter(Book.created_at >= thirty_days_ago).count()
+        
+        # Most active users (by book count)
+        top_users = db.session.query(
+            User.username,
+            func.count(Book.id).label('book_count')
+        ).join(Book).group_by(User.id).order_by(func.count(Book.id).desc()).limit(5).all()
+        
+        stats = {
+            'total_users': total_users,
+            'active_users': active_users,
+            'admin_users': admin_users,
+            'total_books': total_books,
+            'new_users_30d': new_users_30d,
+            'new_books_30d': new_books_30d,
+            'top_users': [{'username': user.username, 'book_count': user.book_count} for user in top_users]
+        }
+        
+        return jsonify({
+            'success': True,
+            'data': stats
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting admin stats: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+@api.route('/admin/users/recent', methods=['GET'])
+@login_required
+def get_recent_users():
+    """
+    Get recent user registrations
+    
+    GET /api/admin/users/recent
+    
+    Returns:
+        200: Recent users list
+        403: Admin access required
+    """
+    try:
+        if not current_user.is_admin:
+            return jsonify({
+                'success': False,
+                'error': 'Admin access required'
+            }), 403
+        
+        from datetime import datetime, timedelta, timezone
+        
+        # Get recent user registrations (last 30 days)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        recent_users = User.query.filter(User.created_at >= thirty_days_ago).order_by(User.created_at.desc()).limit(10).all()
+        
+        users_data = []
+        for user in recent_users:
+            # Get user's book count
+            book_count = Book.query.filter_by(user_id=user.id).count()
+            
+            users_data.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'is_admin': user.is_admin,
+                'is_active': user.is_active,
+                'created_at': user.created_at.isoformat() if user.created_at else None,
+                'book_count': book_count
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': users_data
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting recent users: {e}")
         return jsonify({
             'success': False,
             'error': 'Internal server error'

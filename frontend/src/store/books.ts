@@ -105,7 +105,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
         const { books } = get();
         const updatedBooks = books.map(book => 
           book.uid === uid ? response.data : book
-        );
+        ).filter((book): book is Book => book !== undefined);
         set({ books: updatedBooks, currentBook: response.data });
       } else {
         set({ error: response.error || 'Failed to update book' });
@@ -143,7 +143,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
         const { books } = get();
         const updatedBooks = books.map(book => 
           book.uid === uid ? response.data : book
-        );
+        ).filter((book): book is Book => book !== undefined);
         set({ books: updatedBooks, currentBook: response.data });
       } else {
         set({ error: response.error || 'Failed to update book status' });

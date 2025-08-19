@@ -1,26 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useBooksStore } from '@/store/books';
-import { useSettingsStore } from '@/store/settings';
-import BarcodeScanner from '@/components/BarcodeScanner';
-import { fetchBookData, validateISBN } from '@/services/bookDataService';
-import { extractISBNFromBarcode, handleSuccessfulScan } from '@/services/scannerService';
+import { api } from '@/api/client';
 import { 
-  CameraIcon,
-  MagnifyingGlassIcon,
-  CheckIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon
+  ArrowLeftIcon,
+  XMarkIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 
-const AddBookPage: React.FC = () => {
+const BookEditPage: React.FC = () => {
+  const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
-  const { addBook } = useBooksStore();
-  const { settings } = useSettingsStore();
-  const [showScanner, setShowScanner] = useState(false);
-  const [isFetching, setIsFetching] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [fetchSuccess, setFetchSuccess] = useState(false);
+  const { books, updateBook } = useBooksStore();
+  const [book, setBook] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     author: '',
@@ -35,97 +30,78 @@ const AddBookPage: React.FC = () => {
     cover_url: '',
     custom_id: '',
     want_to_read: false,
-    library_only: false
+    library_only: false,
+    start_date: '',
+    finish_date: ''
   });
 
-  // Helper function to get icon based on settings
-  const getIcon = (heroIcon: JSX.Element, emoji: string) => {
-    return settings.useHeroIcons ? heroIcon : <span className="text-lg">{emoji}</span>;
-  };
-
-  // Handle barcode scan
-  const handleBarcodeScan = async (barcode: string) => {
-    console.log('[AddBookPage] Barcode scanned:', barcode);
-    
-    // Check for duplicate scans
-    if (!handleSuccessfulScan(barcode)) {
-      console.log('[AddBookPage] Duplicate scan ignored');
-      return;
-    }
-    
-    // Extract ISBN from barcode
-    const isbn = extractISBNFromBarcode(barcode);
-    console.log('[AddBookPage] Extracted ISBN:', isbn);
-    
-    // Update ISBN field
-    setFormData(prev => ({ ...prev, isbn }));
-    
-    // Auto-fetch book data
-    await fetchBookDataFromISBN(isbn);
-    
-    // Close scanner
-    setShowScanner(false);
-  };
-
-  // Handle scanner error
-  const handleScannerError = (error: string) => {
-    console.error('[AddBookPage] Scanner error:', error);
-    setFetchError(`Scanner error: ${error}`);
-    setShowScanner(false);
-  };
-
-  // Fetch book data from ISBN
-  const fetchBookDataFromISBN = async (isbn: string) => {
-    if (!isbn.trim()) {
-      setFetchError('Please enter an ISBN number first');
-      return;
-    }
-
-    if (!validateISBN(isbn)) {
-      setFetchError('Please enter a valid ISBN number');
-      return;
-    }
-
-    try {
-      setIsFetching(true);
-      setFetchError(null);
-      setFetchSuccess(false);
-
-      console.log('[AddBookPage] Fetching book data for ISBN:', isbn);
+  useEffect(() => {
+    const loadBook = async () => {
+      if (!uid) return;
       
-      const response = await fetchBookData(isbn);
-      
-      if (response.success && response.data) {
-        // Fill form with fetched data
-        setFormData(prev => ({
-          ...prev,
-          title: response.data!.title || '',
-          author: response.data!.author || '',
-          isbn: response.data!.isbn || isbn,
-          description: response.data!.description || '',
-          published_date: response.data!.published_date || '',
-          page_count: response.data!.page_count?.toString() || '',
-          categories: response.data!.categories || '',
-          publisher: response.data!.publisher || '',
-          language: response.data!.language || '',
-          format: response.data!.format || '',
-          cover_url: response.data!.cover_url || ''
-        }));
+      try {
+        setIsLoading(true);
+        setError(null);
         
-        setFetchSuccess(true);
-        console.log('[AddBookPage] Book data fetched and form filled successfully');
-      } else {
-        setFetchError(response.error || 'Failed to fetch book data');
+        // Find book in store first
+        const foundBook = books.find(b => b.uid === uid);
+        if (foundBook) {
+          setBook(foundBook);
+          setFormData({
+            title: foundBook.title || '',
+            author: foundBook.author || '',
+            isbn: foundBook.isbn || '',
+            description: foundBook.description || '',
+            published_date: foundBook.published_date || '',
+            page_count: foundBook.page_count?.toString() || '',
+            categories: foundBook.categories || '',
+            publisher: foundBook.publisher || '',
+            language: foundBook.language || '',
+            format: foundBook.format || '',
+            cover_url: foundBook.cover_url || '',
+            custom_id: foundBook.custom_id || '',
+            want_to_read: foundBook.want_to_read || false,
+            library_only: foundBook.library_only || false,
+            start_date: foundBook.start_date || '',
+            finish_date: foundBook.finish_date || ''
+          });
+        } else {
+          // Fetch from API if not in store
+          const bookData = await api.books.getById(uid);
+          const book = bookData.data;
+          if (book) {
+            setBook(book);
+            setFormData({
+              title: book.title || '',
+            author: book.author || '',
+            isbn: book.isbn || '',
+            description: book.description || '',
+            published_date: book.published_date || '',
+            page_count: book.page_count?.toString() || '',
+            categories: book.categories || '',
+            publisher: book.publisher || '',
+            language: book.language || '',
+            format: book.format || '',
+            cover_url: book.cover_url || '',
+            custom_id: book.custom_id || '',
+            want_to_read: book.want_to_read || false,
+            library_only: book.library_only || false,
+            start_date: book.start_date || '',
+                          finish_date: book.finish_date || ''
+            });
+          }
+        }
+      } catch (err) {
+        setError('Failed to load book details');
+        console.error('Error loading book:', err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('[AddBookPage] Error fetching book data:', error);
-      setFetchError(error instanceof Error ? error.message : 'Failed to fetch book data');
-    } finally {
-      setIsFetching(false);
-    }
-  };
+    };
 
-  // Handle form input changes
+    loadBook();
+  }, [uid, books]);
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -133,139 +109,64 @@ const AddBookPage: React.FC = () => {
     }));
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.title.trim()) {
-      setFetchError('Title is required');
-      return;
-    }
-
-    if (!formData.author.trim()) {
-      setFetchError('Author is required');
-      return;
-    }
+    if (!book || isSaving) return;
 
     try {
+      setIsSaving(true);
+      
       // Convert string values to appropriate types
-      const bookData = {
+      const updateData = {
         ...formData,
         page_count: formData.page_count ? parseInt(formData.page_count) : null,
         want_to_read: formData.want_to_read,
-        library_only: formData.library_only
+        library_only: formData.library_only,
+        start_date: formData.start_date || null,
+        finish_date: formData.finish_date || null
       };
 
-      await addBook(bookData);
-      navigate('/library');
-    } catch (error) {
-      console.error('Error adding book:', error);
-      setFetchError(error instanceof Error ? error.message : 'Failed to add book');
+      await updateBook(book.uid, updateData);
+      navigate(`/book/${book.uid}`);
+    } catch (err) {
+      console.error('Error updating book:', err);
+      setError('Failed to update book');
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Clear fetch status when ISBN changes
-  useEffect(() => {
-    setFetchError(null);
-    setFetchSuccess(false);
-  }, [formData.isbn]);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-64">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
+  if (error || !book) {
+    return (
+      <div className="alert alert-error">
+        <XMarkIcon className="w-6 h-6" />
+        <span>{error || 'Book not found'}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">📚 Add New Book</h1>
-        <p className="text-xl opacity-90 mt-2">Scan or search for books to add to your library</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to={`/book/${book.uid}`} className="btn btn-ghost btn-sm">
+            <ArrowLeftIcon className="w-4 h-4 mr-2" />
+            Back to Book
+          </Link>
+          <h1 className="text-3xl font-bold text-primary">Edit Book</h1>
+        </div>
       </div>
 
-      {/* Scanner Section */}
-      <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
-            📱 Barcode Scanner
-            <div className="tooltip tooltip-right" data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices.">
-              <button type="button" className="btn btn-circle btn-ghost btn-sm">
-                <InformationCircleIcon className="w-5 h-5" />
-              </button>
-            </div>
-          </h2>
-        </div>
-        
-        {/* Scanner Controls */}
-        <div className="flex flex-wrap gap-2 justify-center items-center mb-4">
-          <button 
-            onClick={() => setShowScanner(true)}
-            className="btn btn-primary btn-lg"
-          >
-            {getIcon(<CameraIcon className="w-5 h-5 mr-2" />, '📷')}
-            Scan Barcode
-          </button>
-          
-          {/* Scanner Tips Tooltip */}
-          <div className="tooltip tooltip-right" data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices.">
-            <button type="button" className="btn btn-circle btn-ghost btn-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* ISBN and Fetch Section */}
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text text-lg font-semibold">📖 ISBN Number (Optional)</span>
-          </label>
-          <div className="join w-full">
-            <input 
-              type="text" 
-              className="input input-bordered join-item flex-1" 
-              value={formData.isbn}
-              onChange={(e) => handleInputChange('isbn', e.target.value)}
-              placeholder="Enter ISBN or scan barcode above (optional for manual books)"
-              pattern="[0-9\-X]+"
-              title="Enter a valid ISBN (digits, hyphens, and X only)"
-            />
-            <button 
-              type="button"
-              onClick={() => fetchBookDataFromISBN(formData.isbn)}
-              disabled={isFetching || !formData.isbn.trim()}
-              className="btn btn-secondary join-item"
-            >
-              {isFetching ? (
-                <div className="loading loading-spinner loading-sm"></div>
-              ) : (
-                <>
-                  {getIcon(<MagnifyingGlassIcon className="w-4 h-4 mr-2" />, '🔍')}
-                  Fetch Book
-                </>
-              )}
-            </button>
-          </div>
-          <label className="label">
-            <span className="label-text-alt text-base-content/70">
-              💡 Leave empty to add a book manually without ISBN
-            </span>
-          </label>
-        </div>
-
-        {/* Fetch Status */}
-        {fetchError && (
-          <div className="alert alert-error">
-            <ExclamationTriangleIcon className="w-6 h-6" />
-            <span>{fetchError}</span>
-          </div>
-        )}
-
-        {fetchSuccess && (
-          <div className="alert alert-success">
-            <CheckIcon className="w-6 h-6" />
-            <span>Book data fetched successfully!</span>
-          </div>
-        )}
-      </div>
-
-      {/* Book Form */}
+      {/* Edit Form */}
       <div className="bg-base-100 border-2 border-secondary rounded-2xl p-8 shadow-xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
@@ -295,6 +196,19 @@ const AddBookPage: React.FC = () => {
                 onChange={(e) => handleInputChange('author', e.target.value)}
                 required
                 placeholder="Author name"
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-semibold">📚 ISBN</span>
+              </label>
+              <input 
+                type="text" 
+                className="input input-bordered w-full" 
+                value={formData.isbn}
+                onChange={(e) => handleInputChange('isbn', e.target.value)}
+                placeholder="ISBN number"
               />
             </div>
 
@@ -451,37 +365,58 @@ const AddBookPage: React.FC = () => {
                 <span>📚 Library Only</span>
               </label>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">📖 Started Reading</span>
+                </label>
+                <input 
+                  type="date" 
+                  className="input input-bordered w-full" 
+                  value={formData.start_date}
+                  onChange={(e) => handleInputChange('start_date', e.target.value)}
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">✅ Finished Reading</span>
+                </label>
+                <input 
+                  type="date" 
+                  className="input input-bordered w-full" 
+                  value={formData.finish_date}
+                  onChange={(e) => handleInputChange('finish_date', e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 justify-center pt-6">
-            <button 
-              type="button"
-              onClick={() => navigate('/library')}
-              className="btn btn-outline"
-            >
+            <Link to={`/book/${book.uid}`} className="btn btn-outline">
               Cancel
-            </button>
+            </Link>
             <button 
               type="submit" 
               className="btn btn-primary"
+              disabled={isSaving}
             >
-              {getIcon(<CheckIcon className="w-4 h-4 mr-2" />, '✅')}
-              Add Book
+              {isSaving ? (
+                <div className="loading loading-spinner loading-sm"></div>
+              ) : (
+                <>
+                  <CheckIcon className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
-
-      {/* Barcode Scanner Modal */}
-      <BarcodeScanner
-        isOpen={showScanner}
-        onScan={handleBarcodeScan}
-        onError={handleScannerError}
-        onClose={() => setShowScanner(false)}
-      />
     </div>
   );
 };
 
-export default AddBookPage; 
+export default BookEditPage;

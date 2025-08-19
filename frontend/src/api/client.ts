@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import type { ApiResponse, ApiError, Book, User, UserStatistics, ReadingLog, CommunityActivity } from '@/types';
+import type { ApiResponse, Book, User, UserStatistics, ReadingLog, CommunityActivity } from '@/types';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -25,6 +25,17 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Check if response is HTML instead of JSON (indicates redirect to frontend)
+    const contentType = response.headers['content-type'] || '';
+    if (contentType.includes('text/html') && !contentType.includes('application/json')) {
+      console.error('[API Client] Received HTML response instead of JSON:', {
+        url: response.config.url,
+        status: response.status,
+        contentType: contentType,
+        data: response.data.substring(0, 200) + '...' // First 200 chars
+      });
+      throw new Error('Received HTML response instead of JSON - backend may not be running');
+    }
     return response;
   },
   (error) => {
@@ -33,6 +44,17 @@ apiClient.interceptors.response.use(
       // Redirect to login if unauthorized
       window.location.href = '/login';
     }
+    
+    // Log detailed error information
+    console.error('[API Client] Request failed:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    });
+    
     return Promise.reject(error);
   }
 );
@@ -52,6 +74,13 @@ export const api = {
   delete: <T>(url: string): Promise<ApiResponse<T>> =>
     apiClient.delete(url).then(res => res.data),
   
+  // Auth endpoints
+  auth: {
+    login: (data: { username: string; password: string; remember_me?: boolean }) =>
+      api.post<any>('/auth/login', data),
+    logout: () => api.post<any>('/auth/logout'),
+  },
+  
   // Book-related endpoints
   books: {
     getAll: (filters?: any) => api.get<Book[]>('/books', filters),
@@ -64,6 +93,8 @@ export const api = {
       api.put<Book>(`/books/${uid}/status`, { status }),
     logReading: (uid: string, data: any) => 
       api.post<any>(`/books/${uid}/reading-log`, data),
+    getReadingLogs: (uid: string) => 
+      api.get<any>(`/books/${uid}/reading-logs`),
   },
   
   // User-related endpoints
@@ -83,6 +114,23 @@ export const api = {
   system: {
     getSettings: () => api.get<any>('/system/settings'),
     updateSettings: (data: any) => api.put<any>('/system/settings', data),
+  },
+  
+  // Admin endpoints (admin only)
+  admin: {
+    getStats: () => api.get<any>('/admin/stats'),
+    getRecentUsers: () => api.get<any[]>('/admin/users/recent'),
+    getUsers: (params?: any) => api.get<any>('/admin/users', params),
+    getUser: (id: number) => api.get<any>(`/admin/users/${id}`),
+    toggleUserAdmin: (id: number) => api.post<any>(`/admin/users/${id}/toggle_admin`),
+    toggleUserActive: (id: number) => api.post<any>(`/admin/users/${id}/toggle_active`),
+    deleteUser: (id: number) => api.post<any>(`/admin/users/${id}/delete`),
+    resetUserPassword: (id: number, data: any) => api.post<any>(`/admin/users/${id}/reset_password`, data),
+    unlockUserAccount: (id: number) => api.post<any>(`/admin/users/${id}/unlock_account`),
+    getSettings: () => api.get<any>('/admin/settings'),
+    updateSettings: (data: any) => api.post<any>('/admin/settings', data),
+    resetSettings: () => api.post<any>('/admin/settings/reset'),
+    createBackup: () => api.post<any>('/admin/backup'),
   },
 };
 

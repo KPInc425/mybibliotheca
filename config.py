@@ -85,6 +85,7 @@ class Config:
     # Session configuration for hybrid apps
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'  # More permissive for hybrid apps
+    SESSION_COOKIE_DOMAIN = None  # Allow cookies on localhost for development
     PERMANENT_SESSION_LIFETIME = 86400 * 30  # 30 days
     
     # Email settings (for password reset)

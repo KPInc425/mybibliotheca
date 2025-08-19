@@ -1,62 +1,70 @@
 @import "tailwindcss";
-
-/* DaisyUI v5 Theme Configuration */
-@layer base {
-  :root {
-    --color-primary: 14 165 233;
-    --color-primary-content: 255 255 255;
-    --color-secondary: 100 116 139;
-    --color-accent: 168 85 247;
-    --color-neutral: 51 65 85;
-    --color-base-100: 255 255 255;
-    --color-base-200: 248 250 252;
-    --color-base-300: 241 245 249;
-    --color-base-content: 15 23 42;
-    --color-info: 59 130 246;
-    --color-success: 34 197 94;
-    --color-warning: 251 191 36;
-    --color-error: 239 68 68;
-  }
-
-  .dark {
-    --color-primary: 14 165 233;
-    --color-primary-content: 15 23 42;
-    --color-secondary: 148 163 184;
-    --color-accent: 168 85 247;
-    --color-neutral: 148 163 184;
-    --color-base-100: 15 23 42;
-    --color-base-200: 30 41 59;
-    --color-base-300: 51 65 85;
-    --color-base-content: 248 250 252;
-    --color-info: 59 130 246;
-    --color-success: 34 197 94;
-    --color-warning: 251 191 36;
-    --color-error: 239 68 68;
-  }
+@plugin "daisyui" {
+	themes:
+			all;
 }
 
-/* Custom Styles */
-@layer components {
-  .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
-  }
-  
-  .btn-primary {
-    @apply bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700;
-  }
-  
-  .btn-secondary {
-    @apply bg-secondary-200 text-secondary-800 hover:bg-secondary-300 active:bg-secondary-400;
-  }
-  
-  .card {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700;
-  }
-  
-  .input {
-    @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white;
-  }
+@plugin "daisyui/theme" {
+  name: "mybibliotheca";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+	
+  /* Base colors - Warm, book-themed palette */
+  --color-base-100: oklch(0.99 0.01 85); /* Warm white */
+  --color-base-200: oklch(0.96 0.02 85); /* Light cream */
+  --color-base-300: oklch(0.92 0.03 85); /* Medium cream */
+  --color-base-content: oklch(0.2 0.05 85); /* Dark brown text */
+
+  /* Primary - Rich brown */
+  --color-primary: oklch(0.45 0.12 85);
+  --color-primary-content: oklch(0.98 0.01 85);
+
+  /* Secondary - Golden accent */
+  --color-secondary: oklch(0.75 0.15 85);
+  --color-secondary-content: oklch(0.2 0.05 85);
+
+  /* Accent - Warm gold */
+  --color-accent: oklch(0.7 0.18 85);
+  --color-accent-content: oklch(0.2 0.05 85);
+
+  /* Neutral - Muted brown */
+  --color-neutral: oklch(0.6 0.08 85);
+  --color-neutral-content: oklch(0.98 0.01 85);
+
+  /* Status colors */
+  --color-info: oklch(0.7 0.2 220);
+  --color-info-content: oklch(0.98 0.01 220);
+  --color-success: oklch(0.65 0.25 140);
+  --color-success-content: oklch(0.98 0.01 140);
+  --color-warning: oklch(0.8 0.25 80);
+  --color-warning-content: oklch(0.2 0.05 80);
+  --color-error: oklch(0.65 0.3 30);
+  --color-error-content: oklch(0.98 0.01 30);
+
+  /* Border radius */
+  --radius-selector: 0.75rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+
+  /* Base sizes */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  /* Border size */
+  --border: 1px;
+
+  /* Effects */
+  --depth: 1;
+  --noise: 0;
 }
+
+@utility animation-delay-* {
+  animation-delay: --value(integer)ms;
+}
+
+
+
 
 /* Animations */
 @layer utilities {

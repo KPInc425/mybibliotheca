@@ -1,0 +1,365 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  CameraIcon,
+  XMarkIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon
+} from '@heroicons/react/24/outline';
+import {
+  startNativeScanner,
+  startBrowserScanner,
+  getScannerAvailability,
+  stopScanner
+} from '@/services/scannerService';
+
+interface BarcodeScannerProps {
+  onScan: (barcode: string) => void;
+  onError: (error: string) => void;
+  onClose: () => void;
+  isOpen: boolean;
+}
+
+interface ScannerState {
+  isScanning: boolean;
+  isNativeAvailable: boolean;
+  isBrowserAvailable: boolean;
+  error: string | null;
+  status: string;
+}
+
+const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
+  onScan,
+  onError,
+  onClose,
+  isOpen
+}) => {
+  const [scannerState, setScannerState] = useState<ScannerState>({
+    isScanning: false,
+    isNativeAvailable: false,
+    isBrowserAvailable: false,
+    error: null,
+    status: 'Ready to scan'
+  });
+  
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const codeReaderRef = useRef<any>(null);
+  const isScannerActiveRef = useRef<boolean>(false);
+
+  // Check scanner availability on mount
+  useEffect(() => {
+    const checkAvailability = async () => {
+      const availability = await getScannerAvailability();
+      setScannerState(prev => ({
+        ...prev,
+        isNativeAvailable: availability.native,
+        isBrowserAvailable: availability.browser
+      }));
+    };
+
+    checkAvailability();
+  }, []);
+
+  // Start native scanner
+  const handleStartNativeScanner = async () => {
+    try {
+      isScannerActiveRef.current = true;
+      setScannerState(prev => ({
+        ...prev,
+        isScanning: true,
+        status: 'Starting native scanner...',
+        error: null
+      }));
+
+      const result = await startNativeScanner();
+      
+      if (!isScannerActiveRef.current) {
+        return; // Scanner was cancelled
+      }
+      
+      if (result.success && result.barcode) {
+        onScan(result.barcode);
+        setScannerState(prev => ({
+          ...prev,
+          status: `Barcode detected: ${result.barcode}`,
+          isScanning: false
+        }));
+      } else {
+        throw new Error(result.error || 'Native scanner failed');
+      }
+
+    } catch (error) {
+      if (!isScannerActiveRef.current) {
+        return; // Scanner was cancelled
+      }
+      
+      console.error('Native scanner error:', error);
+      setScannerState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Native scanner failed',
+        isScanning: false,
+        status: 'Native scanner failed'
+      }));
+      onError(error instanceof Error ? error.message : 'Native scanner failed');
+    } finally {
+      isScannerActiveRef.current = false;
+    }
+  };
+
+  // Start browser scanner
+  const handleStartBrowserScanner = async () => {
+    if (!videoRef.current) {
+      setScannerState(prev => ({
+        ...prev,
+        error: 'Video element not available',
+        isScanning: false,
+        status: 'Browser scanner failed'
+      }));
+      onError('Video element not available');
+      return;
+    }
+
+    try {
+      isScannerActiveRef.current = true;
+      setScannerState(prev => ({
+        ...prev,
+        isScanning: true,
+        status: 'Starting browser scanner...',
+        error: null
+      }));
+
+      const result = await startBrowserScanner(
+        videoRef.current,
+        (status) => {
+          if (isScannerActiveRef.current) {
+            setScannerState(prev => ({ ...prev, status }));
+          }
+        },
+        () => !isScannerActiveRef.current // Cancellation check
+      );
+
+      if (!isScannerActiveRef.current) {
+        return; // Scanner was cancelled
+      }
+
+      if (result.success && result.barcode) {
+        onScan(result.barcode);
+        setScannerState(prev => ({
+          ...prev,
+          status: `Barcode detected: ${result.barcode}`,
+          isScanning: false
+        }));
+      } else {
+        throw new Error(result.error || 'Browser scanner failed');
+      }
+
+    } catch (error) {
+      if (!isScannerActiveRef.current) {
+        return; // Scanner was cancelled
+      }
+      
+      console.error('Browser scanner error:', error);
+      setScannerState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Browser scanner failed',
+        isScanning: false,
+        status: 'Browser scanner failed'
+      }));
+      onError(error instanceof Error ? error.message : 'Browser scanner failed');
+    } finally {
+      isScannerActiveRef.current = false;
+    }
+  };
+
+  // Stop browser scanner
+  const stopBrowserScanner = () => {
+    isScannerActiveRef.current = false;
+    stopScanner(); // Stop global scanner
+    
+    if (codeReaderRef.current) {
+      try {
+        codeReaderRef.current.reset();
+      } catch (e) {
+        // reset() might not exist, try alternative cleanup
+        console.log('[BarcodeScanner] ZXing reader cleanup completed');
+      }
+      codeReaderRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  // Start smart scanner (tries native first, then browser)
+  const startSmartScanner = async () => {
+    try {
+      if (scannerState.isNativeAvailable) {
+        await handleStartNativeScanner();
+      } else if (scannerState.isBrowserAvailable) {
+        await handleStartBrowserScanner();
+      } else {
+        throw new Error('No scanner available');
+      }
+    } catch (error) {
+      if (!isScannerActiveRef.current) {
+        return; // Scanner was cancelled
+      }
+      
+      console.error('Smart scanner error:', error);
+      setScannerState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Scanner failed',
+        isScanning: false,
+        status: 'Scanner failed'
+      }));
+      onError(error instanceof Error ? error.message : 'Scanner failed');
+    }
+  };
+
+  // Stop scanner
+  const stopLocalScanner = () => {
+    stopBrowserScanner();
+    setScannerState(prev => ({
+      ...prev,
+      isScanning: false,
+      status: 'Scanner stopped'
+    }));
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopBrowserScanner();
+    };
+  }, []);
+
+  // Cleanup when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      stopBrowserScanner();
+      setScannerState(prev => ({
+        ...prev,
+        isScanning: false,
+        error: null,
+        status: 'Ready to scan'
+      }));
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal modal-open">
+      <div className="modal-box w-11/12 max-w-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-lg flex items-center gap-2">
+            <CameraIcon className="w-5 h-5" />
+            Barcode Scanner
+          </h3>
+          <button 
+            onClick={onClose}
+            className="btn btn-ghost btn-sm"
+            disabled={scannerState.isScanning}
+          >
+            <XMarkIcon className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Scanner Status */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <div className={`badge badge-sm ${
+              scannerState.isScanning ? 'badge-warning' : 
+              scannerState.error ? 'badge-error' : 'badge-success'
+            }`}>
+              {scannerState.isScanning ? 'Scanning...' : 
+               scannerState.error ? 'Error' : 'Ready'}
+            </div>
+            <span className="text-sm text-base-content/70">{scannerState.status}</span>
+          </div>
+
+          {/* Scanner Availability */}
+          <div className="flex gap-2 mb-4">
+            <div className={`badge badge-xs ${scannerState.isNativeAvailable ? 'badge-success' : 'badge-neutral'}`}>
+              Native: {scannerState.isNativeAvailable ? 'Available' : 'Unavailable'}
+            </div>
+            <div className={`badge badge-xs ${scannerState.isBrowserAvailable ? 'badge-success' : 'badge-neutral'}`}>
+              Browser: {scannerState.isBrowserAvailable ? 'Available' : 'Unavailable'}
+            </div>
+          </div>
+        </div>
+
+        {/* Error Display */}
+        {scannerState.error && (
+          <div className="alert alert-error mb-4">
+            <ExclamationTriangleIcon className="w-5 h-5" />
+            <span>{scannerState.error}</span>
+          </div>
+        )}
+
+        {/* Scanner Viewport */}
+        <div className="relative bg-black rounded-lg overflow-hidden mb-4">
+          <video
+            ref={videoRef}
+            className="w-full h-64 object-cover"
+            autoPlay
+            playsInline
+            muted
+          />
+          {scannerState.isScanning && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="scanner-overlay w-64 h-32 border-2 border-primary rounded-lg"></div>
+            </div>
+          )}
+        </div>
+
+        {/* Scanner Controls */}
+        <div className="flex flex-wrap gap-2 justify-center">
+          {!scannerState.isScanning ? (
+            <button
+              onClick={startSmartScanner}
+              className="btn btn-primary"
+              disabled={!scannerState.isNativeAvailable && !scannerState.isBrowserAvailable}
+            >
+              <CameraIcon className="w-4 h-4 mr-2" />
+              Start Scanner
+            </button>
+          ) : (
+            <button
+              onClick={stopLocalScanner}
+              className="btn btn-secondary"
+            >
+              <XMarkIcon className="w-4 h-4 mr-2" />
+              Stop Scanner
+            </button>
+          )}
+        </div>
+
+        {/* Scanner Tips */}
+        <div className="mt-4 p-4 bg-base-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <InformationCircleIcon className="w-5 h-5 text-info mt-0.5" />
+            <div className="text-sm">
+              <p className="font-semibold mb-1">Scanner Tips:</p>
+              <ul className="space-y-1 text-xs">
+                <li>• Native App: Best experience with automatic scanning</li>
+                <li>• Browser: Works but may be slower on mobile devices</li>
+                <li>• Point camera at barcode clearly</li>
+                <li>• Ensure good lighting for better detection</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default BarcodeScanner;

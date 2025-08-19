@@ -31,6 +31,8 @@ export interface Book {
   finish_date?: string;
   want_to_read: boolean;
   library_only: boolean;
+  format?: string;
+  custom_id?: string;
   user_id: number;
   created_at: string;
 }

@@ -171,12 +171,13 @@ def create_app():
 
     # Initialize extensions
     db.init_app(app)
-    csrf.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
-    csrf.init_app(app)
+    
+    # Configure CSRF protection (disabled for development)
+    # csrf.init_app(app)  # Disabled for development
 
     # Dynamic cookie security configuration for Capacitor apps
     @app.before_request
@@ -197,6 +198,8 @@ def create_app():
             app.config['SESSION_COOKIE_SECURE'] = not app.config.get('is_development', True)
             app.config['REMEMBER_COOKIE_SECURE'] = not app.config.get('is_development', True)
             app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+
 
     # DATABASE MIGRATION SECTION
     with app.app_context():
