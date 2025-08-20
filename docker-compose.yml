@@ -2,20 +2,37 @@ version: '3.8'
 name: bookoracle
 
 services:
-  bookoracle:
-    container_name: bookoracle
+  backend:
+    container_name: bookoracle-backend
     build: .
     ports:
-      - "5054:5054"
+      - "5054:5054"   # Host Nginx proxies /api and /static to this
     volumes:
-      # Custom data directory on Ubuntu server
-      - ../data/bookoracle:/app/data
+      - bookoracle_data:/app/data
     environment:
-      # Security - MUST be set via .env file or environment
       - SECRET_KEY=${SECRET_KEY}
       - SECURITY_PASSWORD_SALT=${SECURITY_PASSWORD_SALT}
-      
-      # Application settings
       - TIMEZONE=${TIMEZONE:-UTC}
       - WORKERS=${WORKERS:-4}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5054/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    container_name: bookoracle-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3500:80"     # Host Nginx proxies / to this (SPA)
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  bookoracle_data:
+    driver: local

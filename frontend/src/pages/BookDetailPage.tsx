@@ -19,7 +19,7 @@ import { UserRating } from '@/types';
 const BookDetailPage: React.FC = () => {
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
-  const { books, updateBook, deleteBook } = useBooksStore();
+  const { updateBook, deleteBook } = useBooksStore();
   const [book, setBook] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

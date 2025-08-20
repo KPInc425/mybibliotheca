@@ -35,7 +35,8 @@ interface UserInviteStats {
 }
 
 const UserInvitesPage: React.FC = () => {
-  const { user } = useAuthStore();
+  // Auth store is available if needed later; not used directly here
+  useAuthStore();
   const [invites, setInvites] = useState<InviteToken[]>([]);
   const [stats, setStats] = useState<UserInviteStats>({
     remaining: 0,

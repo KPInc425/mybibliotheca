@@ -8,8 +8,6 @@ import {
   TrashIcon,
   ClipboardDocumentIcon,
   ExclamationTriangleIcon,
-  CheckCircleIcon,
-  ClockIcon,
   UserIcon,
   EnvelopeIcon
 } from '@heroicons/react/24/outline';
@@ -53,7 +51,7 @@ const AdminInvitesPage: React.FC = () => {
       setLoading(true);
       const response = await api.admin.getInvites();
       if (response.success) {
-        setInvites(response.data);
+        setInvites(response.data || []);
       } else {
         setError('Failed to fetch invites');
       }
