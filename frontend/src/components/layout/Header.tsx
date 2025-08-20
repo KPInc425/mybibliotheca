@@ -51,7 +51,7 @@ const Header: React.FC = () => {
           <li>
             <Link
               to="/"
-              className={`btn btn-outline btn-sm ${isActive('/') ? 'btn-active' : ''}`}
+              className={`btn btn-outline btn-sm ${isActive('/') ? 'btn-active btn-primary' : ''}`}
             >
               {getIcon(<BookOpenIcon className="w-4 h-4" />, '📊')}
               Dashboard
@@ -60,7 +60,7 @@ const Header: React.FC = () => {
           <li>
             <Link
               to="/library"
-              className={`btn btn-outline btn-sm ${isActive('/library') ? 'btn-active' : ''}`}
+              className={`btn btn-outline btn-sm ${isActive('/library') ? 'btn-active btn-primary' : ''}`}
             >
               {getIcon(<BookOpenIcon className="w-4 h-4" />, '📚')}
               Library
@@ -69,7 +69,7 @@ const Header: React.FC = () => {
           <li>
             <Link
               to="/add-book"
-              className={`btn btn-outline btn-sm ${isActive('/add-book') ? 'btn-active' : ''}`}
+              className={`btn btn-outline btn-sm ${isActive('/add-book') ? 'btn-active btn-primary' : ''}`}
             >
               {getIcon(<PlusIcon className="w-4 h-4" />, '➕')}
               Add Book
@@ -78,7 +78,7 @@ const Header: React.FC = () => {
           <li>
             <Link
               to="/search"
-              className={`btn btn-outline btn-sm ${isActive('/search') ? 'btn-active' : ''}`}
+              className={`btn btn-outline btn-sm ${isActive('/search') ? 'btn-active btn-primary' : ''}`}
             >
               {getIcon(<MagnifyingGlassIcon className="w-4 h-4" />, '🔍')}
               Search

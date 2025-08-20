@@ -10,7 +10,20 @@ import {
   MagnifyingGlassIcon,
   CheckIcon,
   ExclamationTriangleIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  BookOpenIcon,
+  LightBulbIcon,
+  PencilIcon,
+  BuildingOfficeIcon,
+  CalendarIcon,
+  DocumentTextIcon,
+  GlobeAltIcon,
+  TagIcon,
+  DocumentIcon,
+  PhotoIcon,
+  ChartBarIcon,
+  ClipboardDocumentListIcon,
+  BuildingLibraryIcon
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
 
@@ -39,10 +52,7 @@ const AddBookPage: React.FC = () => {
     library_only: false
   });
 
-  // Helper function to get icon based on settings
-  const getIcon = (heroIcon: JSX.Element, emoji: string) => {
-    return settings.useHeroIcons ? heroIcon : <span className="text-lg">{emoji}</span>;
-  };
+
 
   // Handle barcode scan
   const handleBarcodeScan = async (barcode: string) => {
@@ -175,7 +185,10 @@ const AddBookPage: React.FC = () => {
     <div className="space-y-8">
       {/* Header */}
       <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">📚 Add New Book</h1>
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10 flex items-center justify-center gap-4">
+          <Icon hero={<BookOpenIcon className="w-16 h-16" />} emoji="📚" />
+          Add New Book
+        </h1>
         <p className="text-xl opacity-90 mt-2">Scan or search for books to add to your library</p>
       </div>
 
@@ -183,7 +196,8 @@ const AddBookPage: React.FC = () => {
       <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
-            📱 Barcode Scanner
+            <Icon hero={<CameraIcon className="w-6 h-6" />} emoji="📱" />
+            Barcode Scanner
             <div className="tooltip tooltip-right" data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices.">
               <button type="button" className="btn btn-circle btn-ghost btn-sm">
                 <Icon hero={<InformationCircleIcon className="w-5 h-5" />} emoji="ℹ️" />
@@ -198,16 +212,14 @@ const AddBookPage: React.FC = () => {
             onClick={() => setShowScanner(true)}
             className="btn btn-primary btn-lg"
           >
-            {getIcon(<CameraIcon className="w-5 h-5 mr-2" />, '📷')}
-            Scan Barcode
+            <Icon hero={<CameraIcon className="w-5 h-5" />} emoji="📷" />
+            <span className="ml-2">Scan Barcode</span>
           </button>
           
           {/* Scanner Tips Tooltip */}
           <div className="tooltip tooltip-right" data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices.">
             <button type="button" className="btn btn-circle btn-ghost btn-sm">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
+              <Icon hero={<InformationCircleIcon className="w-5 h-5" />} emoji="ℹ️" />
             </button>
           </div>
         </div>
@@ -215,7 +227,10 @@ const AddBookPage: React.FC = () => {
         {/* ISBN and Fetch Section */}
         <div className="form-control">
           <label className="label">
-            <span className="label-text text-lg font-semibold">📖 ISBN Number (Optional)</span>
+            <span className="label-text text-lg font-semibold flex items-center gap-2">
+              <Icon hero={<BookOpenIcon className="w-5 h-5" />} emoji="📖" />
+              ISBN Number (Optional)
+            </span>
           </label>
           <div className="join w-full">
             <input 
@@ -237,15 +252,16 @@ const AddBookPage: React.FC = () => {
                 <div className="loading loading-spinner loading-sm"></div>
               ) : (
                 <>
-                  {getIcon(<MagnifyingGlassIcon className="w-4 h-4 mr-2" />, '🔍')}
-                  Fetch Book
+                  <Icon hero={<MagnifyingGlassIcon className="w-4 h-4" />} emoji="🔍" />
+                  <span className="ml-2">Fetch Book</span>
                 </>
               )}
             </button>
           </div>
           <label className="label">
-            <span className="label-text-alt text-base-content/70">
-              💡 Leave empty to add a book manually without ISBN
+            <span className="label-text-alt text-base-content/70 flex items-center gap-1">
+              <Icon hero={<LightBulbIcon className="w-4 h-4" />} emoji="💡" />
+              Leave empty to add a book manually without ISBN
             </span>
           </label>
         </div>
@@ -253,14 +269,14 @@ const AddBookPage: React.FC = () => {
         {/* Fetch Status */}
         {fetchError && (
           <div className="alert alert-error">
-            <ExclamationTriangleIcon className="w-6 h-6" />
+            <Icon hero={<ExclamationTriangleIcon className="w-6 h-6" />} emoji="⚠️" />
             <span>{fetchError}</span>
           </div>
         )}
 
         {fetchSuccess && (
           <div className="alert alert-success">
-            <CheckIcon className="w-6 h-6" />
+            <Icon hero={<CheckIcon className="w-6 h-6" />} emoji="✅" />
             <span>Book data fetched successfully!</span>
           </div>
         )}
@@ -273,7 +289,10 @@ const AddBookPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📖 Title *</span>
+                <span className="label-text font-semibold flex items-center gap-2">
+                  <Icon hero={<BookOpenIcon className="w-5 h-5" />} emoji="📖" />
+                  Title *
+                </span>
               </label>
               <input 
                 type="text" 
@@ -287,7 +306,10 @@ const AddBookPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">✍️ Author *</span>
+                <span className="label-text font-semibold flex items-center gap-2">
+                  <Icon hero={<PencilIcon className="w-5 h-5" />} emoji="✍️" />
+                  Author *
+                </span>
               </label>
               <input 
                 type="text" 
@@ -301,7 +323,10 @@ const AddBookPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">🏢 Publisher</span>
+                <span className="label-text font-semibold flex items-center gap-2">
+                  <Icon hero={<BuildingOfficeIcon className="w-5 h-5" />} emoji="🏢" />
+                  Publisher
+                </span>
               </label>
               <input 
                 type="text" 
@@ -314,7 +339,10 @@ const AddBookPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📅 Published Date</span>
+                <span className="label-text font-semibold flex items-center gap-2">
+                  <Icon hero={<CalendarIcon className="w-5 h-5" />} emoji="📅" />
+                  Published Date
+                </span>
               </label>
               <input 
                 type="date" 
@@ -326,7 +354,10 @@ const AddBookPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📄 Page Count</span>
+                <span className="label-text font-semibold flex items-center gap-2">
+                  <Icon hero={<DocumentTextIcon className="w-5 h-5" />} emoji="📄" />
+                  Page Count
+                </span>
               </label>
               <input 
                 type="number" 
@@ -340,7 +371,10 @@ const AddBookPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">🌐 Language</span>
+                <span className="label-text font-semibold flex items-center gap-2">
+                  <Icon hero={<GlobeAltIcon className="w-5 h-5" />} emoji="🌐" />
+                  Language
+                </span>
               </label>
               <input 
                 type="text" 
@@ -353,7 +387,10 @@ const AddBookPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📦 Format</span>
+                <span className="label-text font-semibold flex items-center gap-2">
+                  <Icon hero={<TagIcon className="w-5 h-5" />} emoji="📦" />
+                  Format
+                </span>
               </label>
               <select 
                 className="select select-bordered w-full"
@@ -371,7 +408,10 @@ const AddBookPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">🆔 Custom ID</span>
+                <span className="label-text font-semibold flex items-center gap-2">
+                  <Icon hero={<DocumentIcon className="w-5 h-5" />} emoji="🆔" />
+                  Custom ID
+                </span>
               </label>
               <input 
                 type="text" 
@@ -386,7 +426,10 @@ const AddBookPage: React.FC = () => {
           {/* Categories */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-semibold">🏷️ Categories</span>
+              <span className="label-text font-semibold flex items-center gap-2">
+                <Icon hero={<TagIcon className="w-5 h-5" />} emoji="🏷️" />
+                Categories
+              </span>
             </label>
             <input 
               type="text" 
@@ -403,7 +446,10 @@ const AddBookPage: React.FC = () => {
           {/* Description */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-semibold">📝 Description</span>
+              <span className="label-text font-semibold flex items-center gap-2">
+                <Icon hero={<DocumentTextIcon className="w-5 h-5" />} emoji="📝" />
+                Description
+              </span>
             </label>
             <textarea 
               className="textarea textarea-bordered w-full h-32" 
@@ -416,7 +462,10 @@ const AddBookPage: React.FC = () => {
           {/* Cover URL */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-semibold">🖼️ Cover Image URL</span>
+              <span className="label-text font-semibold flex items-center gap-2">
+                <Icon hero={<PhotoIcon className="w-5 h-5" />} emoji="🖼️" />
+                Cover Image URL
+              </span>
             </label>
             <input 
               type="url" 
@@ -429,7 +478,10 @@ const AddBookPage: React.FC = () => {
 
           {/* Reading Status */}
           <div className="bg-base-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-primary mb-4">📊 Reading Status</h3>
+            <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
+              <Icon hero={<ChartBarIcon className="w-6 h-6" />} emoji="📊" />
+              Reading Status
+            </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <label className="flex items-center gap-3 text-base-content font-medium cursor-pointer">
@@ -439,7 +491,10 @@ const AddBookPage: React.FC = () => {
                   checked={formData.want_to_read}
                   onChange={(e) => handleInputChange('want_to_read', e.target.checked)}
                 />
-                <span>📋 Want to Read</span>
+                <span className="flex items-center gap-2">
+                  <Icon hero={<ClipboardDocumentListIcon className="w-4 h-4" />} emoji="📋" />
+                  Want to Read
+                </span>
               </label>
               
               <label className="flex items-center gap-3 text-base-content font-medium cursor-pointer">
@@ -449,7 +504,10 @@ const AddBookPage: React.FC = () => {
                   checked={formData.library_only}
                   onChange={(e) => handleInputChange('library_only', e.target.checked)}
                 />
-                <span>📚 Library Only</span>
+                <span className="flex items-center gap-2">
+                  <Icon hero={<BuildingLibraryIcon className="w-4 h-4" />} emoji="📚" />
+                  Library Only
+                </span>
               </label>
             </div>
           </div>
@@ -467,8 +525,8 @@ const AddBookPage: React.FC = () => {
               type="submit" 
               className="btn btn-primary"
             >
-              {getIcon(<CheckIcon className="w-4 h-4 mr-2" />, '✅')}
-              Add Book
+              <Icon hero={<CheckIcon className="w-4 h-4" />} emoji="✅" />
+              <span className="ml-2">Add Book</span>
             </button>
           </div>
         </form>
