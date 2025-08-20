@@ -193,7 +193,7 @@ const LoginPage = () => {
             </button>
 
             {/* Register Link */}
-            <div className="text-center pt-4">
+            <div className="text-center pt-4 space-y-2">
               <p className="text-base-content/70">
                 Don't have an account?{' '}
                 <Link
@@ -202,6 +202,9 @@ const LoginPage = () => {
                 >
                   Sign up here
                 </Link>
+              </p>
+              <p>
+                <Link to="/forgot-password" className="link link-primary">Forgot your password?</Link>
               </p>
             </div>
           </form>

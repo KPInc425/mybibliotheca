@@ -33,6 +33,8 @@ import PublicLibraryPage from '@/pages/PublicLibraryPage';
 import MonthWrapupPage from '@/pages/MonthWrapupPage';
 import ImportPage from '@/pages/ImportPage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/ResetPasswordPage';
 
 const App: React.FC = () => {
 
@@ -44,6 +46,8 @@ const App: React.FC = () => {
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             
             {/* Protected Routes */}
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>

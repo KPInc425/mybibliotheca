@@ -81,6 +81,8 @@ export const api = {
     logout: () => api.post<any>('/auth/logout'),
     changePassword: (data: { current_password: string; new_password: string }) =>
       api.post<any>('/auth/change-password', data),
+    forgotPassword: (email: string) => api.post<any>('/auth/forgot-password', { email }),
+    resetPassword: (token: string, new_password: string) => api.post<any>('/auth/reset-password', { token, new_password }),
   },
   
   // User invite endpoints

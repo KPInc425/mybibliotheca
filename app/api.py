@@ -15,6 +15,8 @@ from .services.user_service import UserService, UserNotFoundError
 from .models import db, User, Book, ReadingLog, InviteToken, UserRating
 
 from .utils import get_reading_streak
+from flask_mail import Message, Mail
+import itsdangerous
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -151,6 +153,75 @@ def api_logout():
             'success': False,
             'error': 'Internal server error'
         }), 500
+
+
+@api.route('/auth/forgot-password', methods=['POST'])
+def forgot_password():
+    """Initiate password reset by sending a reset link to user's email."""
+    try:
+        data = request.get_json() or {}
+        email = (data.get('email') or '').strip().lower()
+        if not email:
+            return jsonify({'success': False, 'error': 'Email is required'}), 400
+
+        user = User.query.filter_by(email=email).first()
+        # Always respond success to prevent user enumeration
+        if not user:
+            return jsonify({'success': True, 'message': 'If that email exists, a reset link was sent.'})
+
+        s = itsdangerous.URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        token = s.dumps({'user_id': user.id}, salt='password-reset')
+        base_url = request.headers.get('X-Forwarded-Proto', 'https') + '://' + request.headers.get('X-Forwarded-Host', request.host)
+        reset_url = f"{base_url}/auth/reset-password?token={token}"
+
+        try:
+            mail = Mail(current_app)
+            msg = Message(
+                subject='BookOracle Password Reset',
+                recipients=[email],
+                body=f"Click to reset your password: {reset_url}\nThis link expires in 1 hour."
+            )
+            mail.send(msg)
+        except Exception as e:
+            current_app.logger.error(f"Failed to send reset email: {e}")
+            # Still return success
+
+        return jsonify({'success': True, 'message': 'If that email exists, a reset link was sent.'})
+    except Exception as e:
+        current_app.logger.error(f"Error in forgot_password: {e}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+
+
+@api.route('/auth/reset-password', methods=['POST'])
+def reset_password_api():
+    """Finalize password reset with token and new password via API."""
+    try:
+        data = request.get_json() or {}
+        token = data.get('token')
+        new_password = data.get('new_password')
+        if not token or not new_password:
+            return jsonify({'success': False, 'error': 'Token and new_password are required'}), 400
+
+        s = itsdangerous.URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        payload = s.loads(token, salt='password-reset', max_age=3600)
+        user_id = payload.get('user_id')
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'success': False, 'error': 'Invalid token'}), 400
+
+        try:
+            user.set_password(new_password)
+        except ValueError as ve:
+            return jsonify({'success': False, 'error': str(ve)}), 400
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Password has been reset.'})
+    except itsdangerous.SignatureExpired:
+        return jsonify({'success': False, 'error': 'Token expired'}), 400
+    except itsdangerous.BadSignature:
+        return jsonify({'success': False, 'error': 'Invalid token'}), 400
+    except Exception as e:
+        current_app.logger.error(f"Error in reset_password_api: {e}")
+        return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 
 @api.route('/auth/register', methods=['POST'])
