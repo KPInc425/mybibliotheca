@@ -164,25 +164,85 @@ def forgot_password():
         if not email:
             return jsonify({'success': False, 'error': 'Email is required'}), 400
 
-        user = User.query.filter_by(email=email).first()
+        print(f"\n[DEBUG] Forgot password request for email: {email}")
+        
+        # Use case-insensitive email lookup
+        user = User.query.filter(User.email.ilike(email)).first()
+        print(f"[DEBUG] User found: {user is not None}")
+        
         # Always respond success to prevent user enumeration
         if not user:
+            print(f"[DEBUG] No user found for email: {email}, returning early")
             return jsonify({'success': True, 'message': 'If that email exists, a reset link was sent.'})
+        
+        print(f"[DEBUG] User found, proceeding with email reset for user ID: {user.id}")
 
         s = itsdangerous.URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
         token = s.dumps({'user_id': user.id}, salt='password-reset')
-        base_url = request.headers.get('X-Forwarded-Proto', 'https') + '://' + request.headers.get('X-Forwarded-Host', request.host)
+        scheme = request.headers.get('X-Forwarded-Proto') or request.scheme
+        host = request.headers.get('X-Forwarded-Host') or request.host
+        base_url = f"{scheme}://{host}"
         reset_url = f"{base_url}/auth/reset-password?token={token}"
 
         try:
-            mail = Mail(current_app)
+            # Import here to avoid circulars and keep scope local
+            import socket
+            from . import mail as mail_ext
+            
+            # Build message
             msg = Message(
                 subject='BookOracle Password Reset',
                 recipients=[email],
                 body=f"Click to reset your password: {reset_url}\nThis link expires in 1 hour."
             )
-            mail.send(msg)
+
+            # Console prints for development server visibility
+            print(f"\n[MAIL] Attempting to send reset email to: {email}")
+            print(f"[MAIL] Server: {current_app.config.get('MAIL_SERVER')}:{current_app.config.get('MAIL_PORT')}")
+            print(f"[MAIL] TLS: {current_app.config.get('MAIL_USE_TLS')}, SSL: {current_app.config.get('MAIL_USE_SSL')}")
+            print(f"[MAIL] Sender: {current_app.config.get('MAIL_DEFAULT_SENDER')}")
+            print(f"[MAIL] Reset URL: {reset_url}")
+
+            # Log configuration being used
+            current_app.logger.info(
+                "[MAIL] server=%s port=%s tls=%s ssl=%s sender=%s",
+                current_app.config.get('MAIL_SERVER'),
+                current_app.config.get('MAIL_PORT'),
+                current_app.config.get('MAIL_USE_TLS'),
+                current_app.config.get('MAIL_USE_SSL'),
+                current_app.config.get('MAIL_DEFAULT_SENDER')
+            )
+            current_app.logger.info("[MAIL] reset_url=%s", reset_url)
+
+            # Enforce a network timeout to avoid hanging connections
+            previous_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(15)
+            try:
+                print("[MAIL] Connecting to SMTP server...")
+                # Use a connection to enable SMTP debug logging
+                with mail_ext.connect() as conn:
+                    # Enable SMTP debug to stdout/stderr
+                    try:
+                        if hasattr(conn, 'host') and conn.host:
+                            conn.host.set_debuglevel(1)
+                            print("[MAIL] SMTP debuglevel enabled")
+                            current_app.logger.info("[MAIL] SMTP debuglevel enabled")
+                    except Exception as dbg_e:
+                        print(f"[MAIL] Could not enable SMTP debuglevel: {dbg_e}")
+                        current_app.logger.warning(f"[MAIL] Could not enable SMTP debuglevel: {dbg_e}")
+
+                    print("[MAIL] Sending email...")
+                    conn.send(msg)
+                    print("[MAIL] ✅ Reset email dispatched successfully")
+                    current_app.logger.info("Reset email dispatched successfully")
+            finally:
+                # Restore previous default timeout
+                socket.setdefaulttimeout(previous_timeout)
         except Exception as e:
+            print(f"[MAIL] ❌ Failed to send reset email: {e}")
+            print(f"[MAIL] Error type: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
             current_app.logger.error(f"Failed to send reset email: {e}")
             # Still return success
 
@@ -3082,7 +3142,7 @@ def create_user():
             'error': 'Username already exists'
         }), 400
     
-    if User.query.filter_by(email=email).first():
+    if User.query.filter(User.email.ilike(email)).first():
         return jsonify({
             'success': False,
             'error': 'Email already exists'

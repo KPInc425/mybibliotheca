@@ -37,6 +37,15 @@ def setup_debug_logging():
     debug_logger.propagate = False
     
     debug_logger.info("🐛 Debug logging enabled")
+    # Log mail configuration (without secrets)
+    try:
+        mail_server = current_app.config.get('MAIL_SERVER')
+        mail_port = current_app.config.get('MAIL_PORT')
+        mail_tls = current_app.config.get('MAIL_USE_TLS')
+        mail_sender = current_app.config.get('MAIL_DEFAULT_SENDER')
+        debug_logger.info(f"[MAIL] server={mail_server} port={mail_port} tls={mail_tls} sender={mail_sender}")
+    except Exception:
+        pass
 
 def debug_log(category, message, level='INFO'):
     """Log debug message if debugging is enabled for the category"""

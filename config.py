@@ -92,9 +92,17 @@ class Config:
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'localhost')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'false').lower() in ['true', 'on', '1']
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@BookOracle.local')
+    # Optional: Logging and debug controls
+    DEBUG_MODE = os.environ.get('DEBUG_MODE', 'false').lower() in ['true', 'on', '1']
+    DEBUG_REQUESTS = os.environ.get('DEBUG_REQUESTS', 'false').lower() in ['true', 'on', '1']
+    DEBUG_AUTH = os.environ.get('DEBUG_AUTH', 'false').lower() in ['true', 'on', '1']
+    DEBUG_SESSION = os.environ.get('DEBUG_SESSION', 'false').lower() in ['true', 'on', '1']
+    DEBUG_CSRF = os.environ.get('DEBUG_CSRF', 'false').lower() in ['true', 'on', '1']
+    DEBUG_LOG_LEVEL = os.environ.get('DEBUG_LOG_LEVEL', 'INFO').upper()
     
     # Admin settings
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@BookOracle.local')

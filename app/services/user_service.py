@@ -57,7 +57,7 @@ class UserService:
         Returns:
             User object or None if not found
         """
-        return User.query.filter_by(email=email).first()
+        return User.query.filter(User.email.ilike(email)).first()
     
     def create_user(self, username: str, email: str, password: str, is_admin: bool = False) -> User:
         """

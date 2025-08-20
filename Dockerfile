@@ -81,4 +81,6 @@ ENTRYPOINT ["docker-entrypoint.sh"]
 # Use WORKERS environment variable for Gunicorn workers Default to 6 workers if not specified
 ENV WORKERS=6
 # Set timeout to 300 seconds (5 minutes) to handle bulk imports with rate limiting
-CMD ["sh", "-c", "gunicorn -w $WORKERS -b 0.0.0.0:5054 --timeout 300 run:app"]
+# Enable access/error logs to stdout/stderr for Docker logging and allow log level override
+ENV LOG_LEVEL=info
+CMD ["sh", "-c", "gunicorn -w $WORKERS -b 0.0.0.0:5054 --timeout 300 --access-logfile - --error-logfile - --log-level ${LOG_LEVEL} run:app"]

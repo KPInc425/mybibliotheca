@@ -139,7 +139,7 @@ def create_admin(args):
             print(f"❌ Username '{username}' already exists")
             return False
             
-        existing_email = User.query.filter_by(email=email).first()
+        existing_email = User.query.filter(User.email.ilike(email)).first()
         if existing_email:
             print(f"❌ Email '{email}' already exists")
             return False

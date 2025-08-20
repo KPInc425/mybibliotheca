@@ -4,12 +4,14 @@ from datetime import datetime
 from flask import Flask, session
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
+from flask_mail import Mail
 from sqlalchemy import inspect, text
 from .models import db, User, InviteToken, UserRating
 from config import Config
 
 login_manager = LoginManager()
 csrf = CSRFProtect()
+mail = Mail()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -174,9 +176,21 @@ def create_app():
     # Initialize debug utilities
     from .debug_utils import setup_debug_logging, print_debug_banner, debug_middleware
     
+    # Enable debug logging if DEBUG_MODE true; print banner regardless
+    # Ensure Flask app logger outputs INFO by default or env-driven
+    log_level = os.environ.get('FLASK_LOG_LEVEL', 'INFO').upper()
+    try:
+        import logging
+        app.logger.setLevel(getattr(logging, log_level, logging.INFO))
+    except Exception:
+        pass
+
     with app.app_context():
-        setup_debug_logging()
-        print_debug_banner()
+        try:
+            setup_debug_logging()
+            print_debug_banner()
+        except Exception as e:
+            print(f"Debug logging init error: {e}")
 
     # Initialize extensions
     db.init_app(app)
@@ -187,6 +201,8 @@ def create_app():
     
     # Configure CSRF protection (enable for server-rendered forms; we'll exempt API below)
     csrf.init_app(app)
+    # Initialize mail extension
+    mail.init_app(app)
 
     # Dynamic cookie security configuration for Capacitor apps
     @app.before_request
