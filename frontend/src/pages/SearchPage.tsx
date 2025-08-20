@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useBooksStore } from '@/store/books';
+import { api } from '@/api/client';
 import { 
   MagnifyingGlassIcon,
   FunnelIcon,
   XMarkIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 interface SearchFilters {
   query: string;
@@ -18,8 +21,23 @@ interface SearchFilters {
   dateAdded: string;
 }
 
+interface SearchResult {
+  title: string;
+  author: string;
+  cover_url?: string;
+  isbn?: string;
+  description?: string;
+  published_date?: string;
+  page_count?: number;
+  publisher?: string;
+  language?: string;
+  categories?: string[];
+  average_rating?: number;
+  rating_count?: number;
+}
+
 const SearchPage: React.FC = () => {
-  const { books, fetchBooks, isLoading, error } = useBooksStore();
+  const { books, fetchBooks, isLoading } = useBooksStore();
   const [filters, setFilters] = useState<SearchFilters>({
     query: '',
     category: '',
@@ -29,16 +47,24 @@ const SearchPage: React.FC = () => {
     rating: '',
     dateAdded: ''
   });
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchMode, setSearchMode] = useState<'local' | 'external'>('external');
 
   useEffect(() => {
     fetchBooks();
   }, [fetchBooks]);
 
   useEffect(() => {
-    performSearch();
-  }, [filters, books]);
+    if (searchMode === 'local') {
+      performLocalSearch();
+    }
+  }, [filters, books, searchMode]);
 
   // Extract unique values for filter options
   const categories = Array.from(new Set(
@@ -55,7 +81,7 @@ const SearchPage: React.FC = () => {
     books.map(book => book.language).filter(Boolean)
   )).sort();
 
-  const performSearch = () => {
+  const performLocalSearch = () => {
     let results = [...books];
 
     // Text search
@@ -101,34 +127,102 @@ const SearchPage: React.FC = () => {
         case 'finished':
           results = results.filter(book => book.finish_date);
           break;
-        case 'want-to-read':
+        case 'want_to_read':
           results = results.filter(book => book.want_to_read);
-          break;
-        case 'library-only':
-          results = results.filter(book => book.library_only);
           break;
       }
     }
 
     // Rating filter
     if (filters.rating) {
-      const minRating = parseInt(filters.rating);
-      results = results.filter(book => 
-        book.average_rating && book.average_rating >= minRating
-      );
+      const minRating = parseFloat(filters.rating);
+      results = results.filter(book => book.average_rating && book.average_rating >= minRating);
     }
 
     // Date added filter
     if (filters.dateAdded) {
-      const filterDate = new Date(filters.dateAdded);
-      results = results.filter(book => {
-        if (!book.created_at) return false;
-        const bookDate = new Date(book.created_at);
-        return bookDate >= filterDate;
-      });
+      const cutoffDate = new Date();
+      switch (filters.dateAdded) {
+        case 'week':
+          cutoffDate.setDate(cutoffDate.getDate() - 7);
+          break;
+        case 'month':
+          cutoffDate.setMonth(cutoffDate.getMonth() - 1);
+          break;
+        case 'year':
+          cutoffDate.setFullYear(cutoffDate.getFullYear() - 1);
+          break;
+      }
+      results = results.filter(book => 
+        book.created_at && new Date(book.created_at) >= cutoffDate
+      );
     }
 
-    setSearchResults(results);
+    setSearchResults(results as any);
+  };
+
+  const performExternalSearch = async () => {
+    if (!filters.query.trim()) {
+      setSearchResults([]);
+      setTotal(0);
+      setPage(1);
+      return;
+    }
+
+    setIsSearching(true);
+    setSearchError(null);
+
+    try {
+      const response = await api.books.search(filters.query, page, pageSize);
+      if (response.success && response.data) {
+        // response.data: { items, total, page, page_size, pages }
+        setSearchResults(response.data.items || []);
+        setTotal(response.data.total || 0);
+      } else {
+        setSearchError('No results found');
+        setSearchResults([]);
+        setTotal(0);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchError('Search failed. Please try again.');
+      setSearchResults([]);
+      setTotal(0);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = () => {
+    if (searchMode === 'external') {
+      setPage(1);
+      performExternalSearch();
+    }
+  };
+
+  const handleAddBook = async (book: SearchResult) => {
+    try {
+      const bookData = {
+        title: book.title,
+        author: book.author,
+        isbn: book.isbn,
+        cover_url: book.cover_url,
+        description: book.description,
+        published_date: book.published_date,
+        page_count: book.page_count,
+        publisher: book.publisher,
+        language: book.language,
+        categories: book.categories ? book.categories.join(', ') : undefined,
+        average_rating: book.average_rating,
+        rating_count: book.rating_count
+      };
+
+      await api.books.create(bookData);
+      // Refresh the books list
+      fetchBooks();
+    } catch (error) {
+      console.error('Error adding book:', error);
+    }
   };
 
   const clearFilters = () => {
@@ -143,83 +237,90 @@ const SearchPage: React.FC = () => {
     });
   };
 
-  const getStatusBadge = (book: any) => {
-    if (book.want_to_read) return { text: 'Want to Read', color: 'badge-info' };
-    if (!book.finish_date && !book.want_to_read && !book.library_only) return { text: 'Currently Reading', color: 'badge-warning' };
-    if (book.finish_date) return { text: 'Finished', color: 'badge-success' };
-    return { text: 'Library Only', color: 'badge-neutral' };
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="loading loading-spinner loading-lg"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="alert alert-error">
-        <XMarkIcon className="w-6 h-6" />
-        <span>Error loading books: {error}</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      {/* Search Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">🔍 Search Books</h1>
-        <p className="text-xl opacity-90 mt-2">Find books in your library with advanced search</p>
-      </div>
-
-      {/* Search Form */}
-      <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
-        <div className="space-y-6">
-          {/* Main Search */}
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-base-content mb-4">Search Books</h1>
+        
+        {/* Search Mode Toggle */}
+        <div className="flex items-center gap-4 mb-6">
           <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold text-lg">Search Query</span>
-            </label>
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-base-content/50" />
-              <input 
-                type="text" 
-                className="input input-bordered w-full pl-10" 
-                placeholder="Search by title, author, description, categories, publisher, or ISBN..."
-                value={filters.query}
-                onChange={(e) => setFilters(prev => ({ ...prev, query: e.target.value }))}
+            <label className="label cursor-pointer">
+              <span className="label-text mr-2">Search Mode:</span>
+              <input
+                type="radio"
+                name="searchMode"
+                className="radio radio-primary"
+                checked={searchMode === 'external'}
+                onChange={() => setSearchMode('external')}
               />
+              <span className="label-text ml-2">External Books</span>
+            </label>
+          </div>
+          <div className="form-control">
+            <label className="label cursor-pointer">
+              <input
+                type="radio"
+                name="searchMode"
+                className="radio radio-primary"
+                checked={searchMode === 'local'}
+                onChange={() => setSearchMode('local')}
+              />
+              <span className="label-text ml-2">My Library</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1">
+            <div className="flex">
+              <input
+                type="text"
+                placeholder={searchMode === 'external' ? "Search for books (e.g., 'Harry Potter')" : "Search your library..."}
+                className="input input-bordered flex-1"
+                value={filters.query}
+                onChange={(e) => setFilters({ ...filters, query: e.target.value })}
+                onKeyUp={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <button
+                className="btn btn-primary"
+                onClick={handleSearch}
+                disabled={isSearching}
+              >
+                {isSearching ? (
+                  <div className="loading loading-spinner loading-sm"></div>
+                ) : (
+                  <Icon hero={<MagnifyingGlassIcon className="w-5 h-5" />} emoji="🔍" />
+                )}
+                Search
+              </button>
             </div>
           </div>
-
-          {/* Advanced Filters Toggle */}
-          <div className="flex items-center justify-between">
-            <button 
+          
+          {searchMode === 'local' && (
+            <button
+              className="btn btn-outline"
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="btn btn-outline btn-sm"
             >
-              <FunnelIcon className="w-4 h-4 mr-2" />
-              {showAdvancedFilters ? 'Hide' : 'Show'} Advanced Filters
+              <Icon hero={<FunnelIcon className="w-5 h-5" />} emoji="⚙️" />
+              Filters
             </button>
-            <button onClick={clearFilters} className="btn btn-ghost btn-sm">
-              Clear All Filters
-            </button>
-          </div>
+          )}
+        </div>
 
-          {/* Advanced Filters */}
-          {showAdvancedFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-base-300">
+        {/* Advanced Filters (Local Search Only) */}
+        {showAdvancedFilters && searchMode === 'local' && (
+          <div className="card bg-base-200 p-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Category</span>
+                  <span className="label-text">Category</span>
                 </label>
-                <select 
-                  className="select select-bordered w-full"
+                <select
+                  className="select select-bordered"
                   value={filters.category}
-                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                  onChange={(e) => setFilters({ ...filters, category: e.target.value })}
                 >
                   <option value="">All Categories</option>
                   {categories.map(category => (
@@ -230,12 +331,12 @@ const SearchPage: React.FC = () => {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Publisher</span>
+                  <span className="label-text">Publisher</span>
                 </label>
-                <select 
-                  className="select select-bordered w-full"
+                <select
+                  className="select select-bordered"
                   value={filters.publisher}
-                  onChange={(e) => setFilters(prev => ({ ...prev, publisher: e.target.value }))}
+                  onChange={(e) => setFilters({ ...filters, publisher: e.target.value })}
                 >
                   <option value="">All Publishers</option>
                   {publishers.map(publisher => (
@@ -246,12 +347,12 @@ const SearchPage: React.FC = () => {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Language</span>
+                  <span className="label-text">Language</span>
                 </label>
-                <select 
-                  className="select select-bordered w-full"
+                <select
+                  className="select select-bordered"
                   value={filters.language}
-                  onChange={(e) => setFilters(prev => ({ ...prev, language: e.target.value }))}
+                  onChange={(e) => setFilters({ ...filters, language: e.target.value })}
                 >
                   <option value="">All Languages</option>
                   {languages.map(language => (
@@ -262,144 +363,173 @@ const SearchPage: React.FC = () => {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Reading Status</span>
+                  <span className="label-text">Status</span>
                 </label>
-                <select 
-                  className="select select-bordered w-full"
+                <select
+                  className="select select-bordered"
                   value={filters.status}
-                  onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                  onChange={(e) => setFilters({ ...filters, status: e.target.value })}
                 >
                   <option value="">All Status</option>
                   <option value="reading">Currently Reading</option>
                   <option value="finished">Finished</option>
-                  <option value="want-to-read">Want to Read</option>
-                  <option value="library-only">Library Only</option>
+                  <option value="want_to_read">Want to Read</option>
                 </select>
               </div>
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Minimum Rating</span>
+                  <span className="label-text">Rating</span>
                 </label>
-                <select 
-                  className="select select-bordered w-full"
+                <select
+                  className="select select-bordered"
                   value={filters.rating}
-                  onChange={(e) => setFilters(prev => ({ ...prev, rating: e.target.value }))}
+                  onChange={(e) => setFilters({ ...filters, rating: e.target.value })}
                 >
-                  <option value="">Any Rating</option>
+                  <option value="">All Ratings</option>
                   <option value="4">4+ Stars</option>
                   <option value="3">3+ Stars</option>
                   <option value="2">2+ Stars</option>
-                  <option value="1">1+ Stars</option>
                 </select>
               </div>
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">Added After</span>
+                  <span className="label-text">Date Added</span>
                 </label>
-                <input 
-                  type="date" 
-                  className="input input-bordered w-full" 
+                <select
+                  className="select select-bordered"
                   value={filters.dateAdded}
-                  onChange={(e) => setFilters(prev => ({ ...prev, dateAdded: e.target.value }))}
-                />
+                  onChange={(e) => setFilters({ ...filters, dateAdded: e.target.value })}
+                >
+                  <option value="">All Time</option>
+                  <option value="week">Last Week</option>
+                  <option value="month">Last Month</option>
+                  <option value="year">Last Year</option>
+                </select>
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Search Results */}
-      <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
-            <MagnifyingGlassIcon className="w-6 h-6" />
-            Search Results
+            <div className="mt-4">
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={clearFilters}
+              >
+                <XMarkIcon className="w-4 h-4" />
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {searchError && (
+          <div className="alert alert-error mb-6">
+            <XMarkIcon className="w-5 h-5" />
+            <span>{searchError}</span>
+          </div>
+        )}
+
+        {/* Results */}
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-base-content">
+            {searchMode === 'external' ? 'Search Results' : 'Library Results'}
+            {searchResults.length > 0 && (
+              <span className="text-base-content/70 ml-2">({searchResults.length})</span>
+            )}
           </h2>
-          <span className="text-base-content/70 font-semibold">
-            {searchResults.length} book{searchResults.length !== 1 ? 's' : ''} found
-          </span>
         </div>
 
-        {searchResults.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {searchResults.map((book) => {
-              const statusBadge = getStatusBadge(book);
-              return (
-                <div key={book.uid} className="bg-base-200 border-2 border-secondary rounded-lg p-4 hover:shadow-lg transition-all duration-200">
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-20 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
-                      <img 
-                        src={book.cover_url || '/bookshelf.png'}
-                        className="w-full h-full object-cover"
-                        alt={`${book.title} cover`}
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = '/bookshelf.png';
-                        }}
-                      />
-                    </div>
-                    <div className="flex-grow min-w-0">
-                      <h3 className="font-semibold text-base mb-1">
-                        <Link to={`/book/${book.uid}`} className="hover:text-primary line-clamp-2">
-                          {book.title}
-                        </Link>
-                      </h3>
-                      <p className="text-sm text-base-content/70 mb-2">{book.author}</p>
-                      
-                      {book.categories && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {book.categories.split(',').slice(0, 2).map((category: string, index: number) => (
-                            <span key={index} className="badge badge-xs bg-secondary text-secondary-content">
-                              {category.trim()}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between">
-                        <span className={`badge badge-sm ${statusBadge.color}`}>
-                          {statusBadge.text}
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="loading loading-spinner loading-lg"></div>
+          </div>
+        ) : searchResults.length === 0 ? (
+          <div className="text-center py-8">
+            <Icon hero={<BookOpenIcon className="w-16 h-16 mx-auto text-base-content/30 mb-4" />} emoji="📖" />
+            <p className="text-base-content/70">
+              {searchMode === 'external' 
+                ? 'Search for books to find new titles to add to your library'
+                : 'No books match your search criteria'
+              }
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {searchResults.map((book, index) => (
+                <div key={index} className="card bg-base-100 shadow-xl">
+                  <figure className="px-4 pt-4">
+                    <img
+                      src={book.cover_url || '/static/bookshelf.png'}
+                      alt={book.title}
+                      className="rounded-xl h-64 w-full object-cover"
+                    />
+                  </figure>
+                  <div className="card-body">
+                    <h3 className="card-title text-lg">{book.title}</h3>
+                    <p className="text-base-content/70">{book.author}</p>
+                    
+                    {book.description && (
+                      <p className="text-sm text-base-content/60 line-clamp-3">
+                        {book.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {book.categories && book.categories.slice(0, 2).map((category, idx) => (
+                        <span key={idx} className="badge badge-outline badge-sm">
+                          {category}
                         </span>
-                        {book.average_rating && (
-                          <div className="text-accent text-xs">
-                            {[...Array(5)].map((_, i) => (
-                              <span key={i}>{i < (book.average_rating || 0) ? '⭐' : '☆'}</span>
-                            ))}
-                            {(book.average_rating || 0).toFixed(1)}
-                          </div>
-                        )}
-                      </div>
-
-                      {book.page_count && (
-                        <p className="text-xs text-base-content/60 mt-1">
-                          {book.page_count} pages
-                        </p>
+                      ))}
+                    </div>
+                    
+                    <div className="card-actions justify-end mt-4">
+                      {searchMode === 'external' ? (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleAddBook(book)}
+                        >
+                          <Icon hero={<PlusIcon className="w-4 h-4" />} emoji="➕" />
+                          Add to Library
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/book/${book.isbn || index}`}
+                          className="btn btn-primary btn-sm"
+                        >
+                          <Icon hero={<BookOpenIcon className="w-4 h-4" />} emoji="📖" />
+                          View Details
+                        </Link>
                       )}
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <BookOpenIcon className="w-16 h-16 text-base-content/30 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-primary mb-2">No books found</h3>
-            <p className="text-base-content/70 mb-4">
-              {filters.query || filters.category || filters.publisher || filters.language || filters.status || filters.rating || filters.dateAdded
-                ? 'Try adjusting your search criteria'
-                : 'Start searching to find books in your library'
-              }
-            </p>
-            {!filters.query && !filters.category && !filters.publisher && !filters.language && !filters.status && !filters.rating && !filters.dateAdded && (
-              <Link to="/add-book" className="btn btn-primary">
-                Add Your First Book
-              </Link>
+              ))}
+            </div>
+            {/* Pagination (External) */}
+            {searchMode === 'external' && total > pageSize && (
+              <div className="flex items-center justify-center gap-4 mt-6">
+                <button
+                  className="btn btn-outline"
+                  disabled={page <= 1 || isSearching}
+                  onClick={() => { setPage(page - 1); setTimeout(performExternalSearch, 0); }}
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-base-content/70">
+                  Page {page} of {Math.ceil(total / pageSize)}
+                </span>
+                <button
+                  className="btn btn-outline"
+                  disabled={page >= Math.ceil(total / pageSize) || isSearching}
+                  onClick={() => { setPage(page + 1); setTimeout(performExternalSearch, 0); }}
+                >
+                  Next
+                </button>
+              </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>

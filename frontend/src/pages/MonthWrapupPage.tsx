@@ -10,6 +10,7 @@ import {
   ArrowTrendingUpIcon,
   FireIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 interface MonthWrapupData {
   month: string;
@@ -46,10 +47,28 @@ const MonthWrapupPage: React.FC = () => {
         const currentYear = now.getFullYear();
         
         // Try to fetch month wrapup data
-        const response = await api.get<MonthWrapupData>(`/reports/month-wrapup/${currentYear}/${currentMonth}`);
+        const response = await api.get<any>(`/reports/month-wrapup/${currentYear}/${currentMonth}`);
         
         if (response.success && response.data) {
-          setWrapupData(response.data);
+          const data = response.data;
+          // Map backend shape to UI shape
+          const mapped: MonthWrapupData = {
+            month: data.month_name || new Date(currentYear, currentMonth - 1).toLocaleString('default', { month: 'long' }),
+            year: data.year,
+            books_finished: data.finished_books || [],
+            total_pages_read: data.statistics?.total_pages_read || 0,
+            reading_sessions: data.statistics?.total_reading_days || 0,
+            average_pages_per_day: data.statistics?.average_pages_per_day || 0,
+            reading_streak: data.statistics?.reading_streak || 0,
+            top_genres: data.top_genres || [],
+            monthly_stats: {
+              total_books: (data.finished_books || []).length + (data.currently_reading || 0),
+              finished_books: (data.finished_books || []).length,
+              currently_reading: data.currently_reading || 0,
+              want_to_read: data.want_to_read || 0,
+            },
+          };
+          setWrapupData(mapped);
           setIsEmpty(false);
         } else {
           // If no data, show empty state
@@ -152,16 +171,16 @@ const MonthWrapupPage: React.FC = () => {
           <div className="stats shadow bg-base-100">
             <div className="stat">
               <div className="stat-figure text-primary">
-                <BookOpenIcon className="w-8 h-8" />
+                <Icon hero={<BookOpenIcon className="w-8 h-8" />} emoji="📚" />
               </div>
               <div className="stat-title">Books Finished</div>
-              <div className="stat-value text-primary">{wrapupData?.books_finished.length || 0}</div>
+              <div className="stat-value text-primary">{wrapupData?.books_finished?.length || 0}</div>
               <div className="stat-desc">This month</div>
             </div>
             
             <div className="stat">
               <div className="stat-figure text-success">
-                <ArrowTrendingUpIcon className="w-8 h-8" />
+                <Icon hero={<ArrowTrendingUpIcon className="w-8 h-8" />} emoji="📈" />
               </div>
               <div className="stat-title">Pages Read</div>
               <div className="stat-value text-success">{wrapupData?.total_pages_read || 0}</div>
@@ -170,7 +189,7 @@ const MonthWrapupPage: React.FC = () => {
             
             <div className="stat">
               <div className="stat-figure text-warning">
-                <ClockIcon className="w-8 h-8" />
+                <Icon hero={<ClockIcon className="w-8 h-8" />} emoji="⏱️" />
               </div>
               <div className="stat-title">Reading Sessions</div>
               <div className="stat-value text-warning">{wrapupData?.reading_sessions || 0}</div>
@@ -179,7 +198,7 @@ const MonthWrapupPage: React.FC = () => {
             
             <div className="stat">
               <div className="stat-figure text-info">
-                <FireIcon className="w-8 h-8" />
+                <Icon hero={<FireIcon className="w-8 h-8" />} emoji="🔥" />
               </div>
               <div className="stat-title">Reading Streak</div>
               <div className="stat-value text-info">{wrapupData?.reading_streak || 0}</div>
@@ -192,7 +211,7 @@ const MonthWrapupPage: React.FC = () => {
             <div className="card bg-base-100 shadow-xl">
               <div className="card-body">
                 <h2 className="card-title text-primary mb-4">
-                  <ChartBarIcon className="w-6 h-6" />
+                  <Icon hero={<ChartBarIcon className="w-6 h-6" />} emoji="📊" />
                   Daily Reading Average
                 </h2>
                 <div className="text-center">
@@ -237,11 +256,11 @@ const MonthWrapupPage: React.FC = () => {
       )}
 
       {/* Finished Books List */}
-      {wrapupData && wrapupData.books_finished.length > 0 && (
+      {wrapupData && wrapupData.books_finished && wrapupData.books_finished.length > 0 && (
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title text-primary mb-6">
-              <CheckCircleIcon className="w-6 h-6" />
+              <Icon hero={<CheckCircleIcon className="w-6 h-6" />} emoji="✅" />
               Books Finished This Month
             </h2>
             
@@ -279,11 +298,11 @@ const MonthWrapupPage: React.FC = () => {
       )}
 
       {/* Top Genres */}
-      {wrapupData && wrapupData.top_genres.length > 0 && (
+      {wrapupData && wrapupData.top_genres?.length > 0 && (
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title text-primary mb-6">
-              <ChartBarIcon className="w-6 h-6" />
+              <Icon hero={<ChartBarIcon className="w-6 h-6" />} emoji="📊" />
               Top Genres This Month
             </h2>
             

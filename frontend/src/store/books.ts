@@ -158,7 +158,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
   logReading: async (uid: string, pagesRead: number, date?: string) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await api.books.logReading(uid, { pages_read: pagesRead, date });
+      const response = await api.books.addReadingLog(uid, { pages_read: pagesRead, date });
       if (response.success) {
         // Refresh the current book to show updated progress
         await get().fetchBook(uid);

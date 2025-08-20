@@ -9,6 +9,7 @@ import {
   CheckCircleIcon,
   BuildingLibraryIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 interface PublicLibraryPageProps {}
 
@@ -28,7 +29,7 @@ const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
         setError(null);
         
         // Fetch public books with filter
-        const response = await api.get<Book[]>('/books/public', { filter });
+        const response = await api.books.getPublic(filter);
         
         if (response.success) {
           setBooks(response.data || []);
@@ -176,7 +177,7 @@ const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body text-center py-12">
             <div className="mb-6">
-              <BuildingLibraryIcon className="w-16 h-16 text-base-content/30 mx-auto" />
+              <Icon hero={<BuildingLibraryIcon className="w-16 h-16 text-base-content/30 mx-auto" />} emoji="🏛️" />
             </div>
             <h2 className="text-2xl font-bold mb-3">No Public Books Found</h2>
             <p className="text-base-content/70 mb-6">
@@ -193,7 +194,7 @@ const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
                 Show All Books
               </button>
               <Link to="/library" className="btn btn-primary">
-                <BookOpenIcon className="w-5 h-5 mr-2" />
+                <Icon hero={<BookOpenIcon className="w-5 h-5 mr-2" />} emoji="📖" />
                 View Your Library
               </Link>
             </div>
@@ -206,7 +207,7 @@ const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
         <div className="stats shadow bg-base-100">
           <div className="stat">
             <div className="stat-figure text-primary">
-              <BookOpenIcon className="w-8 h-8" />
+              <Icon hero={<BookOpenIcon className="w-8 h-8" />} emoji="📚" />
             </div>
             <div className="stat-title">Total Books</div>
             <div className="stat-value text-primary">{books.length}</div>
@@ -215,7 +216,7 @@ const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
           
           <div className="stat">
             <div className="stat-figure text-warning">
-              <ClockIcon className="w-8 h-8" />
+              <Icon hero={<ClockIcon className="w-8 h-8" />} emoji="⏱️" />
             </div>
             <div className="stat-title">Currently Reading</div>
             <div className="stat-value text-warning">
@@ -226,7 +227,7 @@ const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
           
           <div className="stat">
             <div className="stat-figure text-info">
-              <HeartIcon className="w-8 h-8" />
+              <Icon hero={<HeartIcon className="w-8 h-8" />} emoji="💙" />
             </div>
             <div className="stat-title">Want to Read</div>
             <div className="stat-value text-info">
@@ -237,7 +238,7 @@ const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
           
           <div className="stat">
             <div className="stat-figure text-success">
-              <CheckCircleIcon className="w-8 h-8" />
+              <Icon hero={<CheckCircleIcon className="w-8 h-8" />} emoji="✅" />
             </div>
             <div className="stat-title">Finished</div>
             <div className="stat-value text-success">

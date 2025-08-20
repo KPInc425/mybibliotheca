@@ -12,6 +12,7 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 const AddBookPage: React.FC = () => {
   const navigate = useNavigate();
@@ -185,7 +186,7 @@ const AddBookPage: React.FC = () => {
             📱 Barcode Scanner
             <div className="tooltip tooltip-right" data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices.">
               <button type="button" className="btn btn-circle btn-ghost btn-sm">
-                <InformationCircleIcon className="w-5 h-5" />
+                <Icon hero={<InformationCircleIcon className="w-5 h-5" />} emoji="ℹ️" />
               </button>
             </div>
           </h2>

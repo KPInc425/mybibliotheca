@@ -5,12 +5,15 @@ Uses service layer for business logic separation
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user, login_user, logout_user
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from typing import Dict, Any
+import requests
+import secrets
 
 from .services.book_service import BookService, BookNotFoundError
 from .services.user_service import UserService, UserNotFoundError
-from .models import db, User, Book
+from .models import db, User, Book, ReadingLog
+from .utils import get_reading_streak
 
 api = Blueprint('api', __name__, url_prefix='/api')
 
@@ -640,6 +643,153 @@ def get_community_activity():
         
     except Exception as e:
         current_app.logger.error(f"Error getting community activity: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+@api.route('/community/active-readers', methods=['GET'])
+@login_required
+def get_active_readers():
+    """
+    Get active readers with their statistics
+    
+    GET /api/community/active-readers
+    
+    Returns:
+        200: List of active readers with stats
+    """
+    try:
+        user_service = UserService(db.session)
+        active_readers = user_service.get_active_readers()
+        
+        return jsonify({
+            'success': True,
+            'data': active_readers
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting active readers: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+@api.route('/community/books-this-month', methods=['GET'])
+@login_required
+def get_books_this_month():
+    """
+    Get books finished this month by community members
+    
+    GET /api/community/books-this-month
+    
+    Returns:
+        200: List of books finished this month
+    """
+    try:
+        user_service = UserService(db.session)
+        books = user_service.get_books_this_month()
+        
+        return jsonify({
+            'success': True,
+            'data': books
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting books this month: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+@api.route('/community/currently-reading', methods=['GET'])
+@login_required
+def get_currently_reading():
+    """
+    Get books currently being read by community members
+    
+    GET /api/community/currently-reading
+    
+    Returns:
+        200: List of books currently being read
+    """
+    try:
+        user_service = UserService(db.session)
+        books = user_service.get_currently_reading()
+        
+        return jsonify({
+            'success': True,
+            'data': books
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting currently reading: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+@api.route('/community/recent-activity', methods=['GET'])
+@login_required
+def get_recent_activity():
+    """
+    Get recent reading activity from community members
+    
+    GET /api/community/recent-activity
+    
+    Returns:
+        200: List of recent reading logs
+    """
+    try:
+        user_service = UserService(db.session)
+        activity = user_service.get_recent_activity()
+        
+        return jsonify({
+            'success': True,
+            'data': activity
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting recent activity: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+@api.route('/user/<int:user_id>/profile', methods=['GET'])
+@login_required
+def get_public_user_profile(user_id):
+    """
+    Get public profile for a user
+    
+    GET /api/user/<user_id>/profile
+    
+    Returns:
+        200: User profile data
+        404: User not found or not sharing
+    """
+    try:
+        user_service = UserService(db.session)
+        profile = user_service.get_user_profile(user_id)
+        
+        if not profile:
+            return jsonify({
+                'success': False,
+                'error': 'User not found or not sharing profile'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': profile
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting user profile: {e}")
         return jsonify({
             'success': False,
             'error': 'Internal server error'
@@ -1321,6 +1471,563 @@ def get_openapi_spec():
                         }
                     }
                 }
+            },
+            "/books/public": {
+                "get": {
+                    "summary": "Get public books",
+                    "description": "Retrieve books from users who have enabled public library sharing",
+                    "parameters": [
+                        {
+                            "name": "filter",
+                            "in": "query",
+                            "schema": {
+                                "type": "string",
+                                "enum": ["currently_reading", "want_to_read", "all"]
+                            },
+                            "description": "Filter by status (currently_reading, want_to_read, or all)"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "List of public books",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "array",
+                                                "items": {"$ref": "#/components/schemas/Book"}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/books/search": {
+                "get": {
+                    "summary": "Search books using Google Books API",
+                    "description": "Search for books using the Google Books API",
+                    "parameters": [
+                        {
+                            "name": "q",
+                            "in": "query",
+                            "required": True,
+                            "schema": {"type": "string"},
+                            "description": "Search query (e.g., 'Harry Potter')"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "List of search results",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "title": {"type": "string"},
+                                                        "author": {"type": "string"},
+                                                        "cover_url": {"type": "string"},
+                                                        "isbn": {"type": "string"},
+                                                        "description": {"type": "string"},
+                                                        "published_date": {"type": "string"},
+                                                        "page_count": {"type": "integer"},
+                                                        "publisher": {"type": "string"},
+                                                        "language": {"type": "string"},
+                                                        "categories": {"type": "array", "items": {"type": "string"}},
+                                                        "average_rating": {"type": "number"},
+                                                        "rating_count": {"type": "integer"}
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "400": {
+                            "description": "Query parameter is required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/reports/month-wrapup/{year}/{month}": {
+                "get": {
+                    "summary": "Get month wrapup report",
+                    "description": "Retrieve a report for a specific month showing finished books and reading logs",
+                    "parameters": [
+                        {
+                            "name": "year",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                            "description": "Year of the month"
+                        },
+                        {
+                            "name": "month",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                            "description": "Month of the year"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Month wrapup report",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "year": {"type": "integer"},
+                                                    "month": {"type": "integer"},
+                                                    "month_name": {"type": "string"},
+                                                    "finished_books": {
+                                                        "type": "array",
+                                                        "items": {"$ref": "#/components/schemas/Book"}
+                                                    },
+                                                    "reading_logs": {
+                                                        "type": "array",
+                                                        "items": {"$ref": "#/components/schemas/ReadingLog"}
+                                                    },
+                                                    "statistics": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "total_pages_read": {"type": "integer"},
+                                                            "total_books_finished": {"type": "integer"},
+                                                            "total_reading_days": {"type": "integer"},
+                                                            "reading_streak": {"type": "integer"},
+                                                            "average_pages_per_day": {"type": "number"}
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/users": {
+                "get": {
+                    "summary": "Get all users (admin only)",
+                    "description": "Retrieve a paginated list of all users (admin only)",
+                    "parameters": [
+                        {
+                            "name": "page",
+                            "in": "query",
+                            "schema": {"type": "integer"},
+                            "description": "Page number (default: 1)"
+                        },
+                        {
+                            "name": "search",
+                            "in": "query",
+                            "schema": {"type": "string"},
+                            "description": "Search term for username or email"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "List of users",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "users": {
+                                                        "type": "array",
+                                                        "items": {"$ref": "#/components/schemas/User"}
+                                                    },
+                                                    "pagination": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "page": {"type": "integer"},
+                                                            "per_page": {"type": "integer"},
+                                                            "total": {"type": "integer"},
+                                                            "pages": {"type": "integer"},
+                                                            "has_next": {"type": "boolean"},
+                                                            "has_prev": {"type": "boolean"}
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "403": {
+                            "description": "Admin access required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/users/{user_id}": {
+                "get": {
+                    "summary": "Get specific user details (admin only)",
+                    "description": "Retrieve detailed information for a specific user (admin only)",
+                    "parameters": [
+                        {
+                            "name": "user_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                            "description": "ID of the user to get"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "User details",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {"$ref": "#/components/schemas/User"}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "403": {
+                            "description": "Admin access required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/users/{user_id}/toggle-admin": {
+                "post": {
+                    "summary": "Toggle admin status for a user (admin only)",
+                    "description": "Toggle the admin status of a specific user (admin only)",
+                    "parameters": [
+                        {
+                            "name": "user_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                            "description": "ID of the user to toggle"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Admin status toggled",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "user_id": {"type": "integer"},
+                                                    "is_admin": {"type": "boolean"}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "403": {
+                            "description": "Admin access required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/users/{user_id}/toggle-active": {
+                "post": {
+                    "summary": "Toggle active status for a user (admin only)",
+                    "description": "Toggle the active status of a specific user (admin only)",
+                    "parameters": [
+                        {
+                            "name": "user_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                            "description": "ID of the user to toggle"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Active status toggled",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "user_id": {"type": "integer"},
+                                                    "is_active": {"type": "boolean"}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "403": {
+                            "description": "Admin access required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/users/{user_id}/delete": {
+                "post": {
+                    "summary": "Delete a user (admin only)",
+                    "description": "Delete a specific user (admin only)",
+                    "parameters": [
+                        {
+                            "name": "user_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                            "description": "ID of the user to delete"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "User deleted",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "user_id": {"type": "integer"},
+                                                    "message": {"type": "string"}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "403": {
+                            "description": "Admin access required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/users/{user_id}/reset-password": {
+                "post": {
+                    "summary": "Reset password for a user (admin only)",
+                    "description": "Reset the password for a specific user (admin only)",
+                    "parameters": [
+                        {
+                            "name": "user_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                            "description": "ID of the user to reset password for"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Password reset",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "user_id": {"type": "integer"},
+                                                    "new_password": {"type": "string"}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "403": {
+                            "description": "Admin access required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/users/{user_id}/unlock": {
+                "post": {
+                    "summary": "Unlock a user account (admin only)",
+                    "description": "Unlock a specific user account (admin only)",
+                    "parameters": [
+                        {
+                            "name": "user_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                            "description": "ID of the user to unlock"
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Account unlocked",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "user_id": {"type": "integer"},
+                                                    "message": {"type": "string"}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "403": {
+                            "description": "Admin access required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/backup": {
+                "post": {
+                    "summary": "Create database backup (admin only)",
+                    "description": "Create a database backup (admin only)",
+                    "responses": {
+                        "200": {
+                            "description": "Backup created",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "message": {"type": "string"},
+                                                    "timestamp": {"type": "string", "format": "date-time"}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "500": {
+                            "description": "Backup failed",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/admin/backup/status": {
+                "get": {
+                    "summary": "Get backup status (admin only)",
+                    "description": "Retrieve the status of the last database backup (admin only)",
+                    "responses": {
+                        "200": {
+                            "description": "Backup status",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "properties": {
+                                            "success": {"type": "boolean"},
+                                            "data": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "last_backup": {"type": "string", "format": "date-time"},
+                                                    "backup_size": {"type": "integer"},
+                                                    "status": {"type": "string"}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "403": {
+                            "description": "Admin access required",
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/Error"}
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -1531,3 +2238,541 @@ def get_recent_users():
             'success': False,
             'error': 'Internal server error'
         }), 500 
+
+@api.route('/books/public', methods=['GET'])
+@login_required
+def get_public_books():
+    """Get public books from all users who have enabled sharing"""
+    filter_status = request.args.get('filter', 'all')
+    
+    # Query books from users who have enabled public library sharing
+    books_query = db.session.query(Book).join(User).filter(
+        User.share_library == True,
+        Book.library_only.isnot(True)
+    )
+    
+    if filter_status == 'currently_reading':
+        books_query = books_query.filter(
+            Book.finish_date.is_(None),
+            Book.want_to_read.isnot(True),
+            Book.library_only.isnot(True)
+        )
+    elif filter_status == 'want_to_read':
+        books_query = books_query.filter(Book.want_to_read.is_(True))
+    else:  # Default "Show All" case
+        books_query = books_query.order_by(Book.finish_date.desc().nullslast(), Book.id.desc())
+    
+    books = books_query.all()
+    
+    return jsonify({
+        'success': True,
+        'data': [book.to_dict() for book in books]
+    })
+
+@api.route('/books/search', methods=['GET'])
+@login_required
+def search_books():
+    """Search books using Google Books API with pagination"""
+    query = request.args.get('q', '')
+    if not query:
+        return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
+
+    # Pagination params
+    try:
+        page = int(request.args.get('page', 1))
+    except ValueError:
+        page = 1
+    try:
+        page_size = int(request.args.get('pageSize', 20))
+    except ValueError:
+        page_size = 20
+    # Google Books maxResults between 1 and 40
+    page_size = max(1, min(page_size, 40))
+    page = max(1, page)
+    start_index = (page - 1) * page_size
+
+    try:
+        # Google Books API search
+        resp = requests.get(
+            'https://www.googleapis.com/books/v1/volumes',
+            params={'q': query, 'maxResults': page_size, 'startIndex': start_index}
+        )
+        data = resp.json()
+
+        results = []
+        for item in data.get('items', []):
+            volume_info = item.get('volumeInfo', {})
+            image = volume_info.get('imageLinks', {}).get('thumbnail')
+            isbn = None
+            for iden in volume_info.get('industryIdentifiers', []):
+                if iden['type'] in ('ISBN_13', 'ISBN_10'):
+                    isbn = iden['identifier']
+                    break
+
+            results.append({
+                'title': volume_info.get('title'),
+                'author': ', '.join(volume_info.get('authors', [])),
+                'cover_url': image,
+                'isbn': isbn,
+                'description': volume_info.get('description'),
+                'published_date': volume_info.get('publishedDate'),
+                'page_count': volume_info.get('pageCount'),
+                'publisher': volume_info.get('publisher'),
+                'language': volume_info.get('language'),
+                'categories': volume_info.get('categories', []),
+                'average_rating': volume_info.get('averageRating'),
+                'rating_count': volume_info.get('ratingsCount')
+            })
+
+        total_items = data.get('totalItems', len(results))
+        total_pages = (total_items + page_size - 1) // page_size if total_items else 1
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'items': results,
+                'total': total_items,
+                'page': page,
+                'page_size': page_size,
+                'pages': total_pages
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Search failed: {str(e)}'}), 500
+
+@api.route('/reports/month-wrapup/<int:year>/<int:month>', methods=['GET'])
+@login_required
+def get_month_wrapup(year, month):
+    """Get month wrapup report for a specific month"""
+    try:
+        # Get the first and last day of the month
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            end_date = datetime(year, month + 1, 1) - timedelta(days=1)
+        
+        # Get books finished in this month
+        finished_books = Book.query.filter(
+            Book.user_id == current_user.id,
+            Book.finish_date >= start_date,
+            Book.finish_date <= end_date
+        ).all()
+        
+        # Get reading logs for this month
+        reading_logs = ReadingLog.query.filter(
+            ReadingLog.user_id == current_user.id,
+            ReadingLog.date >= start_date,
+            ReadingLog.date <= end_date
+        ).all()
+        
+        # Calculate statistics
+        total_pages_read = sum(log.pages_read for log in reading_logs)
+        total_books_finished = len(finished_books)
+        total_reading_days = len(set(log.date for log in reading_logs))
+        
+        # Get reading streak
+        reading_streak = current_user.get_reading_streak()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'year': year,
+                'month': month,
+                'month_name': start_date.strftime('%B'),
+                'finished_books': [book.to_dict() for book in finished_books],
+                'reading_logs': [log.to_dict() for log in reading_logs],
+                'statistics': {
+                    'total_pages_read': total_pages_read,
+                    'total_books_finished': total_books_finished,
+                    'total_reading_days': total_reading_days,
+                    'reading_streak': reading_streak,
+                    'average_pages_per_day': total_pages_read / total_reading_days if total_reading_days > 0 else 0
+                }
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to generate month wrapup: {str(e)}'
+        }), 500
+
+@api.route('/admin/users', methods=['GET'])
+@login_required
+def get_users():
+    """Get all users (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    page = request.args.get('page', 1, type=int)
+    search = request.args.get('search', '', type=str)
+    per_page = 20
+    
+    # Build query with optional search
+    query = User.query
+    if search:
+        query = query.filter(
+            db.or_(
+                User.username.contains(search),
+                User.email.contains(search)
+            )
+        )
+    
+    # Paginate results
+    pagination = query.order_by(User.created_at.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    users = pagination.items
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'users': [user.to_dict() for user in users],
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev
+            }
+        }
+    })
+
+@api.route('/admin/users/<int:user_id>', methods=['GET'])
+@login_required
+def get_user(user_id):
+    """Get specific user details (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    user = User.query.get_or_404(user_id)
+    return jsonify({
+        'success': True,
+        'data': user.to_dict()
+    })
+
+@api.route('/admin/users/<int:user_id>/toggle-admin', methods=['POST'])
+@login_required
+def toggle_user_admin(user_id):
+    """Toggle admin status for a user (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    user = User.query.get_or_404(user_id)
+    user.is_admin = not user.is_admin
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'user_id': user_id,
+            'is_admin': user.is_admin
+        }
+    })
+
+@api.route('/admin/users/<int:user_id>/toggle-active', methods=['POST'])
+@login_required
+def toggle_user_active(user_id):
+    """Toggle active status for a user (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    user = User.query.get_or_404(user_id)
+    user.is_active = not user.is_active
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'user_id': user_id,
+            'is_active': user.is_active
+        }
+    })
+
+@api.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    """Delete a user (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    # Don't allow admin to delete themselves
+    if user.id == current_user.id:
+        return jsonify({
+            'success': False,
+            'error': 'Cannot delete your own account'
+        }), 400
+    
+    # Delete user's books and reading logs
+    Book.query.filter_by(user_id=user_id).delete()
+    ReadingLog.query.filter_by(user_id=user_id).delete()
+    
+    # Delete the user
+    db.session.delete(user)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'user_id': user_id,
+            'message': 'User deleted successfully'
+        }
+    })
+
+@api.route('/admin/users/<int:user_id>/reset-password', methods=['POST'])
+@login_required
+def reset_user_password(user_id):
+    """Reset password for a user (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    user = User.query.get_or_404(user_id)
+    
+    # Generate a new password
+    new_password = secrets.token_urlsafe(8)
+    user.set_password(new_password)
+    user.force_password_change = True
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'user_id': user_id,
+            'new_password': new_password
+        }
+    })
+
+@api.route('/admin/users/<int:user_id>/unlock', methods=['POST'])
+@login_required
+def unlock_user_account(user_id):
+    """Unlock a user account (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    user = User.query.get_or_404(user_id)
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'user_id': user_id,
+            'message': 'Account unlocked successfully'
+        }
+    })
+
+@api.route('/admin/backup', methods=['POST'])
+@login_required
+def create_backup():
+    """Create database backup (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+
+    try:
+        import os
+        from shutil import copy2
+        
+        data_dir = os.path.join(os.getcwd(), 'data')
+        os.makedirs(data_dir, exist_ok=True)
+        db_path = os.path.join(data_dir, 'bookoracle.db')
+        if not os.path.exists(db_path):
+            return jsonify({'success': False, 'error': 'Database file not found'}), 404
+
+        backups_dir = os.path.join(data_dir, 'backups')
+        os.makedirs(backups_dir, exist_ok=True)
+
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f'bookoracle_backup_{ts}.db'
+        backup_path = os.path.join(backups_dir, backup_filename)
+        copy2(db_path, backup_path)
+
+        size_bytes = os.path.getsize(backup_path)
+
+        # Persist last backup info in a simple marker file
+        marker_path = os.path.join(backups_dir, 'last_backup.txt')
+        with open(marker_path, 'w', encoding='utf-8') as f:
+            f.write(f'{backup_filename}\n{size_bytes}\n{datetime.now(timezone.utc).isoformat()}')
+
+        return jsonify({
+            'success': True,
+            'data': {
+                'message': 'Backup created successfully',
+                'filename': backup_filename,
+                'size_bytes': size_bytes,
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Backup failed: {str(e)}'}), 500
+
+@api.route('/admin/users', methods=['POST'])
+@login_required
+def create_user():
+    """Create a new user (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    data = request.get_json()
+    if not data:
+        return jsonify({
+            'success': False,
+            'error': 'No data provided'
+        }), 400
+    
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not username or not email or not password:
+        return jsonify({
+            'success': False,
+            'error': 'Username, email, and password are required'
+        }), 400
+    
+    # Check if user already exists
+    if User.query.filter_by(username=username).first():
+        return jsonify({
+            'success': False,
+            'error': 'Username already exists'
+        }), 400
+    
+    if User.query.filter_by(email=email).first():
+        return jsonify({
+            'success': False,
+            'error': 'Email already exists'
+        }), 400
+    
+    try:
+        user = User(username=username, email=email)
+        user.set_password(password)
+        user.password_must_change = True  # Require password change on first login
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'user': user.to_dict(),
+                'message': 'User created successfully'
+            }
+        })
+    except ValueError as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': f'Failed to create user: {str(e)}'
+        }), 500
+
+@api.route('/admin/backup/download', methods=['GET'])
+@login_required
+def download_backup():
+    """Download database backup (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        import os
+        from flask import send_file
+        
+        data_dir = os.path.join(os.getcwd(), 'data')
+        db_path = os.path.join(data_dir, 'bookoracle.db')
+        backups_dir = os.path.join(data_dir, 'backups')
+        os.makedirs(data_dir, exist_ok=True)
+
+        if not os.path.exists(db_path):
+            return jsonify({'success': False, 'error': 'Database file not found'}), 404
+
+        # Prefer the most recent backup file if it exists
+        latest_file_path = None
+        latest_mtime = -1
+        if os.path.exists(backups_dir):
+            for fname in os.listdir(backups_dir):
+                if fname.endswith('.db'):
+                    fpath = os.path.join(backups_dir, fname)
+                    try:
+                        mtime = os.path.getmtime(fpath)
+                        if mtime > latest_mtime:
+                            latest_mtime = mtime
+                            latest_file_path = fpath
+                    except Exception:
+                        pass
+
+        file_path = latest_file_path if latest_file_path else db_path
+        download_name = os.path.basename(file_path) if latest_file_path else f"bookoracle_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=download_name,
+            mimetype='application/octet-stream'
+        )
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Download failed: {str(e)}'
+        }), 500
+
+@api.route('/admin/backup/status', methods=['GET'])
+@login_required
+def get_backup_status():
+    """Get backup status (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({'success': False, 'error': 'Admin access required'}), 403
+
+    import os
+    backups_dir = os.path.join(os.getcwd(), 'data', 'backups')
+    marker_path = os.path.join(backups_dir, 'last_backup.txt')
+    last_backup = None
+    backup_size = 0
+    status = 'no_backups'
+
+    if os.path.exists(marker_path):
+        try:
+            with open(marker_path, 'r', encoding='utf-8') as f:
+                lines = [l.strip() for l in f.readlines()]
+            if len(lines) >= 3:
+                last_backup = lines[2]
+                backup_size = int(lines[1])
+                status = 'ok'
+        except Exception:
+            status = 'error'
+
+    return jsonify({'success': True, 'data': {'last_backup': last_backup, 'backup_size': backup_size, 'status': status}})

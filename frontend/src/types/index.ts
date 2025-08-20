@@ -95,6 +95,37 @@ export interface CommunityActivity {
   recent_activity: ReadingLog[];
 }
 
+export interface UserStats {
+  user: User;
+  books_this_month: number;
+  total_books: number;
+  currently_reading: number;
+}
+
+export interface BookWithUser extends Book {
+  user: User;
+}
+
+export interface ReadingLogWithUser extends ReadingLog {
+  user: User;
+  book: {
+    id: number;
+    uid: string;
+    title: string;
+    author: string;
+    cover_url?: string;
+  };
+}
+
+export interface UserProfile extends User {
+  total_books: number;
+  currently_reading: number;
+  finished_books: number;
+  want_to_read: number;
+  reading_streak: number;
+  books: Book[];
+}
+
 // Form Types
 export interface LoginForm {
   username: string;

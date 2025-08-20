@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { api } from '@/api/client';
@@ -9,13 +9,35 @@ import {
   ArrowLeftIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 const AdminBackupPage: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
+  const [backupSize, setBackupSize] = useState<number>(0);
+  const [status, setStatus] = useState<string>('unknown');
+
+  const fetchStatus = async () => {
+    try {
+      const resp = await api.admin.getBackupStatus();
+      if (resp.success && resp.data) {
+        setLastBackup(resp.data.last_backup || null);
+        setBackupSize(resp.data.backup_size || 0);
+        setStatus(resp.data.status || 'unknown');
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+  }, []);
 
   const handleCreateBackup = async () => {
     try {
@@ -27,12 +49,52 @@ const AdminBackupPage: React.FC = () => {
       if (response.success) {
         setSuccess('Database backup created successfully!');
         setTimeout(() => setSuccess(null), 5000);
+        fetchStatus();
       }
     } catch (err) {
       setError('Failed to create backup');
       console.error('Backup error:', err);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    try {
+      setDownloading(true);
+      setError(null);
+      
+      const response = await api.admin.downloadBackup();
+      
+      // Create a blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/octet-stream' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Extract filename from response headers or use default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = 'bookoracle_backup.db';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      setSuccess('Database backup downloaded successfully!');
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err) {
+      setError('Failed to download backup');
+      console.error('Download error:', err);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -73,7 +135,7 @@ const AdminBackupPage: React.FC = () => {
       {/* Navigation */}
       <div className="flex justify-between items-center mb-8">
         <Link to="/admin" className="btn btn-outline btn-secondary">
-          <ArrowLeftIcon className="w-4 h-4 mr-2" />
+          <Icon hero={<ArrowLeftIcon className="w-4 h-4 mr-2" />} emoji="⬅️" />
           Back to Dashboard
         </Link>
       </div>
@@ -105,7 +167,7 @@ const AdminBackupPage: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-success/10 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <CheckCircleIcon className="w-5 h-5 text-success" />
+                  <Icon hero={<CheckCircleIcon className="w-5 h-5 text-success" />} emoji="✅" />
                   <span className="font-semibold">Database Status</span>
                 </div>
                 <span className="badge badge-success">Healthy</span>
@@ -113,11 +175,19 @@ const AdminBackupPage: React.FC = () => {
               
               <div className="flex items-center justify-between p-3 bg-info/10 rounded-lg">
                 <div className="flex items-center gap-3">
-                  <ClockIcon className="w-5 h-5 text-info" />
+                  <Icon hero={<ClockIcon className="w-5 h-5 text-info" />} emoji="⏱️" />
                   <span className="font-semibold">Last Backup</span>
                 </div>
-                <span className="text-sm text-base-content/60">Not available</span>
+                <span className="text-sm text-base-content/60">
+                  {lastBackup ? new Date(lastBackup).toLocaleString() : 'Not available'}
+                </span>
               </div>
+              {lastBackup && (
+                <div className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
+                  <span className="font-semibold">Backup Size</span>
+                  <span className="text-sm text-base-content/60">{(backupSize / (1024 * 1024)).toFixed(2)} MB</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -143,8 +213,26 @@ const AdminBackupPage: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
+                    <Icon hero={<ArrowDownTrayIcon className="w-4 h-4 mr-2" />} emoji="⬇️" />
                     Create Backup
+                  </>
+                )}
+              </button>
+              
+              <button
+                onClick={handleDownloadBackup}
+                className="btn btn-secondary w-full"
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Icon hero={<ArrowDownTrayIcon className="w-4 h-4 mr-2" />} emoji="⬇️" />
+                    Download Backup
                   </>
                 )}
               </button>

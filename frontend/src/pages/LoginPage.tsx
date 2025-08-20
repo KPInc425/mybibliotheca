@@ -32,8 +32,29 @@ const LoginPage = () => {
       const responseData = await response.json();
 
       if (response.ok && responseData.success) {
-        // Set user data from login response
-        setUser(responseData.data);
+        // Fetch complete user profile after successful login
+        try {
+          const profileResponse = await fetch('/api/user/profile', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            if (profileData.success) {
+              setUser(profileData.data);
+            } else {
+              // Fallback to login response data if profile fetch fails
+              setUser(responseData.data);
+            }
+          } else {
+            // Fallback to login response data if profile fetch fails
+            setUser(responseData.data);
+          }
+        } catch (error) {
+          // Fallback to login response data if profile fetch fails
+          setUser(responseData.data);
+        }
         navigate('/');
       } else {
         setError(responseData.error || 'Login failed');

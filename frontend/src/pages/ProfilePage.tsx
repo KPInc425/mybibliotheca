@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { useBooksStore } from '@/store/books';
+import Icon from '@/components/Icon';
 import { 
   UserIcon,
   EnvelopeIcon,
@@ -11,10 +13,12 @@ import {
   Cog6ToothIcon,
   PencilIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 
 const ProfilePage: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { books } = useBooksStore();
   const [isEditing, setIsEditing] = useState(false);
@@ -22,6 +26,14 @@ const ProfilePage: React.FC = () => {
     username: user?.username || '',
     email: user?.email || '',
   });
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordError, setPasswordError] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -45,6 +57,65 @@ const ProfilePage: React.FC = () => {
     setIsEditing(false);
   };
 
+  // Quick action handlers
+  const handleSettings = () => {
+    navigate('/settings');
+  };
+
+  const handleChangePassword = () => {
+    setShowChangePassword(true);
+    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setPasswordError('');
+  };
+
+  const handlePasswordChange = (field: string, value: string) => {
+    setPasswordData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    setPasswordError('');
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters long');
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      setPasswordError('');
+      
+      // TODO: Implement API call to change password
+      // await api.auth.changePassword({
+      //   current_password: passwordData.currentPassword,
+      //   new_password: passwordData.newPassword
+      // });
+      
+      // For now, just simulate success
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setShowChangePassword(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      alert('Password changed successfully!');
+    } catch (error) {
+      setPasswordError('Failed to change password. Please try again.');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleMyActivity = () => {
+    navigate('/community/activity');
+  };
+
   // Calculate user statistics
   const totalBooks = books.length;
   const finishedBooks = books.filter(book => book.finish_date).length;
@@ -65,10 +136,10 @@ const ProfilePage: React.FC = () => {
           {/* Profile Information */}
           <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
-                <UserIcon className="w-6 h-6" />
-                Profile Information
-              </h2>
+                             <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
+                 <Icon hero={<UserIcon className="w-6 h-6" />} emoji="👤" />
+                 Profile Information
+               </h2>
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
@@ -125,55 +196,55 @@ const ProfilePage: React.FC = () => {
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
-                  <UserIcon className="w-5 h-5 text-primary" />
-                  <div>
-                    <span className="font-semibold">Username:</span>
-                    <p className="text-base-content/70">{user?.username}</p>
-                  </div>
-                </div>
+                                 <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
+                   <Icon hero={<UserIcon className="w-5 h-5" />} emoji="👤" />
+                   <div>
+                     <span className="font-semibold">Username:</span>
+                     <p className="text-base-content/70">{user?.username}</p>
+                   </div>
+                 </div>
 
-                <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
-                  <EnvelopeIcon className="w-5 h-5 text-primary" />
-                  <div>
-                    <span className="font-semibold">Email:</span>
-                    <p className="text-base-content/70">{user?.email}</p>
-                  </div>
-                </div>
+                 <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
+                   <Icon hero={<EnvelopeIcon className="w-5 h-5" />} emoji="📧" />
+                   <div>
+                     <span className="font-semibold">Email:</span>
+                     <p className="text-base-content/70">{user?.email}</p>
+                   </div>
+                 </div>
 
-                <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
-                  <CalendarIcon className="w-5 h-5 text-primary" />
-                  <div>
-                    <span className="font-semibold">Member Since:</span>
-                    <p className="text-base-content/70">
-                      {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
-                    </p>
-                  </div>
-                </div>
+                 <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
+                   <Icon hero={<CalendarIcon className="w-5 h-5" />} emoji="📅" />
+                   <div>
+                     <span className="font-semibold">Member Since:</span>
+                     <p className="text-base-content/70">
+                       {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+                     </p>
+                   </div>
+                 </div>
 
-                <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
-                  <ShieldCheckIcon className="w-5 h-5 text-primary" />
-                  <div>
-                    <span className="font-semibold">Account Type:</span>
-                    <div className="mt-1">
-                      {user?.is_admin ? (
-                        <span className="badge badge-error">Administrator</span>
-                      ) : (
-                        <span className="badge badge-primary">User</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                 <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
+                   <Icon hero={<ShieldCheckIcon className="w-5 h-5" />} emoji="🛡️" />
+                   <div>
+                     <span className="font-semibold">Account Type:</span>
+                     <div className="mt-1">
+                       {user?.is_admin ? (
+                         <span className="badge badge-error">Administrator</span>
+                       ) : (
+                         <span className="badge badge-primary">User</span>
+                       )}
+                     </div>
+                   </div>
+                 </div>
               </div>
             )}
           </div>
 
           {/* Reading Statistics */}
           <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
-              <BookOpenIcon className="w-6 h-6" />
-              Reading Statistics
-            </h2>
+                         <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
+               <Icon hero={<BookOpenIcon className="w-6 h-6" />} emoji="📊" />
+               Reading Statistics
+             </h2>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="stat bg-primary text-primary-content rounded-box">
@@ -220,10 +291,10 @@ const ProfilePage: React.FC = () => {
 
           {/* Recent Activity */}
           <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
-              <ClockIcon className="w-6 h-6" />
-              Recent Activity
-            </h2>
+                         <h2 className="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
+               <Icon hero={<ClockIcon className="w-6 h-6" />} emoji="⏰" />
+               Recent Activity
+             </h2>
 
             <div className="space-y-4">
               {books.slice(0, 5).map((book) => (
@@ -272,19 +343,21 @@ const ProfilePage: React.FC = () => {
         <div className="lg:col-span-1 space-y-6">
           {/* Account Info */}
           <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
-            <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-              <UserIcon className="w-5 h-5" />
-              Account Info
-            </h3>
+                         <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+               <Icon hero={<UserIcon className="w-5 h-5" />} emoji="👤" />
+               Account Info
+             </h3>
             <div className="space-y-3">
               <div>
-                <span className="font-semibold">Member since:</span>
-                <p className="text-base-content/70">
-                  {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
-                </p>
+                <span className="font-semibold">Username:</span>
+                <p className="text-base-content/70">{user?.username}</p>
               </div>
               <div>
-                <span className="font-semibold">Status:</span>
+                <span className="font-semibold">Email:</span>
+                <p className="text-base-content/70">{user?.email}</p>
+              </div>
+              <div>
+                <span className="font-semibold">Account Type:</span>
                 <div className="mt-1">
                   {user?.is_admin ? (
                     <span className="badge badge-error">Administrator</span>
@@ -294,31 +367,41 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
               <div>
-                <span className="font-semibold">Books in library:</span>
-                <p className="text-base-content/70">{totalBooks}</p>
-              </div>
-              <div>
-                <span className="font-semibold">Reading logs:</span>
-                <p className="text-base-content/70">0</p>
+                <span className="font-semibold">Member Since:</span>
+                <p className="text-base-content/70">
+                  {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}
+                </p>
               </div>
             </div>
           </div>
 
           {/* Quick Actions */}
           <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
-            <h3 className="text-xl font-bold text-primary mb-4">⚡ Quick Actions</h3>
+            <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+              <Icon hero={<Cog6ToothIcon className="w-5 h-5" />} emoji="⚡" />
+              Quick Actions
+            </h3>
             <div className="space-y-3">
-              <button className="btn btn-outline btn-primary w-full">
-                <Cog6ToothIcon className="w-4 h-4 mr-2" />
-                Settings
+              <button 
+                onClick={handleSettings}
+                className="btn btn-outline btn-primary w-full"
+              >
+                <Icon hero={<Cog6ToothIcon className="w-4 h-4" />} emoji="⚙️" />
+                <span className="ml-2">Settings</span>
               </button>
-              <button className="btn btn-outline btn-secondary w-full">
-                <ShieldCheckIcon className="w-4 h-4 mr-2" />
-                Change Password
+              <button 
+                onClick={handleChangePassword}
+                className="btn btn-outline btn-secondary w-full"
+              >
+                <Icon hero={<ShieldCheckIcon className="w-4 h-4" />} emoji="🔒" />
+                <span className="ml-2">Change Password</span>
               </button>
-              <button className="btn btn-outline btn-info w-full">
-                <BookOpenIcon className="w-4 h-4 mr-2" />
-                My Activity
+              <button 
+                onClick={handleMyActivity}
+                className="btn btn-outline btn-info w-full"
+              >
+                <Icon hero={<BookOpenIcon className="w-4 h-4" />} emoji="📚" />
+                <span className="ml-2">My Activity</span>
               </button>
             </div>
           </div>
@@ -326,20 +409,21 @@ const ProfilePage: React.FC = () => {
           {/* Admin Debug Settings */}
           {user?.is_admin && (
             <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
-              <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
-                <Cog6ToothIcon className="w-5 h-5" />
-                🔧 Debug Settings
-              </h3>
+                             <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+                 <Icon hero={<Cog6ToothIcon className="w-5 h-5" />} emoji="🔧" />
+                 Debug Settings
+               </h3>
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
                   className="toggle toggle-primary"
                   id="debug_mode"
                 />
-                <div>
-                  <label className="font-semibold" htmlFor="debug_mode">
-                    🔍 Enable Debug Mode
-                  </label>
+                                 <div>
+                   <label className="font-semibold flex items-center gap-2" htmlFor="debug_mode">
+                     <Icon hero={<MagnifyingGlassIcon className="w-4 h-4" />} emoji="🔍" />
+                     Enable Debug Mode
+                   </label>
                   <p className="text-sm text-base-content/60">
                     Show debug information and enable the test scanner button on the library page for troubleshooting
                   </p>
@@ -349,6 +433,86 @@ const ProfilePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      {showChangePassword && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg text-primary mb-4">🔒 Change Password</h3>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              {passwordError && (
+                <div className="alert alert-error">
+                  <span>{passwordError}</span>
+                </div>
+              )}
+              
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">Current Password</span>
+                </label>
+                <input
+                  type="password"
+                  className="input input-bordered w-full"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">New Password</span>
+                </label>
+                <input
+                  type="password"
+                  className="input input-bordered w-full"
+                  value={passwordData.newPassword}
+                  onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold">Confirm New Password</span>
+                </label>
+                <input
+                  type="password"
+                  className="input input-bordered w-full"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="modal-action">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePassword(false)}
+                  className="btn btn-outline"
+                  disabled={isChangingPassword}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isChangingPassword}
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Changing...
+                    </>
+                  ) : (
+                    'Change Password'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

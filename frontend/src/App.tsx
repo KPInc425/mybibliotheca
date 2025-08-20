@@ -17,9 +17,15 @@ import ProfilePage from '@/pages/ProfilePage';
 import SettingsPage from '@/pages/SettingsPage';
 import AdminDashboardPage from '@/pages/AdminDashboardPage';
 import AdminUsersPage from '@/pages/AdminUsersPage';
+import AdminCreateUserPage from '@/pages/AdminCreateUserPage';
 import AdminSettingsPage from '@/pages/AdminSettingsPage';
 import AdminBackupPage from '@/pages/AdminBackupPage';
 import CommunityActivityPage from '@/pages/CommunityActivityPage';
+import ActiveReadersPage from '@/pages/ActiveReadersPage';
+import BooksThisMonthPage from '@/pages/BooksThisMonthPage';
+import CurrentlyReadingPage from '@/pages/CurrentlyReadingPage';
+import RecentActivityPage from '@/pages/RecentActivityPage';
+import UserProfilePage from '@/pages/UserProfilePage';
 import PublicLibraryPage from '@/pages/PublicLibraryPage';
 import MonthWrapupPage from '@/pages/MonthWrapupPage';
 import ImportPage from '@/pages/ImportPage';
@@ -59,12 +65,18 @@ const App: React.FC = () => {
             
             {/* Admin Routes */}
             <Route path="admin" element={<AdminDashboardPage />} />
-            <Route path="admin/users" element={<AdminUsersPage />} />
-            <Route path="admin/settings" element={<AdminSettingsPage />} />
-            <Route path="admin/backup" element={<AdminBackupPage />} />
+								<Route path="admin/users" element={<AdminUsersPage />} />
+                <Route path="admin/users/create" element={<AdminCreateUserPage />} />
+                <Route path="admin/settings" element={<AdminSettingsPage />} />
+                <Route path="admin/backup" element={<AdminBackupPage />} />
             
             {/* Community */}
             <Route path="community/activity" element={<CommunityActivityPage />} />
+            <Route path="community/active-readers" element={<ActiveReadersPage />} />
+            <Route path="community/books-this-month" element={<BooksThisMonthPage />} />
+            <Route path="community/currently-reading" element={<CurrentlyReadingPage />} />
+            <Route path="community/recent-activity" element={<RecentActivityPage />} />
+            <Route path="user/:userId" element={<UserProfilePage />} />
             <Route path="public-library" element={<PublicLibraryPage />} />
             
             {/* Reports & Analytics */}

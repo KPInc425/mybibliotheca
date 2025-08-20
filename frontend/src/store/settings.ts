@@ -14,6 +14,7 @@ export interface UserSettings {
   scannerDebugMode: boolean;
   
   // Privacy preferences
+  shareCurrentReading: boolean;
   shareReadingActivity: boolean;
   showInPublicLibrary: boolean;
   
@@ -34,6 +35,7 @@ const defaultSettings: UserSettings = {
   compactMode: false,
   autoFetchBookData: true,
   scannerDebugMode: false,
+  shareCurrentReading: true,
   shareReadingActivity: true,
   showInPublicLibrary: true,
   emailNotifications: false,

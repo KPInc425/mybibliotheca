@@ -11,6 +11,7 @@ import {
   MagnifyingGlassIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -140,7 +141,7 @@ const DashboardPage: React.FC = () => {
           to="/add-book" 
           className="btn btn-primary btn-lg flex items-center gap-3"
         >
-          <PlusIcon className="w-6 h-6" />
+          <Icon hero={<PlusIcon className="w-6 h-6" />} emoji="➕" />
           Add Book
         </Link>
         
@@ -148,7 +149,7 @@ const DashboardPage: React.FC = () => {
           to="/library" 
           className="btn btn-outline btn-lg flex items-center gap-3"
         >
-          <BookOpenIcon className="w-6 h-6" />
+          <Icon hero={<BookOpenIcon className="w-6 h-6" />} emoji="📚" />
           Browse Library
         </Link>
         
@@ -156,7 +157,7 @@ const DashboardPage: React.FC = () => {
           to="/search" 
           className="btn btn-outline btn-lg flex items-center gap-3"
         >
-          <MagnifyingGlassIcon className="w-6 h-6" />
+          <Icon hero={<MagnifyingGlassIcon className="w-6 h-6" />} emoji="🔍" />
           Search Books
         </Link>
         
@@ -164,7 +165,7 @@ const DashboardPage: React.FC = () => {
           to="/reports/month-wrapup" 
           className="btn btn-outline btn-lg flex items-center gap-3"
         >
-          <ChartBarIcon className="w-6 h-6" />
+          <Icon hero={<ChartBarIcon className="w-6 h-6" />} emoji="📊" />
           Month Wrap-up
         </Link>
       </div>
@@ -174,7 +175,7 @@ const DashboardPage: React.FC = () => {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title text-primary mb-6">
-              <ClockIcon className="w-6 h-6" />
+              <Icon hero={<ClockIcon className="w-6 h-6" />} emoji="⏱️" />
               Currently Reading
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -220,7 +221,7 @@ const DashboardPage: React.FC = () => {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title text-primary mb-6">
-              <PlusIcon className="w-6 h-6" />
+              <Icon hero={<PlusIcon className="w-6 h-6" />} emoji="➕" />
               Recently Added
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -277,11 +278,11 @@ const DashboardPage: React.FC = () => {
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <Link to="/add-book" className="btn btn-primary">
-                <PlusIcon className="w-5 h-5 mr-2" />
+                <Icon hero={<PlusIcon className="w-5 h-5 mr-2" />} emoji="➕" />
                 Add Your First Book
               </Link>
               <Link to="/search" className="btn btn-outline">
-                <MagnifyingGlassIcon className="w-5 h-5 mr-2" />
+                <Icon hero={<MagnifyingGlassIcon className="w-5 h-5 mr-2" />} emoji="🔍" />
                 Search for Books
               </Link>
             </div>

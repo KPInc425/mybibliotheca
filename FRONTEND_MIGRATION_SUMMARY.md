@@ -17,7 +17,7 @@ The React frontend migration has been **successfully completed** with full featu
 | **Book Management** | ✅ Complete | Add, edit, delete, status changes, reading logs |
 | **Search & Filtering** | ✅ Complete | Advanced search with multiple filters |
 | **Import/Export** | ✅ Complete | CSV import with progress tracking |
-| **Community Features** | ✅ Complete | User profiles, activity sharing, public library |
+| **Community Features** | ✅ Complete | User profiles, activity sharing, public library, detailed community statistics |
 | **Reports & Analytics** | ✅ Complete | Month wrap-up, reading statistics |
 | **Admin Features** | ✅ Complete | Dashboard, user management, settings, backup |
 | **Barcode Scanner** | ✅ Complete | Native/browser fallback with intelligent detection |

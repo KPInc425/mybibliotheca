@@ -15,6 +15,7 @@ import {
   PencilIcon,
   FireIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 const Sidebar: React.FC = () => {
   const location = useLocation();
@@ -28,9 +29,9 @@ const Sidebar: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
-  const getIcon = (heroIcon: React.ReactNode, emoji: string) => {
-    return settings.useHeroIcons ? heroIcon : <span className="text-xl">{emoji}</span>;
-  };
+  const getIcon = (heroIcon: React.ReactNode, emoji: string) => (
+    <Icon hero={heroIcon} emoji={emoji} />
+  );
 
   const handleLogout = async () => {
     try {
@@ -61,7 +62,10 @@ const Sidebar: React.FC = () => {
           <div className="collapse collapse-arrow bg-base-200 border-0">
             <input type="checkbox" defaultChecked /> 
             <div className="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
-              📚 Library
+              <div className="flex items-center gap-2">
+                {getIcon(<BuildingLibraryIcon className="w-4 h-4" />, '📚')}
+                <span>Library</span>
+              </div>
             </div>
             <div className="collapse-content space-y-2 pt-2">
               <Link
@@ -116,7 +120,10 @@ const Sidebar: React.FC = () => {
           <div className="collapse collapse-arrow bg-base-200 border-0">
             <input type="checkbox" /> 
             <div className="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
-              🌐 Community
+              <div className="flex items-center gap-2">
+                {getIcon(<FireIcon className="w-4 h-4" />, '🌐')}
+                <span>Community</span>
+              </div>
             </div>
             <div className="collapse-content space-y-2 pt-2">
               <Link
@@ -144,7 +151,10 @@ const Sidebar: React.FC = () => {
           <div className="collapse collapse-arrow bg-base-200 border-0">
             <input type="checkbox" /> 
             <div className="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
-              📊 Reports
+              <div className="flex items-center gap-2">
+                {getIcon(<ChartBarIcon className="w-4 h-4" />, '📊')}
+                <span>Reports</span>
+              </div>
             </div>
             <div className="collapse-content space-y-2 pt-2">
               <Link
@@ -163,7 +173,10 @@ const Sidebar: React.FC = () => {
           <div className="collapse collapse-arrow bg-base-200 border-0">
             <input type="checkbox" /> 
             <div className="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
-              🛠️ Tools
+              <div className="flex items-center gap-2">
+                {getIcon(<ArrowDownTrayIcon className="w-4 h-4" />, '🛠️')}
+                <span>Tools</span>
+              </div>
             </div>
             <div className="collapse-content space-y-2 pt-2">
               <Link
@@ -182,7 +195,10 @@ const Sidebar: React.FC = () => {
           <div className="collapse collapse-arrow bg-base-200 border-0">
             <input type="checkbox" /> 
             <div className="collapse-title text-sm font-semibold text-base-content/80 uppercase tracking-wider bg-base-200 rounded-lg mb-2">
-              👤 Account
+              <div className="flex items-center gap-2">
+                {getIcon(<UserIcon className="w-4 h-4" />, '👤')}
+                <span>Account</span>
+              </div>
             </div>
             <div className="collapse-content space-y-2 pt-2">
               <Link
@@ -219,7 +235,7 @@ const Sidebar: React.FC = () => {
                 onClick={handleLogout}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-error hover:text-error-content hover:translate-x-1 transition-all duration-200 w-full text-left"
               >
-                <span className="text-xl">🚪</span>
+                                 {getIcon(<ArrowDownTrayIcon className="w-5 h-5 rotate-90" />, '🚪')}
                 <span className="font-medium">Logout</span>
               </button>
             </div>

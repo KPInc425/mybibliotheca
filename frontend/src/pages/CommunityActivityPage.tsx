@@ -14,6 +14,7 @@ const CommunityActivityPage: React.FC = () => {
   const [activity, setActivity] = useState<CommunityActivity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCommunityActivity = async () => {
@@ -102,43 +103,128 @@ const CommunityActivityPage: React.FC = () => {
 
       {/* Community Statistics */}
       {activity && (
-        <div className="stats shadow bg-base-100">
-          <div className="stat">
-            <div className="stat-figure text-primary">
-              <UserIcon className="w-8 h-8" />
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div 
+              className={`card shadow-xl cursor-pointer transition-all duration-200 hover:scale-105 ${
+                activeSection === 'active_readers' 
+                  ? 'bg-primary text-primary-content ring-4 ring-primary ring-opacity-50' 
+                  : 'bg-primary text-primary-content'
+              }`}
+              onClick={() => setActiveSection(activeSection === 'active_readers' ? null : 'active_readers')}
+            >
+              <div className="card-body">
+                <div className="stat-figure">
+                  <UserIcon className="w-8 h-8" />
+                </div>
+                <div className="stat-title">Active Readers</div>
+                <div className="stat-value">{activity.active_readers || 0}</div>
+                <div className="stat-desc">Sharing their activity</div>
+              </div>
             </div>
-            <div className="stat-title">Active Readers</div>
-            <div className="stat-value text-primary">{activity.active_readers || 0}</div>
-            <div className="stat-desc">Sharing their activity</div>
-          </div>
-          
-          <div className="stat">
-            <div className="stat-figure text-success">
-              <BookOpenIcon className="w-8 h-8" />
+            
+            <div 
+              className={`card shadow-xl cursor-pointer transition-all duration-200 hover:scale-105 ${
+                activeSection === 'books_this_month' 
+                  ? 'bg-success text-success-content ring-4 ring-success ring-opacity-50' 
+                  : 'bg-success text-success-content'
+              }`}
+              onClick={() => setActiveSection(activeSection === 'books_this_month' ? null : 'books_this_month')}
+            >
+              <div className="card-body">
+                <div className="stat-figure">
+                  <BookOpenIcon className="w-8 h-8" />
+                </div>
+                <div className="stat-title">Books This Month</div>
+                <div className="stat-value">{activity.books_this_month || 0}</div>
+                <div className="stat-desc">Finished by community</div>
+              </div>
             </div>
-            <div className="stat-title">Books This Month</div>
-            <div className="stat-value text-success">{activity.books_this_month || 0}</div>
-            <div className="stat-desc">Finished by community</div>
-          </div>
-          
-          <div className="stat">
-            <div className="stat-figure text-warning">
-              <ClockIcon className="w-8 h-8" />
+            
+            <div 
+              className={`card shadow-xl cursor-pointer transition-all duration-200 hover:scale-105 ${
+                activeSection === 'currently_reading' 
+                  ? 'bg-warning text-warning-content ring-4 ring-warning ring-opacity-50' 
+                  : 'bg-warning text-warning-content'
+              }`}
+              onClick={() => setActiveSection(activeSection === 'currently_reading' ? null : 'currently_reading')}
+            >
+              <div className="card-body">
+                <div className="stat-figure">
+                  <ClockIcon className="w-8 h-8" />
+                </div>
+                <div className="stat-title">Currently Reading</div>
+                <div className="stat-value">{activity.currently_reading || 0}</div>
+                <div className="stat-desc">Active books</div>
+              </div>
             </div>
-            <div className="stat-title">Currently Reading</div>
-            <div className="stat-value text-warning">{activity.currently_reading || 0}</div>
-            <div className="stat-desc">Active books</div>
-          </div>
-          
-          <div className="stat">
-            <div className="stat-figure text-info">
-              <ChartBarIcon className="w-8 h-8" />
+            
+            <div 
+              className={`card shadow-xl cursor-pointer transition-all duration-200 hover:scale-105 ${
+                activeSection === 'recent_activity' 
+                  ? 'bg-info text-info-content ring-4 ring-info ring-opacity-50' 
+                  : 'bg-info text-info-content'
+              }`}
+              onClick={() => setActiveSection(activeSection === 'recent_activity' ? null : 'recent_activity')}
+            >
+              <div className="card-body">
+                <div className="stat-figure">
+                  <ChartBarIcon className="w-8 h-8" />
+                </div>
+                <div className="stat-title">Recent Activity</div>
+                <div className="stat-value">{activity.recent_activity?.length || 0}</div>
+                <div className="stat-desc">Reading sessions</div>
+              </div>
             </div>
-            <div className="stat-title">Recent Activity</div>
-            <div className="stat-value text-info">{activity.recent_activity?.length || 0}</div>
-            <div className="stat-desc">Reading sessions</div>
           </div>
-        </div>
+
+          {/* Dynamic Content Area */}
+          {activeSection && (
+            <div className="card bg-base-100 shadow-xl">
+              <div className="card-body">
+                {activeSection === 'active_readers' && (
+                  <div className="text-center py-8">
+                    <h3 className="text-xl font-bold mb-4">🔥 Active Readers</h3>
+                    <p className="text-base-content/70 mb-4">Community members sharing their reading activity</p>
+                    <Link to="/community/active-readers" className="btn btn-primary">
+                      View Active Readers
+                    </Link>
+                  </div>
+                )}
+                
+                {activeSection === 'books_this_month' && (
+                  <div className="text-center py-8">
+                    <h3 className="text-xl font-bold mb-4">📚 Books This Month</h3>
+                    <p className="text-base-content/70 mb-4">Books finished by community members this month</p>
+                    <Link to="/community/books-this-month" className="btn btn-success">
+                      View Books This Month
+                    </Link>
+                  </div>
+                )}
+                
+                {activeSection === 'currently_reading' && (
+                  <div className="text-center py-8">
+                    <h3 className="text-xl font-bold mb-4">📖 Currently Reading</h3>
+                    <p className="text-base-content/70 mb-4">Books currently being read by community members</p>
+                    <Link to="/community/currently-reading" className="btn btn-warning">
+                      View Currently Reading
+                    </Link>
+                  </div>
+                )}
+                
+                {activeSection === 'recent_activity' && (
+                  <div className="text-center py-8">
+                    <h3 className="text-xl font-bold mb-4">📅 Recent Activity</h3>
+                    <p className="text-base-content/70 mb-4">Recent reading activity from community members</p>
+                    <Link to="/community/recent-activity" className="btn btn-info">
+                      View Recent Activity
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Recent Reading Activity */}

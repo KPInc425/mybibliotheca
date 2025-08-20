@@ -10,8 +10,12 @@ import {
   ExclamationTriangleIcon,
   UserPlusIcon,
   PlusIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  ChartBarIcon,
+  TrophyIcon,
+  BoltIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 interface SystemStats {
   total_users: number;
@@ -160,16 +164,16 @@ const AdminDashboardPage: React.FC = () => {
         <h2 className="text-2xl font-bold">System Overview</h2>
         <div className="flex gap-2">
           <Link to="/admin/users" className="btn btn-outline btn-primary">
-            <UsersIcon className="w-4 h-4 mr-2" />
-            👥 Manage Users
+            <Icon hero={<UsersIcon className="w-4 h-4" />} emoji="👥" />
+            <span className="ml-2">Manage Users</span>
           </Link>
           <Link to="/admin/settings" className="btn btn-outline btn-secondary">
-            <Cog6ToothIcon className="w-4 h-4 mr-2" />
-            ⚙️ Settings
+            <Icon hero={<Cog6ToothIcon className="w-4 h-4" />} emoji="⚙️" />
+            <span className="ml-2">Settings</span>
           </Link>
           <Link to="/library" className="btn btn-outline btn-accent">
-            <BookOpenIcon className="w-4 h-4 mr-2" />
-            📚 Back to Library
+            <Icon hero={<BookOpenIcon className="w-4 h-4" />} emoji="📚" />
+            <span className="ml-2">Back to Library</span>
           </Link>
         </div>
       </div>
@@ -210,13 +214,16 @@ const AdminDashboardPage: React.FC = () => {
       {/* Recent Activity */}
       <div className="card bg-base-100 shadow-xl mb-8">
         <div className="card-body">
-          <h2 className="card-title text-primary mb-4">📊 Recent Activity</h2>
+          <h2 className="card-title text-primary mb-4 flex items-center gap-2">
+            <Icon hero={<ChartBarIcon className="w-6 h-6" />} emoji="📊" />
+            Recent Activity
+          </h2>
           <div className="space-y-4">
             {recentUsers.length > 0 ? (
               recentUsers.slice(0, 3).map((user) => (
                 <div key={user.id} className="flex items-center justify-between p-3 bg-base-200 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <UserPlusIcon className="w-5 h-5 text-info" />
+                    <Icon hero={<UserPlusIcon className="w-5 h-5" />} emoji="➕" />
                     <div>
                       <span className="font-semibold">New User Registration</span>
                       <p className="text-sm text-base-content/70">User "{user.username}" registered</p>
@@ -241,7 +248,10 @@ const AdminDashboardPage: React.FC = () => {
         {/* Top Users */}
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
-            <h2 className="card-title text-primary mb-4">🏆 Most Active Users</h2>
+            <h2 className="card-title text-primary mb-4 flex items-center gap-2">
+              <Icon hero={<TrophyIcon className="w-6 h-6" />} emoji="🏆" />
+              Most Active Users
+            </h2>
             {stats.top_users.length > 0 ? (
               <div className="space-y-3">
                 {stats.top_users.map((user, index) => (
@@ -261,7 +271,10 @@ const AdminDashboardPage: React.FC = () => {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="card-title text-primary">👥 Recent Users</h2>
+              <h2 className="card-title text-primary flex items-center gap-2">
+                <Icon hero={<UsersIcon className="w-6 h-6" />} emoji="👥" />
+                Recent Users
+              </h2>
               <span className="text-sm text-base-content/60">Last 30 days</span>
             </div>
             {recentUsers.length > 0 ? (
@@ -297,7 +310,10 @@ const AdminDashboardPage: React.FC = () => {
       <div className="card bg-base-100 shadow-xl mb-8">
         <div className="card-body">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="card-title text-primary">📚 Recent Books</h2>
+            <h2 className="card-title text-primary flex items-center gap-2">
+              <Icon hero={<BookOpenIcon className="w-6 h-6" />} emoji="📚" />
+              Recent Books
+            </h2>
             <span className="text-sm text-base-content/60">Last 30 days</span>
           </div>
           
@@ -336,7 +352,7 @@ const AdminDashboardPage: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <BookOpenIcon className="w-16 h-16 text-base-content/30 mx-auto mb-4" />
+              <Icon hero={<BookOpenIcon className="w-16 h-16 text-base-content/30 mx-auto mb-4" />} emoji="📚" />
               <p className="text-base-content/70">No books in the system yet</p>
             </div>
           )}
@@ -346,23 +362,26 @@ const AdminDashboardPage: React.FC = () => {
       {/* Quick Actions */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title text-primary mb-6">⚡ Quick Actions</h2>
+          <h2 className="card-title text-primary mb-6 flex items-center gap-2">
+            <Icon hero={<BoltIcon className="w-6 h-6" />} emoji="⚡" />
+            Quick Actions
+          </h2>
           <div className="flex flex-wrap gap-3">
             <Link to="/admin/users" className="btn btn-outline btn-primary">
-              <UsersIcon className="w-4 h-4 mr-2" />
-              👥 Manage Users
+              <Icon hero={<UsersIcon className="w-4 h-4" />} emoji="👥" />
+              <span className="ml-2">Manage Users</span>
             </Link>
             <Link to="/admin/users/create" className="btn btn-outline btn-success">
-              <UserPlusIcon className="w-4 h-4 mr-2" />
-              ➕ Create New User
+              <Icon hero={<UserPlusIcon className="w-4 h-4" />} emoji="➕" />
+              <span className="ml-2">Create New User</span>
             </Link>
             <Link to="/import" className="btn btn-outline btn-info">
-              <PlusIcon className="w-4 h-4 mr-2" />
-              📥 Bulk Import Books
+              <Icon hero={<PlusIcon className="w-4 h-4" />} emoji="📥" />
+              <span className="ml-2">Bulk Import Books</span>
             </Link>
             <Link to="/admin/backup" className="btn btn-outline btn-warning">
-              <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
-              💾 Backup Database
+              <Icon hero={<ArrowDownTrayIcon className="w-4 h-4" />} emoji="💾" />
+              <span className="ml-2">Backup Database</span>
             </Link>
           </div>
         </div>

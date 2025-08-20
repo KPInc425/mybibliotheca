@@ -7,6 +7,7 @@ import {
   Squares2X2Icon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 interface FilterState {
   search: string;
@@ -154,7 +155,7 @@ const LibraryPage: React.FC = () => {
               onClick={() => setShowMobileFilters(!showMobileFilters)}
               className="btn btn-outline btn-sm"
             >
-              <FunnelIcon className="w-4 h-4 mr-2" />
+              <Icon hero={<FunnelIcon className="w-4 h-4 mr-2" />} emoji="⚙️" />
               Filters
             </button>
           </div>
@@ -316,14 +317,14 @@ const LibraryPage: React.FC = () => {
             onClick={() => setViewMode('grid')}
             className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-outline'}`}
           >
-            <Squares2X2Icon className="w-4 h-4" />
+            <Icon hero={<Squares2X2Icon className="w-4 h-4" />} emoji="🔳" />
             Grid
           </button>
           <button 
             onClick={() => setViewMode('list')}
             className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-outline'}`}
           >
-            <ListBulletIcon className="w-4 h-4" />
+            <Icon hero={<ListBulletIcon className="w-4 h-4" />} emoji="📋" />
             List
           </button>
         </div>

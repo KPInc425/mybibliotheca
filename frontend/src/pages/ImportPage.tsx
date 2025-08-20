@@ -10,6 +10,7 @@ import {
   XMarkIcon,
   BookOpenIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 interface ImportResult {
   success: boolean;
@@ -65,7 +66,6 @@ const ImportPage: React.FC = () => {
       if (importType === 'csv' && file) {
         const formData = new FormData();
         formData.append('file', file);
-        
         response = await api.post<ImportResult>('/import/csv', formData);
       } else if (importType === 'goodreads') {
         response = await api.post<ImportResult>('/import/goodreads', {
@@ -112,7 +112,7 @@ const ImportPage: React.FC = () => {
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title text-primary mb-6">
-            <ArrowDownTrayIcon className="w-6 h-6" />
+            <Icon hero={<ArrowDownTrayIcon className="w-6 h-6" />} emoji="⬇️" />
             Choose Import Method
           </h2>
           
@@ -123,7 +123,7 @@ const ImportPage: React.FC = () => {
                 importType === 'csv' ? 'btn-primary' : 'btn-outline'
               }`}
             >
-              <DocumentTextIcon className="w-8 h-8" />
+              <Icon hero={<DocumentTextIcon className="w-8 h-8" />} emoji="📄" />
               <span>CSV Import</span>
               <span className="text-xs opacity-70">Upload a CSV file</span>
             </button>
@@ -134,7 +134,7 @@ const ImportPage: React.FC = () => {
                 importType === 'goodreads' ? 'btn-primary' : 'btn-outline'
               }`}
             >
-              <BookOpenIcon className="w-8 h-8" />
+              <Icon hero={<BookOpenIcon className="w-8 h-8" />} emoji="📖" />
               <span>Goodreads Import</span>
               <span className="text-xs opacity-70">Import from Goodreads URL</span>
             </button>
@@ -147,7 +147,7 @@ const ImportPage: React.FC = () => {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title text-primary mb-6">
-              <DocumentTextIcon className="w-6 h-6" />
+              <Icon hero={<DocumentTextIcon className="w-6 h-6" />} emoji="📄" />
               CSV Import
             </h2>
             
@@ -174,7 +174,7 @@ const ImportPage: React.FC = () => {
               
               {file && (
                 <div className="alert alert-info">
-                  <DocumentTextIcon className="w-5 h-5" />
+                  <Icon hero={<DocumentTextIcon className="w-5 h-5" />} emoji="📄" />
                   <span>Selected file: {file.name} ({(file.size / 1024).toFixed(1)} KB)</span>
                 </div>
               )}
@@ -192,7 +192,7 @@ const ImportPage: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <CloudArrowUpIcon className="w-5 h-5" />
+                      <Icon hero={<CloudArrowUpIcon className="w-5 h-5" />} emoji="☁️" />
                       Import CSV
                     </>
                   )}
@@ -203,7 +203,7 @@ const ImportPage: React.FC = () => {
                     onClick={resetImport}
                     className="btn btn-outline"
                   >
-                    <XMarkIcon className="w-5 h-5" />
+                    <Icon hero={<XMarkIcon className="w-5 h-5" />} emoji="✖️" />
                     Clear
                   </button>
                 )}
@@ -218,7 +218,7 @@ const ImportPage: React.FC = () => {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
             <h2 className="card-title text-primary mb-6">
-              <BookOpenIcon className="w-6 h-6" />
+              <Icon hero={<BookOpenIcon className="w-6 h-6" />} emoji="📖" />
               Goodreads Import
             </h2>
             
@@ -256,7 +256,7 @@ const ImportPage: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <BookOpenIcon className="w-5 h-5" />
+                      <Icon hero={<BookOpenIcon className="w-5 h-5" />} emoji="📖" />
                       Import from Goodreads
                     </>
                   )}
@@ -267,7 +267,7 @@ const ImportPage: React.FC = () => {
                     onClick={resetImport}
                     className="btn btn-outline"
                   >
-                    <XMarkIcon className="w-5 h-5" />
+                    <Icon hero={<XMarkIcon className="w-5 h-5" />} emoji="✖️" />
                     Clear
                   </button>
                 )}
@@ -315,7 +315,7 @@ const ImportPage: React.FC = () => {
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title text-primary mb-6">
-            <BookOpenIcon className="w-6 h-6" />
+            <Icon hero={<BookOpenIcon className="w-6 h-6" />} emoji="📖" />
             Import Help
           </h2>
           
@@ -349,11 +349,11 @@ const ImportPage: React.FC = () => {
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <Link to="/library" className="btn btn-outline">
-                <BookOpenIcon className="w-5 h-5 mr-2" />
+                <Icon hero={<BookOpenIcon className="w-5 h-5 mr-2" />} emoji="📚" />
                 View Library
               </Link>
               <Link to="/add-book" className="btn btn-primary">
-                <BookOpenIcon className="w-5 h-5 mr-2" />
+                <Icon hero={<BookOpenIcon className="w-5 h-5 mr-2" />} emoji="📖" />
                 Add Book Manually
               </Link>
             </div>

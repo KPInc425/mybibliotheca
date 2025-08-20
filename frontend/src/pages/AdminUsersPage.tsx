@@ -11,6 +11,7 @@ import {
   ShieldCheckIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 interface AdminUser {
   id: number;
@@ -50,9 +51,9 @@ const AdminUsersPage: React.FC = () => {
       });
       
       if (response.success && response.data) {
-        setUsers(response.data.items || []);
-        setTotalPages(response.data.pages || 1);
-        setTotalUsers(response.data.total || 0);
+        setUsers(response.data.users || []);
+        setTotalPages(response.data.pagination?.pages || 1);
+        setTotalUsers(response.data.pagination?.total || 0);
       }
     } catch (err) {
       setError('Failed to load users');
@@ -64,7 +65,7 @@ const AdminUsersPage: React.FC = () => {
 
   const handleToggleAdmin = async (userId: number) => {
     try {
-      const response = await api.admin.toggleUserAdmin(userId);
+      const response = await api.admin.toggleUserAdmin(userId.toString());
       if (response.success) {
         // Refresh the users list
         fetchUsers();
@@ -76,7 +77,7 @@ const AdminUsersPage: React.FC = () => {
 
   const handleToggleActive = async (userId: number) => {
     try {
-      const response = await api.admin.toggleUserActive(userId);
+      const response = await api.admin.toggleUserActive(userId.toString());
       if (response.success) {
         // Refresh the users list
         fetchUsers();
@@ -92,7 +93,7 @@ const AdminUsersPage: React.FC = () => {
     }
 
     try {
-      const response = await api.admin.deleteUser(userId);
+      const response = await api.admin.deleteUser(userId.toString());
       if (response.success) {
         // Refresh the users list
         fetchUsers();
@@ -172,7 +173,7 @@ const AdminUsersPage: React.FC = () => {
       {/* Search and Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div className="form-control w-full max-w-md">
-          <div className="input-group">
+          <div className="input-group flex">
             <input
               type="text"
               placeholder="Search users..."
@@ -181,14 +182,14 @@ const AdminUsersPage: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <button className="btn btn-square btn-primary">
-              <MagnifyingGlassIcon className="w-5 h-5" />
+              <Icon hero={<MagnifyingGlassIcon className="w-5 h-5" />} emoji="🔍" />
             </button>
           </div>
         </div>
         
         <div className="flex gap-2">
           <Link to="/admin/users/create" className="btn btn-primary">
-            <PlusIcon className="w-4 h-4 mr-2" />
+            <Icon hero={<PlusIcon className="w-4 h-4 mr-2" />} emoji="➕" />
             Add User
           </Link>
           <Link to="/admin" className="btn btn-outline btn-secondary">
@@ -227,7 +228,7 @@ const AdminUsersPage: React.FC = () => {
                 <div key={user.id} className="flex items-center justify-between p-4 bg-base-200 rounded-lg">
                   <div className="flex items-center gap-4">
                     <div className="avatar placeholder">
-                      <div className="bg-primary text-primary-content rounded-full w-12">
+                      <div className="bg-primary text-primary-content rounded-full w-12 pt-2.5 pl-4.5">
                         <span className="text-lg font-bold">
                           {user.username.charAt(0).toUpperCase()}
                         </span>

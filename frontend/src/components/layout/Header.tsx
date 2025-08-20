@@ -10,6 +10,7 @@ import {
   UserIcon,
   Cog6ToothIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -23,9 +24,9 @@ const Header: React.FC = () => {
     return location.pathname.startsWith(path);
   };
 
-  const getIcon = (heroIcon: React.ReactNode, emoji: string) => {
-    return settings.useHeroIcons ? heroIcon : <span className="text-lg">{emoji}</span>;
-  };
+  const getIcon = (heroIcon: React.ReactNode, emoji: string) => (
+    <Icon hero={heroIcon} emoji={emoji} />
+  );
 
   const handleLogout = async () => {
     try {
@@ -90,7 +91,7 @@ const Header: React.FC = () => {
       <div className="navbar-end">
         <div className="dropdown dropdown-end">
           <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-            <div className="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center">
+            <div className="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center pt-1">
               <span className="text-lg font-bold">
                 {user?.username?.charAt(0).toUpperCase() || 'U'}
               </span>
@@ -126,7 +127,7 @@ const Header: React.FC = () => {
                 onClick={handleLogout}
                 className="flex items-center gap-2 text-error"
               >
-                <span className="text-lg">🚪</span>
+                {getIcon(<Bars3Icon className="w-4 h-4 rotate-90" />, '🚪')}
                 Logout
               </button>
             </li>

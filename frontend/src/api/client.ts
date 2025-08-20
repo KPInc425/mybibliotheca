@@ -83,31 +83,41 @@ export const api = {
   
   // Book-related endpoints
   books: {
-    getAll: (filters?: any) => api.get<Book[]>('/books', filters),
+    getAll: (params?: any) => api.get<Book[]>('/books', { params }),
     getById: (uid: string) => api.get<Book>(`/books/${uid}`),
     create: (data: any) => api.post<Book>('/books', data),
     update: (uid: string, data: any) => api.put<Book>(`/books/${uid}`, data),
     delete: (uid: string) => api.delete(`/books/${uid}`),
+    updateStatus: (uid: string, data: any) => api.put<Book>(`/books/${uid}/status`, data),
+    addReadingLog: (uid: string, data: any) => api.post<ReadingLog>(`/books/${uid}/reading-log`, data),
+    getReadingLogs: (uid: string) => api.get<ReadingLog[]>(`/books/${uid}/reading-logs`),
+    logReading: (uid: string, data: any) => api.post<ReadingLog>(`/books/${uid}/reading-log`, data),
     lookup: (isbn: string) => api.get<any>(`/books/lookup/${isbn}`),
-    updateStatus: (uid: string, status: string) => 
-      api.put<Book>(`/books/${uid}/status`, { status }),
-    logReading: (uid: string, data: any) => 
-      api.post<any>(`/books/${uid}/reading-log`, data),
-    getReadingLogs: (uid: string) => 
-      api.get<any>(`/books/${uid}/reading-logs`),
+    getPublic: (filter?: string) => api.get<Book[]>(`/books/public`, { params: { filter } }),
+    search: (query: string, page = 1, pageSize = 20) => api.get<any>(`/books/search?q=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`),
   },
-  
+
+  // Reports endpoints
+  reports: {
+    getMonthWrapup: (year: number, month: number) => api.get<any>(`/reports/month-wrapup/${year}/${month}`),
+  },
+
   // User-related endpoints
   user: {
     getProfile: () => api.get<User>('/user/profile'),
     updateProfile: (data: any) => api.put<User>('/user/profile', data),
     getStatistics: () => api.get<UserStatistics>('/user/statistics'),
     getReadingHistory: () => api.get<ReadingLog[]>('/user/reading-history'),
+    getPublicProfile: (userId: string) => api.get<any>(`/user/${userId}/profile`),
   },
   
   // Community endpoints
   community: {
     getActivity: () => api.get<CommunityActivity>('/community/activity'),
+    getActiveReaders: () => api.get<any>('/community/active-readers'),
+    getBooksThisMonth: () => api.get<any>('/community/books-this-month'),
+    getCurrentlyReading: () => api.get<any>('/community/currently-reading'),
+    getRecentActivity: () => api.get<any>('/community/recent-activity'),
   },
   
   // System endpoints (admin only)
@@ -117,21 +127,25 @@ export const api = {
   },
   
   // Admin endpoints (admin only)
-  admin: {
-    getStats: () => api.get<any>('/admin/stats'),
-    getRecentUsers: () => api.get<any[]>('/admin/users/recent'),
-    getUsers: (params?: any) => api.get<any>('/admin/users', params),
-    getUser: (id: number) => api.get<any>(`/admin/users/${id}`),
-    toggleUserAdmin: (id: number) => api.post<any>(`/admin/users/${id}/toggle_admin`),
-    toggleUserActive: (id: number) => api.post<any>(`/admin/users/${id}/toggle_active`),
-    deleteUser: (id: number) => api.post<any>(`/admin/users/${id}/delete`),
-    resetUserPassword: (id: number, data: any) => api.post<any>(`/admin/users/${id}/reset_password`, data),
-    unlockUserAccount: (id: number) => api.post<any>(`/admin/users/${id}/unlock_account`),
-    getSettings: () => api.get<any>('/admin/settings'),
-    updateSettings: (data: any) => api.post<any>('/admin/settings', data),
-    resetSettings: () => api.post<any>('/admin/settings/reset'),
-    createBackup: () => api.post<any>('/admin/backup'),
-  },
+                admin: {
+                getStats: () => api.get<any>('/admin/stats'),
+                getRecentUsers: () => api.get<any[]>('/admin/users/recent'),
+                getUsers: (params?: any) => api.get<any>('/admin/users', params),
+                getUser: (userId: string) => api.get<any>(`/admin/users/${userId}`),
+                createUser: (data: { username: string; email: string; password: string }) => api.post<any>('/admin/users', data),
+                toggleUserAdmin: (userId: string) => api.post<any>(`/admin/users/${userId}/toggle-admin`),
+                toggleUserActive: (userId: string) => api.post<any>(`/admin/users/${userId}/toggle-active`),
+                deleteUser: (userId: string) => api.post<any>(`/admin/users/${userId}/delete`),
+                resetUserPassword: (userId: string) => api.post<any>(`/admin/users/${userId}/reset-password`),
+                unlockUserAccount: (userId: string) => api.post<any>(`/admin/users/${userId}/unlock`),
+                getSettings: () => api.get<any>('/system/settings'),
+                updateSettings: (data: any) => api.put<any>('/system/settings', data),
+                resetSettings: () => api.post<any>('/system/settings/reset'),
+                createBackup: () => api.post<any>('/admin/backup'),
+                // Return raw axios response to preserve headers and blob
+                downloadBackup: () => apiClient.get('/admin/backup/download', { responseType: 'blob' }),
+                getBackupStatus: () => api.get<any>('/admin/backup/status'),
+              },
 };
 
 export default apiClient; 

@@ -250,6 +250,145 @@ class UserService:
             'currently_reading': currently_reading,
             'recent_activity': [log.to_dict() for log in recent_activity]
         }
+
+    def get_active_readers(self) -> List[Dict[str, Any]]:
+        """
+        Get active readers with their statistics
+        
+        Returns:
+            List of active readers with stats
+        """
+        # Get users who share their reading activity
+        sharing_users = User.query.filter_by(share_reading_activity=True, is_active=True).all()
+        
+        user_stats = []
+        for user in sharing_users:
+            # Get books this month
+            current_month = datetime.now().month
+            current_year = datetime.now().year
+            books_this_month = Book.query.filter(
+                Book.user_id == user.id,
+                func.extract('month', Book.finish_date) == current_month,
+                func.extract('year', Book.finish_date) == current_year
+            ).count()
+            
+            # Get total books
+            total_books = Book.query.filter_by(user_id=user.id).count()
+            
+            # Get currently reading
+            currently_reading = Book.query.filter(
+                Book.user_id == user.id,
+                Book.finish_date.is_(None),
+                Book.want_to_read == False,
+                Book.library_only == False
+            ).count()
+            
+            user_stats.append({
+                'user': user.to_dict(),
+                'books_this_month': books_this_month,
+                'total_books': total_books,
+                'currently_reading': currently_reading
+            })
+        
+        # Sort by activity (books this month + currently reading)
+        user_stats.sort(key=lambda x: x['books_this_month'] + x['currently_reading'], reverse=True)
+        
+        return user_stats
+
+    def get_books_this_month(self) -> List[Dict[str, Any]]:
+        """
+        Get books finished this month by community members
+        
+        Returns:
+            List of books with user information
+        """
+        current_month = datetime.now().month
+        current_year = datetime.now().year
+        
+        books = Book.query.join(User).filter(
+            func.extract('month', Book.finish_date) == current_month,
+            func.extract('year', Book.finish_date) == current_year,
+            User.share_reading_activity == True,
+            User.is_active == True
+        ).all()
+        
+        return [book.to_dict() for book in books]
+
+    def get_currently_reading(self) -> List[Dict[str, Any]]:
+        """
+        Get books currently being read by community members
+        
+        Returns:
+            List of books with user information
+        """
+        books = Book.query.join(User).filter(
+            Book.finish_date.is_(None),
+            Book.want_to_read == False,
+            Book.library_only == False,
+            User.share_reading_activity == True,
+            User.is_active == True
+        ).all()
+        
+        return [book.to_dict() for book in books]
+
+    def get_recent_activity(self) -> List[Dict[str, Any]]:
+        """
+        Get recent reading activity from community members
+        
+        Returns:
+            List of reading logs with user and book information
+        """
+        logs = ReadingLog.query.join(User).join(Book).filter(
+            User.share_reading_activity == True,
+            User.is_active == True
+        ).order_by(desc(ReadingLog.date)).limit(20).all()
+        
+        return [log.to_dict() for log in logs]
+
+    def get_user_profile(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get public profile for a user
+        
+        Args:
+            user_id: User ID
+            
+        Returns:
+            User profile data or None if not found/sharing
+        """
+        user = User.query.filter_by(id=user_id, is_active=True).first()
+        
+        if not user or not user.share_reading_activity:
+            return None
+        
+        # Get user statistics
+        total_books = Book.query.filter_by(user_id=user.id).count()
+        currently_reading = Book.query.filter(
+            Book.user_id == user.id,
+            Book.finish_date.is_(None),
+            Book.want_to_read == False,
+            Book.library_only == False
+        ).count()
+        finished_books = Book.query.filter(
+            Book.user_id == user.id,
+            Book.finish_date.is_not(None)
+        ).count()
+        want_to_read = Book.query.filter_by(user_id=user.id, want_to_read=True).count()
+        
+        # Get reading streak
+        reading_streak = user.get_reading_streak()
+        
+        # Get user's books
+        books = Book.query.filter_by(user_id=user.id).all()
+        
+        return {
+            **user.to_dict(),
+            'total_books': total_books,
+            'currently_reading': currently_reading,
+            'finished_books': finished_books,
+            'want_to_read': want_to_read,
+            'reading_streak': reading_streak,
+            'books': [book.to_dict() for book in books]
+        }
     
     def get_user_reading_history(self, user_id: int) -> List[Dict[str, Any]]:
         """

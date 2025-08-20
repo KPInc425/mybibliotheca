@@ -12,6 +12,7 @@ import {
   HeartIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import Icon from '@/components/Icon';
 
 const BookDetailPage: React.FC = () => {
   const { uid } = useParams<{ uid: string }>();
@@ -110,13 +111,20 @@ const BookDetailPage: React.FC = () => {
 
   const statusBadge = getStatusBadge(book);
   const StatusIcon = statusBadge.icon;
+  const statusEmoji = StatusIcon === HeartIcon
+    ? '💙'
+    : StatusIcon === ClockIcon
+      ? '⏱️'
+      : StatusIcon === CheckCircleIcon
+        ? '✅'
+        : '📚';
 
   return (
     <div className="space-y-8">
       {/* Back Navigation */}
       <div className="flex items-center gap-4">
         <Link to="/library" className="btn btn-ghost btn-sm">
-          <ArrowLeftIcon className="w-4 h-4 mr-2" />
+          <Icon hero={<ArrowLeftIcon className="w-4 h-4 mr-2" />} emoji="⬅️" />
           Back to Library
         </Link>
       </div>
@@ -278,7 +286,7 @@ const BookDetailPage: React.FC = () => {
 
         {/* Current Status Display */}
         <div className="flex items-center gap-3 p-4 bg-base-200 rounded-lg">
-          <StatusIcon className="w-6 h-6" />
+          <Icon hero={<StatusIcon className="w-6 h-6" />} emoji={statusEmoji} />
           <span className={`badge ${statusBadge.color} badge-lg`}>
             {statusBadge.text}
           </span>
@@ -288,11 +296,11 @@ const BookDetailPage: React.FC = () => {
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-4 justify-center">
         <Link to={`/book/${book.uid}/edit`} className="btn btn-primary">
-          <PencilIcon className="w-4 h-4 mr-2" />
+          <Icon hero={<PencilIcon className="w-4 h-4 mr-2" />} emoji="✏️" />
           Edit Book
         </Link>
         <Link to={`/book/${book.uid}/log`} className="btn btn-secondary">
-          <BookOpenIcon className="w-4 h-4 mr-2" />
+          <Icon hero={<BookOpenIcon className="w-4 h-4 mr-2" />} emoji="📖" />
           Log Reading
         </Link>
         <button 
@@ -300,7 +308,7 @@ const BookDetailPage: React.FC = () => {
           className="btn btn-error"
           disabled={isUpdating}
         >
-          <TrashIcon className="w-4 h-4 mr-2" />
+          <Icon hero={<TrashIcon className="w-4 h-4 mr-2" />} emoji="🗑️" />
           Delete Book
         </button>
       </div>

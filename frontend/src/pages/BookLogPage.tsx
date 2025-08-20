@@ -78,7 +78,7 @@ const BookLogPage: React.FC = () => {
         notes: newLog.notes || null
       };
 
-      await api.books.logReading(book.uid, logData);
+      await api.books.addReadingLog(book.uid, logData);
       
       // Refresh reading logs
       const logsResponse = await api.books.getReadingLogs(book.uid);

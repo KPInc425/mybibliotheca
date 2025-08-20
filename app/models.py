@@ -21,10 +21,10 @@ class User(UserMixin, db.Model):
     locked_until = db.Column(db.DateTime, nullable=True)
     last_login = db.Column(db.DateTime, nullable=True)
     
-    # Privacy settings for sharing
-    share_current_reading = db.Column(db.Boolean, default=True)
-    share_reading_activity = db.Column(db.Boolean, default=True)
-    share_library = db.Column(db.Boolean, default=True)
+    # Privacy settings for sharing (opt-in by default)
+    share_current_reading = db.Column(db.Boolean, default=False)
+    share_reading_activity = db.Column(db.Boolean, default=False)
+    share_library = db.Column(db.Boolean, default=False)
     
     # Password security
     password_must_change = db.Column(db.Boolean, default=False)
@@ -151,6 +151,22 @@ class User(UserMixin, db.Model):
         self.debug_enabled = not self.debug_enabled
         db.session.commit()
         return self.debug_enabled
+    
+    def to_dict(self):
+        """Convert user to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'is_admin': self.is_admin,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
+            'share_current_reading': self.share_current_reading,
+            'share_reading_activity': self.share_reading_activity,
+            'share_library': self.share_library,
+            'debug_enabled': self.debug_enabled
+        }
     
     def __repr__(self):
         return f'<User {self.username}>'
