@@ -16,7 +16,7 @@ services:
       - WORKERS=${WORKERS:-4}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5054/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5054/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,7 +28,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3500:80"     # Host Nginx proxies / to this (SPA)
+      - "3505:80"     # Host Nginx proxies / to this (SPA)
     depends_on:
       - backend
     restart: unless-stopped

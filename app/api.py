@@ -20,6 +20,12 @@ api = Blueprint('api', __name__, url_prefix='/api')
 
 
 # Authentication endpoints
+@api.route('/health', methods=['GET'])
+def health_check():
+    """Lightweight health endpoint for container orchestration."""
+    return jsonify({'success': True, 'status': 'ok'}), 200
+
+# Authentication endpoints
 @api.route('/auth/login', methods=['POST'])
 def api_login():
     """
