@@ -185,8 +185,8 @@ def create_app():
     login_manager.login_message = 'Please log in to access this page.'
     login_manager.login_message_category = 'info'
     
-    # Configure CSRF protection (disabled for development)
-    # csrf.init_app(app)  # Disabled for development
+    # Configure CSRF protection (enable for server-rendered forms; we'll exempt API below)
+    csrf.init_app(app)
 
     # Dynamic cookie security configuration for Capacitor apps
     @app.before_request
@@ -499,8 +499,10 @@ def create_app():
         
         # Check if setup is needed (no users exist)
         if User.query.count() == 0:
-            # Skip for setup route and static files
-            if request.endpoint in ['auth.setup', 'static'] or (request.endpoint and request.endpoint.startswith('static')):
+            # Skip for setup route, API endpoints (to allow health checks), and static files
+            if request.endpoint in ['auth.setup', 'static'] \
+               or (request.endpoint and request.endpoint.startswith('static')) \
+               or (request.endpoint and request.endpoint.startswith('api.')):
                 return
             # Redirect to setup page
             return redirect(url_for('auth.setup'))
@@ -535,5 +537,8 @@ def create_app():
     app.register_blueprint(auth, url_prefix='/auth')
     app.register_blueprint(admin, url_prefix='/admin')
     app.register_blueprint(api)
+
+    # Exempt API blueprint from CSRF (JSON clients)
+    csrf.exempt(api)
 
     return app
