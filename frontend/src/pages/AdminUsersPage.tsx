@@ -9,7 +9,8 @@ import {
   PencilIcon,
   TrashIcon,
   ShieldCheckIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  GiftIcon
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
 
@@ -19,6 +20,7 @@ interface AdminUser {
   email: string;
   is_admin: boolean;
   is_active: boolean;
+  is_pro?: boolean;
   created_at: string;
   book_count: number;
 }
@@ -35,6 +37,10 @@ const AdminUsersPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [showGrantTokensModal, setShowGrantTokensModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [tokenCount, setTokenCount] = useState(1);
+  const [grantingTokens, setGrantingTokens] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -100,6 +106,26 @@ const AdminUsersPage: React.FC = () => {
       }
     } catch (err) {
       console.error('Delete user error:', err);
+    }
+  };
+
+  const handleGrantTokens = async () => {
+    if (!selectedUser) return;
+
+    try {
+      setGrantingTokens(true);
+      const response = await api.admin.grantUserTokens(selectedUser.id.toString(), tokenCount);
+      if (response.success) {
+        setShowGrantTokensModal(false);
+        setSelectedUser(null);
+        setTokenCount(1);
+        // Refresh the users list
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error('Grant tokens error:', err);
+    } finally {
+      setGrantingTokens(false);
     }
   };
 
@@ -243,6 +269,9 @@ const AdminUsersPage: React.FC = () => {
                             Admin
                           </span>
                         )}
+                        {user.is_pro && (
+                          <span className="badge badge-success">Pro</span>
+                        )}
                         {!user.is_active && (
                           <span className="badge badge-neutral">Inactive</span>
                         )}
@@ -275,6 +304,27 @@ const AdminUsersPage: React.FC = () => {
                       disabled={user.id === user?.id} // Can't deactivate yourself
                     >
                       {user.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await api.admin.toggleUserPro(user.id.toString());
+                          if (res.success) fetchUsers();
+                        } catch (e) { console.error('Toggle pro error:', e); }
+                      }}
+                      className={`btn btn-sm ${user.is_pro ? 'btn-warning' : 'btn-success'}`}
+                    >
+                      {user.is_pro ? 'Remove Pro' : 'Make Pro'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setShowGrantTokensModal(true);
+                      }}
+                      className="btn btn-sm btn-warning"
+                    >
+                      <Icon hero={<GiftIcon className="w-4 h-4" />} emoji="🎁" />
+                      Grant Tokens
                     </button>
                     <button
                       onClick={() => handleDeleteUser(user.id, user.username)}
@@ -315,6 +365,76 @@ const AdminUsersPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Grant Tokens Modal */}
+      {showGrantTokensModal && selectedUser && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">
+              <Icon hero={<GiftIcon className="w-5 h-5 mr-2" />} emoji="🎁" />
+              Grant Invite Tokens
+            </h3>
+            
+            <div className="space-y-4">
+              <div className="alert alert-info">
+                <Icon hero={<GiftIcon className="w-4 h-4" />} emoji="🎁" />
+                <div>
+                  <div className="font-bold">Granting tokens to {selectedUser.username}</div>
+                  <div className="text-xs">This will allow the user to create invite tokens for new registrations.</div>
+                </div>
+              </div>
+              
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">Number of Tokens</span>
+                </label>
+                <input
+                  type="number"
+                  className="input input-bordered"
+                  min="1"
+                  max="100"
+                  value={tokenCount}
+                  onChange={(e) => setTokenCount(parseInt(e.target.value) || 1)}
+                />
+                <label className="label">
+                  <span className="label-text-alt">How many invite tokens to grant</span>
+                </label>
+              </div>
+            </div>
+            
+            <div className="modal-action">
+              <button
+                className="btn"
+                onClick={() => {
+                  setShowGrantTokensModal(false);
+                  setSelectedUser(null);
+                  setTokenCount(1);
+                }}
+                disabled={grantingTokens}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleGrantTokens}
+                disabled={grantingTokens}
+              >
+                {grantingTokens ? (
+                  <>
+                    <div className="loading loading-spinner loading-sm"></div>
+                    Granting...
+                  </>
+                ) : (
+                  <>
+                    <Icon hero={<GiftIcon className="w-4 h-4 mr-2" />} emoji="🎁" />
+                    Grant Tokens
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

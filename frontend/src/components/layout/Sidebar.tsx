@@ -20,7 +20,7 @@ import Icon from '@/components/Icon';
 const Sidebar: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const { settings } = useSettingsStore();
+  const { settings: _settings } = useSettingsStore();
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -42,13 +42,13 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="drawer-side">
+    <div className="drawer-side z-50">
       <label htmlFor="my-drawer" aria-label="close sidebar" className="drawer-overlay"></label>
-      <aside className="min-h-full w-80 bg-base-200 text-base-content border-r border-base-300">
+      <aside className="min-h-full w-80 bg-base-200 text-base-content border-r border-base-300 shadow-xl">
         {/* Logo and Title */}
-        <div className="flex items-center gap-3 p-4 border-b border-base-300">
+        <div className="flex items-center gap-3 p-4 border-b border-base-300 bg-base-100">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <BookOpenIcon className="w-6 h-6 text-primary-content" />
+            <Icon hero={<BookOpenIcon className="w-6 h-6 text-primary-content" />} emoji="📚" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-primary">BookOracle</h1>
@@ -57,7 +57,7 @@ const Sidebar: React.FC = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-2 overflow-y-auto h-[calc(100vh-80px)]">
           {/* Main Navigation */}
           <div className="collapse collapse-arrow bg-base-200 border-0">
             <input type="checkbox" defaultChecked /> 
@@ -71,7 +71,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/') ? 'bg-primary text-primary-content' : ''
+                  isActive('/') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<BookOpenIcon className="w-5 h-5" />, '📊')}
@@ -80,7 +80,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/library"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/library') ? 'bg-primary text-primary-content' : ''
+                  isActive('/library') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<BuildingLibraryIcon className="w-5 h-5" />, '📚')}
@@ -89,7 +89,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/library/mass-edit"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/library/mass-edit') ? 'bg-primary text-primary-content' : ''
+                  isActive('/library/mass-edit') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<PencilIcon className="w-5 h-5" />, '✏️')}
@@ -98,7 +98,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/add-book"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/add-book') ? 'bg-primary text-primary-content' : ''
+                  isActive('/add-book') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<PlusIcon className="w-5 h-5" />, '➕')}
@@ -107,7 +107,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/search"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/search') ? 'bg-primary text-primary-content' : ''
+                  isActive('/search') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<MagnifyingGlassIcon className="w-5 h-5" />, '🔍')}
@@ -129,7 +129,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/community/activity"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/community/activity') ? 'bg-primary text-primary-content' : ''
+                  isActive('/community/activity') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<FireIcon className="w-5 h-5" />, '🔥')}
@@ -138,7 +138,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/public-library"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/public-library') ? 'bg-primary text-primary-content' : ''
+                  isActive('/public-library') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<BuildingLibraryIcon className="w-5 h-5" />, '📖')}
@@ -160,7 +160,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/reports/month-wrapup"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/reports/month-wrapup') ? 'bg-primary text-primary-content' : ''
+                  isActive('/reports/month-wrapup') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<ChartBarIcon className="w-5 h-5" />, '📈')}
@@ -182,7 +182,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/import"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/import') ? 'bg-primary text-primary-content' : ''
+                  isActive('/import') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<ArrowDownTrayIcon className="w-5 h-5" />, '📥')}
@@ -204,7 +204,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/profile"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/profile') ? 'bg-primary text-primary-content' : ''
+                  isActive('/profile') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<UserIcon className="w-5 h-5" />, '👤')}
@@ -213,7 +213,7 @@ const Sidebar: React.FC = () => {
               <Link
                 to="/settings"
                 className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                  isActive('/settings') ? 'bg-primary text-primary-content' : ''
+                  isActive('/settings') ? 'bg-primary text-primary-content shadow-md' : ''
                 }`}
               >
                 {getIcon(<Cog6ToothIcon className="w-5 h-5" />, '⚙️')}
@@ -223,7 +223,7 @@ const Sidebar: React.FC = () => {
                 <Link
                   to="/admin"
                   className={`flex items-center gap-3 p-3 rounded-lg hover:bg-base-100 hover:translate-x-1 transition-all duration-200 ${
-                    isActive('/admin') ? 'bg-primary text-primary-content' : ''
+                    isActive('/admin') ? 'bg-primary text-primary-content shadow-md' : ''
                   }`}
                 >
                   {getIcon(<UsersIcon className="w-5 h-5" />, '⚙️')}
@@ -235,7 +235,7 @@ const Sidebar: React.FC = () => {
                 onClick={handleLogout}
                 className="flex items-center gap-3 p-3 rounded-lg hover:bg-error hover:text-error-content hover:translate-x-1 transition-all duration-200 w-full text-left"
               >
-                                 {getIcon(<ArrowDownTrayIcon className="w-5 h-5 rotate-90" />, '🚪')}
+                {getIcon(<ArrowDownTrayIcon className="w-5 h-5 rotate-90" />, '🚪')}
                 <span className="font-medium">Logout</span>
               </button>
             </div>

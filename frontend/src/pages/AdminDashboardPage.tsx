@@ -13,7 +13,8 @@ import {
   ArrowDownTrayIcon,
   ChartBarIcon,
   TrophyIcon,
-  BoltIcon
+  BoltIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
 
@@ -323,12 +324,22 @@ const AdminDashboardPage: React.FC = () => {
                 <div key={book.uid} className="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
                   <div className="w-12 h-16 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
                     <img
-                      src={book.cover_url || '/bookshelf.png'}
+                      src={book.cover_url ?? '/bookshelf.png'}
                       className="w-full h-full object-cover"
                       alt={`${book.title} cover`}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = '/bookshelf.png';
+                        // Prevent infinite loop by checking if we're already using the fallback
+                        if (target.src !== window.location.origin + '/bookshelf.png') {
+                          target.src = '/bookshelf.png';
+                        } else {
+                          // If fallback also fails, hide the image and show a placeholder
+                          target.style.display = 'none';
+                          const placeholder = document.createElement('div');
+                          placeholder.className = 'w-full h-full bg-base-200 rounded flex items-center justify-center text-lg';
+                          placeholder.innerHTML = '📚';
+                          target.parentNode?.appendChild(placeholder);
+                        }
                       }}
                     />
                   </div>
@@ -382,6 +393,10 @@ const AdminDashboardPage: React.FC = () => {
             <Link to="/admin/backup" className="btn btn-outline btn-warning">
               <Icon hero={<ArrowDownTrayIcon className="w-4 h-4" />} emoji="💾" />
               <span className="ml-2">Backup Database</span>
+            </Link>
+            <Link to="/admin/invites" className="btn btn-outline btn-secondary">
+              <Icon hero={<EnvelopeIcon className="w-4 h-4" />} emoji="✉️" />
+              <span className="ml-2">Manage Invites</span>
             </Link>
           </div>
         </div>

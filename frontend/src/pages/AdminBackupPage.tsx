@@ -20,7 +20,7 @@ const AdminBackupPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [backupSize, setBackupSize] = useState<number>(0);
-  const [status, setStatus] = useState<string>('unknown');
+  const [_status, setStatus] = useState<string>('unknown');
 
   const fetchStatus = async () => {
     try {

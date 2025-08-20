@@ -26,11 +26,12 @@ import {
   BuildingLibraryIcon
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
+import SearchableDropdown from '@/components/SearchableDropdown';
 
 const AddBookPage: React.FC = () => {
   const navigate = useNavigate();
   const { addBook } = useBooksStore();
-  const { settings } = useSettingsStore();
+  const { settings: _settings } = useSettingsStore();
   const [showScanner, setShowScanner] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -51,6 +52,15 @@ const AddBookPage: React.FC = () => {
     want_to_read: false,
     library_only: false
   });
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  
+  // Get existing categories from books for suggestions
+  const { books } = useBooksStore();
+  const existingCategories = Array.from(new Set(
+    books.flatMap(book => 
+      book.categories ? book.categories.split(',').map(cat => cat.trim()) : []
+    )
+  )).sort();
 
 
 
@@ -162,6 +172,7 @@ const AddBookPage: React.FC = () => {
       // Convert string values to appropriate types
       const bookData = {
         ...formData,
+        categories: selectedCategories.join(', '), // Use selected categories
         page_count: formData.page_count ? parseInt(formData.page_count) : null,
         want_to_read: formData.want_to_read,
         library_only: formData.library_only
@@ -184,16 +195,16 @@ const AddBookPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10 flex items-center justify-center gap-4">
-          <Icon hero={<BookOpenIcon className="w-16 h-16" />} emoji="📚" />
+      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-4 md:py-8 mb-8">
+        <h1 className="text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold m-0 text-shadow-lg relative z-10 flex items-center justify-center gap-2 md:gap-4">
+          <Icon hero={<BookOpenIcon className="w-8 h-8 md:w-16 md:h-16" />} emoji="📚" />
           Add New Book
         </h1>
-        <p className="text-xl opacity-90 mt-2">Scan or search for books to add to your library</p>
+        <p className="text-lg md:text-xl opacity-90 mt-2">Scan or search for books to add to your library</p>
       </div>
 
       {/* Scanner Section */}
-      <div className="bg-base-100 border-2 border-secondary rounded-2xl p-6 shadow-lg">
+      <div className="bg-base-100 border-2 border-secondary rounded-2xl p-4 md:p-6 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
             <Icon hero={<CameraIcon className="w-6 h-6" />} emoji="📱" />
@@ -283,10 +294,10 @@ const AddBookPage: React.FC = () => {
       </div>
 
       {/* Book Form */}
-      <div className="bg-base-100 border-2 border-secondary rounded-2xl p-8 shadow-xl">
+      <div className="bg-base-100 border-2 border-secondary rounded-2xl p-4 md:p-8 shadow-xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold flex items-center gap-2">
@@ -423,25 +434,25 @@ const AddBookPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Categories */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-semibold flex items-center gap-2">
-                <Icon hero={<TagIcon className="w-5 h-5" />} emoji="🏷️" />
-                Categories
-              </span>
-            </label>
-            <input 
-              type="text" 
-              className="input input-bordered w-full" 
-              value={formData.categories}
-              onChange={(e) => handleInputChange('categories', e.target.value)}
-              placeholder="Categories (comma-separated, e.g., Fiction, Science Fiction, Fantasy)"
-            />
-            <label className="label">
-              <span className="label-text-alt">Separate multiple categories with commas</span>
-            </label>
-          </div>
+                     {/* Categories */}
+           <div className="form-control">
+             <label className="label">
+               <span className="label-text font-semibold flex items-center gap-2">
+                 <Icon hero={<TagIcon className="w-5 h-5" />} emoji="🏷️" />
+                 Categories
+               </span>
+             </label>
+             <SearchableDropdown
+               options={existingCategories}
+               value=""
+               onChange={() => {}} // Not used for multiple selection
+               placeholder="Select categories..."
+               multiple={true}
+               selectedValues={selectedCategories}
+               onMultipleChange={setSelectedCategories}
+               className="w-full"
+             />
+           </div>
 
           {/* Description */}
           <div className="form-control">
@@ -477,13 +488,13 @@ const AddBookPage: React.FC = () => {
           </div>
 
           {/* Reading Status */}
-          <div className="bg-base-200 rounded-lg p-6">
+          <div className="bg-base-200 rounded-lg p-4 md:p-6">
             <h3 className="text-lg font-semibold text-primary mb-4 flex items-center gap-2">
               <Icon hero={<ChartBarIcon className="w-6 h-6" />} emoji="📊" />
               Reading Status
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <label className="flex items-center gap-3 text-base-content font-medium cursor-pointer">
                 <input 
                   type="checkbox" 
@@ -513,7 +524,7 @@ const AddBookPage: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap gap-4 justify-center pt-6">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center pt-6">
             <button 
               type="button"
               onClick={() => navigate('/library')}

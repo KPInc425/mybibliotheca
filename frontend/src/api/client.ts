@@ -79,11 +79,43 @@ export const api = {
     login: (data: { username: string; password: string; remember_me?: boolean }) =>
       api.post<any>('/auth/login', data),
     logout: () => api.post<any>('/auth/logout'),
+    changePassword: (data: { current_password: string; new_password: string }) =>
+      api.post<any>('/auth/change-password', data),
+  },
+  
+  // User invite endpoints
+  userInvites: {
+    getInvites: () => api.get<any>('/user/invites'),
+    createInvite: (data: { email?: string; expires_in_days?: number }) => api.post<any>('/user/invites', data),
+    deleteInvite: (inviteId: number) => api.delete<any>(`/user/invites/${inviteId}`),
+  },
+  
+  // Profile picture endpoints
+  profile: {
+    uploadPicture: (file: File) => {
+      const formData = new FormData();
+      formData.append('profile_picture', file);
+      return apiClient.post('/user/profile-picture', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    },
+    deletePicture: () => api.delete<any>('/user/profile-picture'),
+  },
+  
+  // Book rating endpoints
+  ratings: {
+    rateBook: (bookId: number, data: { rating: number; review?: string }) => 
+      api.post<any>(`/books/${bookId}/rate`, data),
+    getBookRating: (bookId: number) => api.get<any>(`/books/${bookId}/rate`),
+    deleteBookRating: (bookId: number) => api.delete<any>(`/books/${bookId}/rate`),
+    getBookRatings: (bookId: number) => api.get<any>(`/books/${bookId}/ratings`),
   },
   
   // Book-related endpoints
   books: {
-    getAll: (params?: any) => api.get<Book[]>('/books', { params }),
+    getAll: (params?: any) => api.get<Book[]>('/books', params),
     getById: (uid: string) => api.get<Book>(`/books/${uid}`),
     create: (data: any) => api.post<Book>('/books', data),
     update: (uid: string, data: any) => api.put<Book>(`/books/${uid}`, data),
@@ -95,6 +127,12 @@ export const api = {
     lookup: (isbn: string) => api.get<any>(`/books/lookup/${isbn}`),
     getPublic: (filter?: string) => api.get<Book[]>(`/books/public`, { params: { filter } }),
     search: (query: string, page = 1, pageSize = 20) => api.get<any>(`/books/search?q=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`),
+    uploadCover: (uid: string, file: File) => {
+      const form = new FormData();
+      form.append('cover_image', file);
+      return apiClient.post(`/books/${uid}/cover`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
+    deleteCover: (uid: string) => api.delete<any>(`/books/${uid}/cover`),
   },
 
   // Reports endpoints
@@ -105,7 +143,7 @@ export const api = {
   // User-related endpoints
   user: {
     getProfile: () => api.get<User>('/user/profile'),
-    updateProfile: (data: any) => api.put<User>('/user/profile', data),
+    updateProfile: (data: Partial<User>) => api.put<User>('/user/profile', data),
     getStatistics: () => api.get<UserStatistics>('/user/statistics'),
     getReadingHistory: () => api.get<ReadingLog[]>('/user/reading-history'),
     getPublicProfile: (userId: string) => api.get<any>(`/user/${userId}/profile`),
@@ -135,6 +173,7 @@ export const api = {
                 createUser: (data: { username: string; email: string; password: string }) => api.post<any>('/admin/users', data),
                 toggleUserAdmin: (userId: string) => api.post<any>(`/admin/users/${userId}/toggle-admin`),
                 toggleUserActive: (userId: string) => api.post<any>(`/admin/users/${userId}/toggle-active`),
+                toggleUserPro: (userId: string) => api.post<any>(`/admin/users/${userId}/toggle-pro`),
                 deleteUser: (userId: string) => api.post<any>(`/admin/users/${userId}/delete`),
                 resetUserPassword: (userId: string) => api.post<any>(`/admin/users/${userId}/reset-password`),
                 unlockUserAccount: (userId: string) => api.post<any>(`/admin/users/${userId}/unlock`),
@@ -145,6 +184,12 @@ export const api = {
                 // Return raw axios response to preserve headers and blob
                 downloadBackup: () => apiClient.get('/admin/backup/download', { responseType: 'blob' }),
                 getBackupStatus: () => api.get<any>('/admin/backup/status'),
+                // Invite management
+                getInvites: () => api.get<any[]>('/admin/invites'),
+                createInvite: (data: { email?: string; expires_in_days?: number }) => api.post<any>('/admin/invites', data),
+                deleteInvite: (inviteId: number) => api.delete<any>(`/admin/invites/${inviteId}`),
+                // Grant tokens to users
+                grantUserTokens: (userId: string, count: number) => api.post<any>(`/admin/users/${userId}/grant-tokens`, { count }),
               },
 };
 

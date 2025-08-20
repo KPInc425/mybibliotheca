@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '@/api/client';
 import { Book, User } from '@/types';
+import { resolveMediaUrl, debugResolvedMedia } from '@/utils/media';
 import { 
   UserIcon,
   BookOpenIcon,
@@ -160,11 +161,16 @@ const UserProfilePage: React.FC = () => {
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body">
               <div className="flex items-center gap-4 mb-6">
-                <div className="avatar placeholder">
-                  <div className="bg-primary text-primary-content rounded-full w-16 h-16">
-                    <span className="text-2xl font-bold">
-                      {userProfile.username.charAt(0).toUpperCase()}
-                    </span>
+                <div className="avatar">
+                  <div className="w-16 h-16 ring-primary ring-offset-base-100 rounded-full ring-2 ring-offset-2">
+                    {userProfile.profile_picture ? (
+                      <img src={(debugResolvedMedia('community.userProfile.avatar', userProfile.profile_picture, resolveMediaUrl(userProfile.profile_picture)), resolveMediaUrl(userProfile.profile_picture))} alt="Avatar" className="w-full h-full object-cover" onError={(e)=>{const t=e.target as HTMLImageElement; t.style.display='none'; (t.nextElementSibling as HTMLElement)?.classList.remove('hidden');}} />
+                    ) : null}
+                    <div className={`w-full h-full bg-primary text-primary-content rounded-full flex items-center justify-center ${userProfile.profile_picture ? 'hidden' : ''}`}>
+                      <span className="text-2xl font-bold">
+                        {userProfile.username.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div>

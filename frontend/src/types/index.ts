@@ -9,6 +9,21 @@ export interface User {
   share_reading_activity: boolean;
   debug_enabled: boolean;
   created_at: string;
+  profile_picture?: string;
+}
+
+export interface UserRating {
+  id: number;
+  user_id: number;
+  book_id: number;
+  rating: number;
+  review?: string;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: number;
+    username: string;
+  };
 }
 
 // Book Types
@@ -31,6 +46,7 @@ export interface Book {
   finish_date?: string;
   want_to_read: boolean;
   library_only: boolean;
+  owned?: boolean;
   format?: string;
   custom_id?: string;
   user_id: number;
@@ -74,6 +90,7 @@ export interface BookFilters {
   category?: string;
   publisher?: string;
   language?: string;
+  owned?: boolean;
 }
 
 // Statistics Types

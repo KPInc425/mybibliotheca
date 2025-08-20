@@ -5,7 +5,7 @@ from flask import Flask, session
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import inspect, text
-from .models import db, User
+from .models import db, User, InviteToken, UserRating
 from config import Config
 
 login_manager = LoginManager()
@@ -52,6 +52,10 @@ def check_if_migrations_needed(inspector):
     if 'user' not in existing_tables:
         migrations_needed.append("user_table")
     
+    # Check for missing invite_token table
+    if 'invite_token' not in existing_tables:
+        migrations_needed.append("invite_token_table")
+    
     # Check for missing columns in existing tables
     if 'book' in existing_tables:
         columns = [column['name'] for column in inspector.get_columns('book')]
@@ -65,7 +69,7 @@ def check_if_migrations_needed(inspector):
         columns = [column['name'] for column in inspector.get_columns('user')]
         user_fields = ['failed_login_attempts', 'locked_until', 'last_login', 
                       'share_current_reading', 'share_reading_activity', 'share_library',
-                      'reading_streak_offset']  # Add the streak offset field
+                      'reading_streak_offset', 'invite_tokens_remaining', 'invite_tokens_granted', 'invite_tokens_used', 'profile_picture', 'is_pro']  # Add invite token fields and profile picture
         missing_user_fields = [field for field in user_fields if field not in columns]
         if missing_user_fields:
             migrations_needed.append(f"user_security_privacy: {missing_user_fields}")
@@ -93,7 +97,12 @@ def run_security_privacy_migration(inspector, db_engine):
             ('share_current_reading', 'BOOLEAN DEFAULT 1'),
             ('share_reading_activity', 'BOOLEAN DEFAULT 1'),
             ('share_library', 'BOOLEAN DEFAULT 1'),
-            ('debug_enabled', 'BOOLEAN DEFAULT 0')
+            ('debug_enabled', 'BOOLEAN DEFAULT 0'),
+            ('invite_tokens_remaining', 'INTEGER DEFAULT 0'),
+            ('invite_tokens_granted', 'INTEGER DEFAULT 0'),
+            ('invite_tokens_used', 'INTEGER DEFAULT 0'),
+            ('profile_picture', 'VARCHAR(512)'),
+            ('is_pro', 'BOOLEAN DEFAULT 0')
         ]
         
         missing_fields = [field for field, _ in security_privacy_fields if field not in columns]
@@ -234,7 +243,20 @@ def create_app():
                 print("🔄 Adding user authentication tables...")
                 db.create_all()
                 print("✅ User tables created. Setup required on first visit.")
-            else:
+            
+                    # Check for invite_token table (new invite system)
+        if 'invite_token' not in existing_tables:
+            print("🔄 Adding invite_token table...")
+            db.create_all()  # This will create all missing tables including invite_token
+            print("✅ InviteToken table created for invite system.")
+        
+        # Check for user_rating table (new rating system)
+        if 'user_rating' not in existing_tables:
+            print("🔄 Adding user_rating table...")
+            db.create_all()  # This will create all missing tables including user_rating
+            print("✅ UserRating table created for rating system.")
+            
+            if 'user' in existing_tables:
                 # CRITICAL: Add streak offset column FIRST before any User queries
                 add_streak_offset_column(inspector, db.engine)
                 
@@ -282,7 +304,7 @@ def create_app():
                     
                     # Check for other missing columns
                     new_columns = ['description', 'published_date', 'page_count', 'categories', 
-                                 'publisher', 'language', 'average_rating', 'rating_count', 'created_at']
+                                 'publisher', 'language', 'average_rating', 'rating_count', 'created_at', 'owned']
                     missing_columns = [col for col in new_columns if col not in columns]
                     
                     if missing_columns:
@@ -295,6 +317,8 @@ def create_app():
                                         conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} INTEGER"))
                                     elif col_name == 'average_rating':
                                         conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} REAL"))
+                                    elif col_name == 'owned':
+                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} BOOLEAN DEFAULT 0"))
                                     elif col_name in ['categories', 'publisher']:
                                         conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} VARCHAR(500)"))
                                     elif col_name == 'language':
@@ -372,6 +396,54 @@ def create_app():
                         print("✅ shared_book_id column already exists in book table.")
                 except Exception as e:
                     print(f"⚠️  shared_book_id column migration failed: {e}")
+
+            # Ensure 'owned' column exists on book table (always check; refresh inspector)
+            try:
+                if 'book' in existing_tables:
+                    inspector = inspect(db.engine)
+                    columns = [column['name'] for column in inspector.get_columns('book')]
+                    if 'owned' not in columns:
+                        print("🔄 Adding 'owned' column to book table...")
+                        with db.engine.connect() as conn:
+                            trans = conn.begin()
+                            try:
+                                # Use INTEGER for broader SQLite compatibility
+                                conn.execute(text("ALTER TABLE book ADD COLUMN owned INTEGER DEFAULT 0"))
+                                trans.commit()
+                                print("✅ 'owned' column added to book table.")
+                            except Exception as e:
+                                trans.rollback()
+                                # As a last resort, attempt again ignoring errors (duplicate column)
+                                try:
+                                    conn.execute(text("ALTER TABLE book ADD COLUMN owned INTEGER DEFAULT 0"))
+                                    print("✅ 'owned' column add attempted (idempotent).")
+                                except Exception as e2:
+                                    print(f"⚠️  'owned' column migration failed on retry: {e2}")
+            except Exception as e:
+                print(f"⚠️  'owned' column migration failed: {e}")
+
+            # Ensure 'is_pro' column exists on user table (always check; refresh inspector)
+            try:
+                if 'user' in existing_tables:
+                    inspector = inspect(db.engine)
+                    ucols = [column['name'] for column in inspector.get_columns('user')]
+                    if 'is_pro' not in ucols:
+                        print("🔄 Adding 'is_pro' column to user table...")
+                        with db.engine.connect() as conn:
+                            trans = conn.begin()
+                            try:
+                                conn.execute(text("ALTER TABLE user ADD COLUMN is_pro INTEGER DEFAULT 0"))
+                                trans.commit()
+                                print("✅ 'is_pro' column added to user table.")
+                            except Exception as e:
+                                trans.rollback()
+                                try:
+                                    conn.execute(text("ALTER TABLE user ADD COLUMN is_pro INTEGER DEFAULT 0"))
+                                    print("✅ 'is_pro' column add attempted (idempotent).")
+                                except Exception as e2:
+                                    print(f"⚠️  'is_pro' column migration failed on retry: {e2}")
+            except Exception as e:
+                print(f"⚠️  'is_pro' column migration failed: {e}")
         
         # Check for reading_log table updates
             if 'reading_log' in existing_tables:

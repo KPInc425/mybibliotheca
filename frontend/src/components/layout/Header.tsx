@@ -8,14 +8,17 @@ import {
   PlusIcon,
   MagnifyingGlassIcon,
   UserIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  SunIcon,
+  MoonIcon
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
+import { resolveMediaUrl, debugResolvedMedia } from '@/utils/media';
 
 const Header: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const { settings } = useSettingsStore();
+  const { settings, updateSetting } = useSettingsStore();
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -34,6 +37,11 @@ const Header: React.FC = () => {
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+
+  const toggleTheme = () => {
+    const newTheme = settings.theme === 'dark' ? 'light' : 'dark';
+    updateSetting('theme', newTheme);
   };
 
   return (
@@ -87,14 +95,41 @@ const Header: React.FC = () => {
         </ul>
       </div>
 
-      {/* Right side - User menu */}
-      <div className="navbar-end">
+      {/* Right side - Theme toggle and User menu */}
+      <div className="navbar-end gap-2">
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="btn btn-ghost btn-circle"
+          title={settings.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <Icon 
+            hero={settings.theme === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />} 
+            emoji={settings.theme === 'dark' ? "☀️" : "🌙"} 
+          />
+        </button>
+
+        {/* User Menu */}
         <div className="dropdown dropdown-end">
           <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-            <div className="w-10 rounded-full bg-primary text-primary-content flex items-center justify-center pt-1">
-              <span className="text-lg font-bold">
-                {user?.username?.charAt(0).toUpperCase() || 'U'}
-              </span>
+            <div className="w-10 h-10 ring-primary ring-offset-base-100 rounded-full ring-2 ring-offset-2">
+              {user?.profile_picture ? (
+                <img
+                  src={(debugResolvedMedia('header.avatar', user?.profile_picture, resolveMediaUrl(user?.profile_picture)), resolveMediaUrl(user?.profile_picture))}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    target.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div className={`w-full h-full bg-primary text-primary-content rounded-full flex items-center justify-center pt-1 ${user?.profile_picture ? 'hidden' : ''}`}>
+                <span className="text-lg font-bold">
+                  {user?.username?.charAt(0).toUpperCase() || 'U'}
+                </span>
+              </div>
             </div>
           </div>
           <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">

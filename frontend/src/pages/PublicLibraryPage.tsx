@@ -144,12 +144,22 @@ const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
                 <div key={book.uid} className="card bg-base-100 border-2 border-secondary shadow-md flex flex-col items-center p-4">
                   <div className="w-full h-48 bg-base-300 rounded-lg overflow-hidden flex items-center justify-center mb-3">
                     <img
-                      src={book.cover_url || '/bookshelf.png'}
+                      src={book.cover_url ?? '/bookshelf.png'}
                       alt={`${book.title} cover`}
                       className="h-full w-auto object-contain rounded"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = '/bookshelf.png';
+                        // Prevent infinite loop by checking if we're already using the fallback
+                        if (target.src !== window.location.origin + '/bookshelf.png') {
+                          target.src = '/bookshelf.png';
+                        } else {
+                          // If fallback also fails, hide the image and show a placeholder
+                          target.style.display = 'none';
+                          const placeholder = document.createElement('div');
+                          placeholder.className = 'h-full w-auto bg-base-200 rounded flex items-center justify-center text-lg';
+                          placeholder.innerHTML = '📚';
+                          target.parentNode?.appendChild(placeholder);
+                        }
                       }}
                     />
                   </div>

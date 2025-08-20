@@ -4,7 +4,7 @@
 
 🆕 **Multi-User Features**: Multi-user authentication, user data isolation, admin management, and secure password handling.
 
-🆕 **Modern React Frontend**: Complete React frontend with full feature parity to the legacy Flask app, featuring modern UI/UX, responsive design, and React Native readiness.
+🆕 **Modern React Frontend**: Complete React frontend with **100% feature parity** to the legacy Flask app, featuring modern UI/UX, responsive design, consistent icon system, and React Native readiness.
 
 [![Documentation](https://img.shields.io/badge/Documentation-BookOracle-4a90e2?style=for-the-badge&logo=read-the-docs&logoColor=white)](https://bookoracle.org)
 
@@ -23,7 +23,8 @@
 - 🔐 **Multi-User Support**: Secure authentication with user data isolation
 - 👤 **Admin Management**: Administrative tools and user management
 - 📱 **Smart Barcode Scanner**: Intelligent scanner that automatically chooses between native MLKit (Android) and browser-based scanning with seamless fallback
-- 🎨 **Modern Frontend**: React 18 + TypeScript + Tailwind CSS with full feature parity
+- 🎨 **Modern Frontend**: React 18 + TypeScript + Tailwind CSS with **100% feature parity**
+- 🎯 **Icon System**: Consistent icon display with user preference control (HeroIcons vs Emojis)
 
 ---
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
 import { User } from '@/types';
+import { resolveMediaUrl, debugResolvedMedia } from '@/utils/media';
 import { 
   UserIcon
 } from '@heroicons/react/24/outline';
@@ -137,11 +138,16 @@ const ActiveReadersPage: React.FC = () => {
                     <tr key={stat.user.id}>
                       <td>
                         <div className="flex items-center gap-3">
-                          <div className="avatar placeholder">
-                            <div className="bg-primary text-primary-content rounded-full w-10 h-10">
-                              <span className="text-lg font-bold">
-                                {stat.user.username.charAt(0).toUpperCase()}
-                              </span>
+                          <div className="avatar">
+                            <div className="w-10 h-10 ring-primary ring-offset-base-100 rounded-full ring-2 ring-offset-2">
+                              {stat.user.profile_picture ? (
+                                <img src={(debugResolvedMedia('community.activeReaders.avatar', stat.user.profile_picture, resolveMediaUrl(stat.user.profile_picture)), resolveMediaUrl(stat.user.profile_picture))} alt="Avatar" className="w-full h-full object-cover" onError={(e)=>{const t=e.target as HTMLImageElement; t.style.display='none'; (t.nextElementSibling as HTMLElement)?.classList.remove('hidden');}} />
+                              ) : null}
+                              <div className={`w-full h-full bg-primary text-primary-content rounded-full flex items-center justify-center ${stat.user.profile_picture ? 'hidden' : ''}`}>
+                                <span className="text-lg font-bold">
+                                  {stat.user.username.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
                             </div>
                           </div>
                           <div>

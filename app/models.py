@@ -15,6 +15,8 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     is_active = db.Column(db.Boolean, default=True)
+    # Pro subscription/feature flag
+    is_pro = db.Column(db.Boolean, default=False)
     
     # Security fields for account lockout
     failed_login_attempts = db.Column(db.Integer, default=0)
@@ -36,8 +38,17 @@ class User(UserMixin, db.Model):
     # Debug mode setting (user-specific)
     debug_enabled = db.Column(db.Boolean, default=False)
     
+    # Invite token system
+    invite_tokens_remaining = db.Column(db.Integer, default=0)
+    invite_tokens_granted = db.Column(db.Integer, default=0)
+    invite_tokens_used = db.Column(db.Integer, default=0)
+    
+    # Profile picture
+    profile_picture = db.Column(db.String(512), nullable=True)
+    
     # Relationships
     books = db.relationship('Book', backref='user', lazy=True, cascade='all, delete-orphan')
+    invite_tokens = db.relationship('InviteToken', foreign_keys='InviteToken.created_by', backref='created_by_user', lazy=True, cascade='all, delete-orphan')
     
     def set_password(self, password, validate=True):
         """Set password hash"""
@@ -159,14 +170,38 @@ class User(UserMixin, db.Model):
             'username': self.username,
             'email': self.email,
             'is_admin': self.is_admin,
+            'is_pro': self.is_pro,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_login': self.last_login.isoformat() if self.last_login else None,
             'share_current_reading': self.share_current_reading,
             'share_reading_activity': self.share_reading_activity,
             'share_library': self.share_library,
-            'debug_enabled': self.debug_enabled
+            'debug_enabled': self.debug_enabled,
+            'invite_tokens_remaining': self.invite_tokens_remaining,
+            'invite_tokens_granted': self.invite_tokens_granted,
+            'invite_tokens_used': self.invite_tokens_used,
+            'profile_picture': self.profile_picture
         }
+    
+    def grant_invite_tokens(self, count: int):
+        """Grant invite tokens to a user (admin function)"""
+        self.invite_tokens_remaining += count
+        self.invite_tokens_granted += count
+        db.session.commit()
+    
+    def use_invite_token(self):
+        """Use one invite token (called when user creates an invite)"""
+        if self.invite_tokens_remaining > 0:
+            self.invite_tokens_remaining -= 1
+            self.invite_tokens_used += 1
+            db.session.commit()
+            return True
+        return False
+    
+    def can_create_invite(self):
+        """Check if user can create an invite token"""
+        return self.invite_tokens_remaining > 0
     
     def __repr__(self):
         return f'<User {self.username}>'
@@ -194,6 +229,8 @@ class Book(db.Model):
     average_rating = db.Column(db.Float, nullable=True)
     rating_count = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    # Ownership flag
+    owned = db.Column(db.Boolean, default=False)
     
     # Add unique constraint for ISBN per user (only when ISBN is not null)
     __table_args__ = (
@@ -294,11 +331,76 @@ class Book(db.Model):
             'language': self.language,
             'average_rating': self.average_rating,
             'rating_count': self.rating_count,
+            'owned': self.owned,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
     
+    def update_average_rating(self):
+        """Update the book's average rating based on all user ratings"""
+        from .models import UserRating
+        
+        ratings = UserRating.query.filter_by(book_id=self.id).all()
+        if ratings:
+            total_rating = sum(r.rating for r in ratings)
+            self.average_rating = round(total_rating / len(ratings), 1)
+            self.rating_count = len(ratings)
+        else:
+            self.average_rating = None
+            self.rating_count = 0
+        
+        db.session.commit()
+    
+    def get_user_rating(self, user_id):
+        """Get a specific user's rating for this book"""
+        from .models import UserRating
+        return UserRating.query.filter_by(user_id=user_id, book_id=self.id).first()
+    
     def __repr__(self):
         return f'<Book {self.title} by {self.author}>'
+
+
+class UserRating(db.Model):
+    """Model for tracking individual user ratings of books"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    review = db.Column(db.Text, nullable=True)  # Optional review text
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    # Ensure one rating per user per book
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'book_id', name='unique_user_book_rating'),
+    )
+    
+    # Relationships
+    user = db.relationship('User', backref='ratings')
+    book = db.relationship('Book', backref='user_ratings')
+    
+    def __init__(self, user_id, book_id, rating, review=None):
+        if not 1 <= rating <= 5:
+            raise ValueError("Rating must be between 1 and 5")
+        self.user_id = user_id
+        self.book_id = book_id
+        self.rating = rating
+        self.review = review
+    
+    def to_dict(self):
+        """Convert rating to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'book_id': self.book_id,
+            'rating': self.rating,
+            'review': self.review,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    def __repr__(self):
+        return f'<UserRating {self.rating} stars by User {self.user_id} for Book {self.book_id}>'
+
 
 class ReadingLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -435,3 +537,51 @@ class SharedBookData(db.Model):
     
     def __repr__(self):
         return f'<SharedBookData {self.title} by {self.author} (ID: {self.custom_id})>'
+
+
+class InviteToken(db.Model):
+    """Invite tokens for user registration"""
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), unique=True, nullable=False)
+    email = db.Column(db.String(120), nullable=True)  # Optional: specific email for the invite
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    expires_at = db.Column(db.DateTime, nullable=True)  # Optional expiration
+    is_used = db.Column(db.Boolean, default=False)
+    used_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    used_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    used_by_user = db.relationship('User', foreign_keys=[used_by], backref='invites_used')
+    
+    def __init__(self, created_by, email=None, expires_in_days=30):
+        self.token = secrets.token_urlsafe(32)
+        self.created_by = created_by
+        self.email = email
+        if expires_in_days:
+            self.expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+    
+    def is_valid(self):
+        """Check if the token is valid (not used and not expired)"""
+        if self.is_used:
+            return False
+        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
+            return False
+        return True
+    
+    def use_token(self, user_id):
+        """Mark token as used by a specific user"""
+        self.is_used = True
+        self.used_by = user_id
+        self.used_at = datetime.now(timezone.utc)
+    
+    @classmethod
+    def find_valid_token(cls, token):
+        """Find a valid token by token string"""
+        invite = cls.query.filter_by(token=token).first()
+        if invite and invite.is_valid():
+            return invite
+        return None
+    
+    def __repr__(self):
+        return f'<InviteToken {self.token[:8]}... (created by {self.created_by})>'

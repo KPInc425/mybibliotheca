@@ -49,7 +49,7 @@ const SearchPage: React.FC = () => {
   });
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, _setPageSize] = useState(20);
   const [total, setTotal] = useState(0);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -456,32 +456,102 @@ const SearchPage: React.FC = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {searchResults.map((book, index) => (
                 <div key={index} className="card bg-base-100 shadow-xl">
                   <figure className="px-4 pt-4">
                     <img
-                      src={book.cover_url || '/static/bookshelf.png'}
+                      src={book.cover_url ?? '/bookshelf.png'}
                       alt={book.title}
                       className="rounded-xl h-64 w-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        // Prevent infinite loop by checking if we're already using the fallback
+                        if (target.src !== window.location.origin + '/bookshelf.png') {
+                          target.src = '/bookshelf.png';
+                        } else {
+                          // If fallback also fails, hide the image and show a placeholder
+                          target.style.display = 'none';
+                          const placeholder = document.createElement('div');
+                          placeholder.className = 'h-64 w-full bg-base-200 rounded-xl flex items-center justify-center text-4xl';
+                          placeholder.innerHTML = '📚';
+                          target.parentNode?.appendChild(placeholder);
+                        }
+                      }}
                     />
                   </figure>
                   <div className="card-body">
                     <h3 className="card-title text-lg">{book.title}</h3>
                     <p className="text-base-content/70">{book.author}</p>
                     
+                    {/* Book Details */}
+                    <div className="space-y-2 mt-2">
+                      {/* Publisher */}
+                      {book.publisher && (
+                        <div className="flex items-center gap-2 text-sm text-base-content/60">
+                          <span className="font-medium">Publisher:</span>
+                          <span>{book.publisher}</span>
+                        </div>
+                      )}
+                      
+                      {/* Published Date */}
+                      {book.published_date && (
+                        <div className="flex items-center gap-2 text-sm text-base-content/60">
+                          <span className="font-medium">Published:</span>
+                          <span>{new Date(book.published_date).getFullYear()}</span>
+                        </div>
+                      )}
+                      
+                      {/* Page Count */}
+                      {book.page_count && (
+                        <div className="flex items-center gap-2 text-sm text-base-content/60">
+                          <span className="font-medium">Pages:</span>
+                          <span>{book.page_count}</span>
+                        </div>
+                      )}
+                      
+                      {/* Language */}
+                      {book.language && (
+                        <div className="flex items-center gap-2 text-sm text-base-content/60">
+                          <span className="font-medium">Language:</span>
+                          <span>{book.language}</span>
+                        </div>
+                      )}
+                      
+                      {/* Rating */}
+                      {book.average_rating && (
+                        <div className="flex items-center gap-2 text-sm text-base-content/60">
+                          <span className="font-medium">Rating:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-yellow-500">★</span>
+                            <span>{book.average_rating.toFixed(1)}</span>
+                            {book.rating_count && (
+                              <span className="text-xs">({book.rating_count} reviews)</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Description */}
                     {book.description && (
-                      <p className="text-sm text-base-content/60 line-clamp-3">
+                      <p className="text-sm text-base-content/60 line-clamp-2 mt-3">
                         {book.description}
                       </p>
                     )}
                     
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {book.categories && book.categories.slice(0, 2).map((category, idx) => (
-                        <span key={idx} className="badge badge-outline badge-sm">
+                    {/* Categories */}
+                    <div className="flex flex-wrap gap-1 mt-3">
+                      {book.categories && book.categories.slice(0, 3).map((category, idx) => (
+                        <span key={idx} className="badge badge-outline badge-xs">
                           {category}
                         </span>
                       ))}
+                      {book.categories && book.categories.length > 3 && (
+                        <span className="badge badge-outline badge-xs">
+                          +{book.categories.length - 3} more
+                        </span>
+                      )}
                     </div>
                     
                     <div className="card-actions justify-end mt-4">

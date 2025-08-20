@@ -12,7 +12,8 @@ import secrets
 
 from .services.book_service import BookService, BookNotFoundError
 from .services.user_service import UserService, UserNotFoundError
-from .models import db, User, Book, ReadingLog
+from .models import db, User, Book, ReadingLog, InviteToken, UserRating
+
 from .utils import get_reading_streak
 
 api = Blueprint('api', __name__, url_prefix='/api')
@@ -146,6 +147,121 @@ def api_logout():
         }), 500
 
 
+@api.route('/auth/register', methods=['POST'])
+def api_register():
+    """
+    JSON-based registration endpoint with invite token validation
+    
+    POST /api/auth/register
+    Body: {
+        "username": "newuser",
+        "email": "user@example.com",
+        "password": "securepassword",
+        "confirm_password": "securepassword",
+        "invite_token": "token123..."
+    }
+    
+    Returns:
+        201: Registration successful
+        400: Invalid data or invite token
+        409: Username/email already exists
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        # Validate required fields
+        required_fields = ['username', 'email', 'password', 'confirm_password', 'invite_token']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'success': False,
+                    'error': f'{field.replace("_", " ").title()} is required'
+                }), 400
+        
+        # Check if passwords match
+        if data['password'] != data['confirm_password']:
+            return jsonify({
+                'success': False,
+                'error': 'Passwords do not match'
+            }), 400
+        
+        # Validate invite token
+        invite_token = InviteToken.find_valid_token(data['invite_token'])
+        if not invite_token:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid or expired invite token'
+            }), 400
+        
+        # Check if email matches invite (if invite has specific email)
+        if invite_token.email and invite_token.email.lower() != data['email'].lower():
+            return jsonify({
+                'success': False,
+                'error': 'Email does not match the invite'
+            }), 400
+        
+        # Check if username already exists
+        if User.query.filter_by(username=data['username']).first():
+            return jsonify({
+                'success': False,
+                'error': 'Username already exists'
+            }), 409
+        
+        # Check if email already exists
+        if User.query.filter_by(email=data['email']).first():
+            return jsonify({
+                'success': False,
+                'error': 'Email already exists'
+            }), 409
+        
+        # Validate password strength
+        if not User.is_password_strong(data['password']):
+            return jsonify({
+                'success': False,
+                'error': 'Password does not meet security requirements'
+            }), 400
+        
+        # Create new user
+        new_user = User(
+            username=data['username'],
+            email=data['email'],
+            is_admin=False,
+            is_active=True,
+            created_at=datetime.now(timezone.utc)
+        )
+        new_user.set_password(data['password'])
+        
+        # Mark invite token as used
+        invite_token.use_token(new_user.id)
+        
+        # Save to database
+        db.session.add(new_user)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Registration successful',
+            'data': {
+                'username': new_user.username,
+                'email': new_user.email,
+                'id': new_user.id
+            }
+        }), 201
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in API registration: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
 # Book-related endpoints
 @api.route('/books/lookup/<isbn>', methods=['GET'])
 @login_required
@@ -258,12 +374,15 @@ def get_books():
         # Get query parameters
         status = request.args.get('status')
         search = request.args.get('search')
+        owned = request.args.get('owned') or request.args.get('ownedOnly')
         
         filters = {}
         if status:
             filters['status'] = status
         if search:
             filters['search'] = search
+        if owned is not None:
+            filters['owned'] = owned
         
         book_service = BookService(db.session)
         books = book_service.get_user_books(current_user.id, filters)
@@ -315,6 +434,29 @@ def get_book(uid: str):
             'error': 'Internal server error'
         }), 500
 
+
+@api.route('/books/<uid>', methods=['PUT'])
+@login_required
+def update_book(uid: str):
+    """
+    Update simple book fields (owned, want_to_read, library_only, cover_url, description, etc.)
+    PUT /api/books/<uid>
+    Body: { "owned": true }
+    """
+    try:
+        data = request.get_json() or {}
+        if not isinstance(data, dict) or not data:
+            return jsonify({ 'success': False, 'error': 'No update data provided' }), 400
+
+        book_service = BookService(db.session)
+        book = book_service.update_book_fields(uid, current_user.id, data)
+
+        return jsonify({ 'success': True, 'data': book.to_dict() }), 200
+    except BookNotFoundError:
+        return jsonify({ 'success': False, 'error': 'Book not found' }), 404
+    except Exception as e:
+        current_app.logger.error(f"Error updating book: {e}")
+        return jsonify({ 'success': False, 'error': 'Internal server error' }), 500
 
 @api.route('/books/<uid>/status', methods=['PUT'])
 @login_required
@@ -406,6 +548,118 @@ def delete_book(uid: str):
         }), 500
 
 
+# Custom Book Cover Upload
+@api.route('/books/<uid>/cover', methods=['POST'])
+@login_required
+def upload_book_cover(uid: str):
+    """Upload a custom cover image for a book owned by the current user"""
+    try:
+        # Gate behind pro feature
+        if not getattr(current_user, 'is_pro', False):
+            return jsonify({ 'success': False, 'error': 'Pro feature required to upload custom covers' }), 403
+        # Find the book
+        book_service = BookService(db.session)
+        book = book_service.get_book_by_uid(uid, current_user.id)
+        if not book:
+            return jsonify({ 'success': False, 'error': 'Book not found' }), 404
+
+        if 'cover_image' not in request.files:
+            return jsonify({ 'success': False, 'error': 'No file provided' }), 400
+
+        file = request.files['cover_image']
+        if file.filename == '':
+            return jsonify({ 'success': False, 'error': 'No file selected' }), 400
+
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({ 'success': False, 'error': 'Invalid file type. Allowed: PNG, JPG, JPEG, GIF, WEBP' }), 400
+
+        # Validate size (max 5MB)
+        file.seek(0, 2)
+        file_size = file.tell()
+        file.seek(0)
+        if file_size > 5 * 1024 * 1024:
+            return jsonify({ 'success': False, 'error': 'File too large. Maximum size is 5MB' }), 400
+
+        # Save file (and post-process optimize)
+        import os, uuid
+        from werkzeug.utils import secure_filename
+
+        filename = secure_filename(file.filename)
+        ext = filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"cover_{book.id}_{uuid.uuid4().hex[:8]}.{ext}"
+
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'covers')
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, unique_filename)
+        file.save(file_path)
+
+        # Optimize: downscale and convert to webp or jpeg
+        try:
+            from PIL import Image, ImageOps
+            with Image.open(file_path) as im:
+                im = ImageOps.exif_transpose(im)
+                im = im.convert('RGB')
+                max_side = 1200
+                w, h = im.size
+                scale = min(1.0, max_side / max(w, h))
+                if scale < 1.0:
+                    im = im.resize((int(w*scale), int(h*scale)))
+                # Re-encode
+                optimized_path = file_path
+                im.save(optimized_path, format='JPEG', quality=75, optimize=True)
+        except Exception as e:
+            current_app.logger.warning(f"Cover optimize failed: {e}")
+
+        # If previous cover was a local uploaded file, try to remove it
+        try:
+            if book.cover_url and book.cover_url.startswith('/static/uploads/covers/'):
+                old_path = os.path.join(current_app.root_path, book.cover_url.lstrip('/'))
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+        except Exception:
+            # Best-effort cleanup; ignore failures
+            pass
+
+        # Update book
+        cover_url = f"/static/uploads/covers/{unique_filename}"
+        book.cover_url = cover_url
+        db.session.commit()
+
+        return jsonify({ 'success': True, 'data': { 'cover_url': cover_url } }), 200
+    except Exception as e:
+        current_app.logger.error(f"Error uploading book cover: {e}")
+        return jsonify({ 'success': False, 'error': 'Failed to upload cover' }), 500
+
+
+@api.route('/books/<uid>/cover', methods=['DELETE'])
+@login_required
+def delete_book_cover(uid: str):
+    """Delete the custom cover image for the book (and clear cover_url)"""
+    try:
+        # Find the book
+        book_service = BookService(db.session)
+        book = book_service.get_book_by_uid(uid, current_user.id)
+        if not book:
+            return jsonify({ 'success': False, 'error': 'Book not found' }), 404
+
+        # Remove file if it's a locally uploaded cover
+        import os
+        if book.cover_url and book.cover_url.startswith('/static/uploads/covers/'):
+            file_path = os.path.join(current_app.root_path, book.cover_url.lstrip('/'))
+            if os.path.exists(file_path):
+                os.remove(file_path)
+
+        book.cover_url = None
+        db.session.commit()
+
+        return jsonify({ 'success': True, 'message': 'Cover removed', 'data': { 'cover_url': None } }), 200
+    except Exception as e:
+        current_app.logger.error(f"Error deleting book cover: {e}")
+        return jsonify({ 'success': False, 'error': 'Failed to delete cover' }), 500
+
+
 @api.route('/books/<uid>/reading-log', methods=['POST'])
 @login_required
 def log_reading(uid: str):
@@ -490,11 +744,13 @@ def get_user_profile():
                 'username': current_user.username,
                 'email': current_user.email,
                 'is_admin': current_user.is_admin,
+                'is_pro': getattr(current_user, 'is_pro', False),
                 'created_at': current_user.created_at.isoformat() if current_user.created_at else None,
                 'share_current_reading': current_user.share_current_reading,
                 'share_reading_activity': current_user.share_reading_activity,
                 'share_library': current_user.share_library,
-                'debug_enabled': current_user.debug_enabled
+                'debug_enabled': current_user.debug_enabled,
+                'profile_picture': current_user.profile_picture
             }
         }), 200
         
@@ -563,6 +819,69 @@ def update_user_profile():
             'error': 'Internal server error'
         }), 500
 
+
+@api.route('/auth/change-password', methods=['POST'])
+@login_required
+def change_password():
+    """
+    Change current user's password
+
+    POST /api/auth/change-password
+    Body: {
+        "current_password": "...",
+        "new_password": "..."
+    }
+
+    Returns:
+        200: Password changed successfully
+        400: Invalid data or incorrect current password
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+
+        if not current_password or not new_password:
+            return jsonify({
+                'success': False,
+                'error': 'Both current_password and new_password are required'
+            }), 400
+
+        user_service = UserService(db.session)
+
+        # Attempt password change; False indicates incorrect current password
+        try:
+            changed = user_service.change_password(current_user.id, current_password, new_password)
+        except ValueError as ve:
+            # Password strength or validation error
+            return jsonify({
+                'success': False,
+                'error': str(ve)
+            }), 400
+
+        if not changed:
+            return jsonify({
+                'success': False,
+                'error': 'Current password is incorrect'
+            }), 400
+
+        return jsonify({
+            'success': True,
+            'message': 'Password changed successfully'
+        }), 200
+
+    except Exception as e:
+        current_app.logger.error(f"Error changing password: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
 
 @api.route('/user/statistics', methods=['GET'])
 @login_required
@@ -2503,6 +2822,27 @@ def toggle_user_active(user_id):
         }
     })
 
+@api.route('/admin/users/<int:user_id>/toggle-pro', methods=['POST'])
+@login_required
+def toggle_user_pro(user_id):
+    """Toggle pro status for a user (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    user = User.query.get_or_404(user_id)
+    # SQLite stores as int; but bool works in SQLAlchemy
+    user.is_pro = not bool(getattr(user, 'is_pro', False))
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'data': {
+            'user_id': user_id,
+            'is_pro': bool(user.is_pro)
+        }
+    })
+
 @api.route('/admin/users/<int:user_id>/delete', methods=['POST'])
 @login_required
 def delete_user(user_id):
@@ -2776,3 +3116,557 @@ def get_backup_status():
             status = 'error'
 
     return jsonify({'success': True, 'data': {'last_backup': last_backup, 'backup_size': backup_size, 'status': status}})
+
+
+# Invite Token Management (Admin only)
+@api.route('/admin/invites', methods=['GET'])
+@login_required
+def get_invites():
+    """Get all invite tokens (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        invites = InviteToken.query.order_by(InviteToken.created_at.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'data': [{
+                'id': invite.id,
+                'token': invite.token,
+                'email': invite.email,
+                'created_by': invite.created_by,
+                'created_at': invite.created_at.isoformat(),
+                'expires_at': invite.expires_at.isoformat() if invite.expires_at else None,
+                'is_used': invite.is_used,
+                'used_by': invite.used_by,
+                'used_at': invite.used_at.isoformat() if invite.used_at else None,
+                'is_valid': invite.is_valid()
+            } for invite in invites]
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error getting invites: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to get invites'
+        }), 500
+
+
+@api.route('/admin/invites', methods=['POST'])
+@login_required
+def create_invite():
+    """Create a new invite token (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        data = request.get_json()
+        email = data.get('email')  # Optional
+        expires_in_days = data.get('expires_in_days', 30)
+        
+        invite = InviteToken(
+            created_by=current_user.id,
+            email=email,
+            expires_in_days=expires_in_days
+        )
+        
+        db.session.add(invite)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'id': invite.id,
+                'token': invite.token,
+                'email': invite.email,
+                'created_at': invite.created_at.isoformat(),
+                'expires_at': invite.expires_at.isoformat() if invite.expires_at else None
+            }
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error creating invite: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to create invite'
+        }), 500
+
+
+@api.route('/admin/invites/<int:invite_id>', methods=['DELETE'])
+@login_required
+def delete_invite(invite_id):
+    """Delete an invite token (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        invite = InviteToken.query.get_or_404(invite_id)
+        db.session.delete(invite)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Invite deleted successfully'
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error deleting invite: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to delete invite'
+        }), 500
+
+
+# User Invite Token Management
+@api.route('/user/invites', methods=['GET'])
+@login_required
+def get_user_invites():
+    """Get current user's invite tokens"""
+    try:
+        # Get user's invite token stats
+        user_stats = {
+            'remaining': current_user.invite_tokens_remaining,
+            'granted': current_user.invite_tokens_granted,
+            'used': current_user.invite_tokens_used,
+            'can_create': current_user.can_create_invite()
+        }
+        
+        # Get user's created invites
+        user_invites = InviteToken.query.filter_by(created_by=current_user.id).order_by(InviteToken.created_at.desc()).all()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'stats': user_stats,
+                'invites': [{
+                    'id': invite.id,
+                    'token': invite.token,
+                    'email': invite.email,
+                    'created_at': invite.created_at.isoformat(),
+                    'expires_at': invite.expires_at.isoformat() if invite.expires_at else None,
+                    'is_used': invite.is_used,
+                    'used_by': invite.used_by,
+                    'used_at': invite.used_at.isoformat() if invite.used_at else None,
+                    'is_valid': invite.is_valid()
+                } for invite in user_invites]
+            }
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error getting user invites: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to get user invites'
+        }), 500
+
+
+@api.route('/user/invites', methods=['POST'])
+@login_required
+def create_user_invite():
+    """Create a new invite token (user)"""
+    try:
+        # Check if user has tokens remaining
+        if not current_user.can_create_invite():
+            return jsonify({
+                'success': False,
+                'error': 'No invite tokens remaining. Contact an administrator to get more tokens.'
+            }), 400
+        
+        data = request.get_json()
+        email = data.get('email')  # Optional
+        expires_in_days = data.get('expires_in_days', 30)
+        
+        # Use one of the user's tokens
+        if not current_user.use_invite_token():
+            return jsonify({
+                'success': False,
+                'error': 'Failed to use invite token'
+            }), 500
+        
+        invite = InviteToken(
+            created_by=current_user.id,
+            email=email,
+            expires_in_days=expires_in_days
+        )
+        
+        db.session.add(invite)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'id': invite.id,
+                'token': invite.token,
+                'email': invite.email,
+                'created_at': invite.created_at.isoformat(),
+                'expires_at': invite.expires_at.isoformat() if invite.expires_at else None,
+                'remaining_tokens': current_user.invite_tokens_remaining
+            }
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error creating user invite: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to create invite'
+        }), 500
+
+
+@api.route('/user/invites/<int:invite_id>', methods=['DELETE'])
+@login_required
+def delete_user_invite(invite_id):
+    """Delete user's own invite token"""
+    try:
+        invite = InviteToken.query.filter_by(id=invite_id, created_by=current_user.id).first()
+        if not invite:
+            return jsonify({
+                'success': False,
+                'error': 'Invite not found or access denied'
+            }), 404
+        
+        db.session.delete(invite)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Invite deleted successfully'
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error deleting user invite: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to delete invite'
+        }), 500
+
+
+# Admin User Invite Token Management
+@api.route('/admin/users/<int:user_id>/grant-tokens', methods=['POST'])
+@login_required
+def grant_user_tokens(user_id):
+    """Grant invite tokens to a user (admin only)"""
+    if not current_user.is_admin:
+        return jsonify({
+            'success': False,
+            'error': 'Admin access required'
+        }), 403
+    
+    try:
+        user = User.query.get_or_404(user_id)
+        data = request.get_json()
+        count = data.get('count', 1)
+        
+        if count <= 0:
+            return jsonify({
+                'success': False,
+                'error': 'Token count must be positive'
+            }), 400
+        
+        user.grant_invite_tokens(count)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'user_id': user.id,
+                'username': user.username,
+                'tokens_granted': count,
+                'remaining_tokens': user.invite_tokens_remaining,
+                'total_granted': user.invite_tokens_granted
+            }
+        })
+    except Exception as e:
+        current_app.logger.error(f"Error granting tokens: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to grant tokens'
+        }), 500
+
+
+# Profile Picture Upload
+@api.route('/user/profile-picture', methods=['POST'])
+@login_required
+def upload_profile_picture():
+    """Upload a profile picture for the current user"""
+    try:
+        if 'profile_picture' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'No file provided'
+            }), 400
+        
+        file = request.files['profile_picture']
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'No file selected'
+            }), 400
+        
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        if not ('.' in file.filename and 
+                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid file type. Allowed: PNG, JPG, JPEG, GIF, WEBP'
+            }), 400
+        
+        # Validate file size (max 5MB)
+        file.seek(0, 2)  # Seek to end
+        file_size = file.tell()
+        file.seek(0)  # Reset to beginning
+        
+        if file_size > 5 * 1024 * 1024:  # 5MB
+            return jsonify({
+                'success': False,
+                'error': 'File too large. Maximum size is 5MB'
+            }), 400
+        
+        # Generate unique filename
+        import os
+        import uuid
+        from werkzeug.utils import secure_filename
+        
+        filename = secure_filename(file.filename)
+        file_extension = filename.rsplit('.', 1)[1].lower()
+        unique_filename = f"profile_{current_user.id}_{uuid.uuid4().hex[:8]}.{file_extension}"
+        
+        # Create uploads directory if it doesn't exist
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads', 'profiles')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Remove previous uploaded profile if present
+        try:
+            if current_user.profile_picture and current_user.profile_picture.startswith('/static/uploads/profiles/'):
+                old_path = os.path.join(current_app.root_path, current_user.profile_picture.lstrip('/'))
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+        except Exception:
+            pass
+
+        # Save file
+        file_path = os.path.join(upload_dir, unique_filename)
+        file.save(file_path)
+        
+        # Update user's profile picture
+        profile_url = f'/static/uploads/profiles/{unique_filename}'
+        current_user.profile_picture = profile_url
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'profile_picture': profile_url
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error uploading profile picture: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to upload profile picture'
+        }), 500
+
+
+@api.route('/user/profile-picture', methods=['DELETE'])
+@login_required
+def delete_profile_picture():
+    """Delete the current user's profile picture"""
+    try:
+        if current_user.profile_picture:
+            # Remove the file
+            import os
+            file_path = os.path.join(current_app.root_path, current_user.profile_picture.lstrip('/'))
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            # Clear the database field
+            current_user.profile_picture = None
+            db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile picture deleted successfully'
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error deleting profile picture: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to delete profile picture'
+        }), 500
+
+
+# Book Rating System
+@api.route('/books/<int:book_id>/rate', methods=['POST'])
+@login_required
+def rate_book(book_id):
+    """Rate a book (1-5 stars)"""
+    try:
+        book = Book.query.get_or_404(book_id)
+        
+        # Check if user owns the book or if it's a shared book
+        if book.user_id != current_user.id and not book.shared_book_id:
+            return jsonify({
+                'success': False,
+                'error': 'You can only rate books in your library'
+            }), 403
+        
+        data = request.get_json()
+        rating = data.get('rating')
+        review = data.get('review')
+        
+        if not rating or not isinstance(rating, int) or rating < 1 or rating > 5:
+            return jsonify({
+                'success': False,
+                'error': 'Rating must be an integer between 1 and 5'
+            }), 400
+        
+        # Check if user already rated this book
+        existing_rating = UserRating.query.filter_by(
+            user_id=current_user.id, 
+            book_id=book_id
+        ).first()
+        
+        if existing_rating:
+            # Update existing rating
+            existing_rating.rating = rating
+            existing_rating.review = review
+            existing_rating.updated_at = datetime.now(timezone.utc)
+            db.session.commit()
+        else:
+            # Create new rating
+            new_rating = UserRating(
+                user_id=current_user.id,
+                book_id=book_id,
+                rating=rating,
+                review=review
+            )
+            db.session.add(new_rating)
+            db.session.commit()
+        
+        # Update book's average rating
+        book.update_average_rating()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'rating': rating,
+                'review': review,
+                'average_rating': book.average_rating,
+                'rating_count': book.rating_count
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error rating book: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to rate book'
+        }), 500
+
+
+@api.route('/books/<int:book_id>/rate', methods=['GET'])
+@login_required
+def get_book_rating(book_id):
+    """Get the current user's rating for a book"""
+    try:
+        book = Book.query.get_or_404(book_id)
+        user_rating = book.get_user_rating(current_user.id)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'user_rating': user_rating.to_dict() if user_rating else None,
+                'average_rating': book.average_rating,
+                'rating_count': book.rating_count
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting book rating: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to get book rating'
+        }), 500
+
+
+@api.route('/books/<int:book_id>/rate', methods=['DELETE'])
+@login_required
+def delete_book_rating(book_id):
+    """Delete the current user's rating for a book"""
+    try:
+        book = Book.query.get_or_404(book_id)
+        user_rating = book.get_user_rating(current_user.id)
+        
+        if user_rating:
+            db.session.delete(user_rating)
+            db.session.commit()
+            
+            # Update book's average rating
+            book.update_average_rating()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Rating deleted successfully',
+            'data': {
+                'average_rating': book.average_rating,
+                'rating_count': book.rating_count
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error deleting book rating: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to delete rating'
+        }), 500
+
+
+@api.route('/books/<int:book_id>/ratings', methods=['GET'])
+def get_book_ratings(book_id):
+    """Get all ratings for a book (public endpoint)"""
+    try:
+        book = Book.query.get_or_404(book_id)
+        ratings = UserRating.query.filter_by(book_id=book_id).order_by(UserRating.created_at.desc()).all()
+        
+        # Get user info for each rating
+        rating_data = []
+        for rating in ratings:
+            user = User.query.get(rating.user_id)
+            rating_data.append({
+                'id': rating.id,
+                'rating': rating.rating,
+                'review': rating.review,
+                'created_at': rating.created_at.isoformat() if rating.created_at else None,
+                'user': {
+                    'id': user.id,
+                    'username': user.username
+                } if user else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'ratings': rating_data,
+                'average_rating': book.average_rating,
+                'rating_count': book.rating_count
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error getting book ratings: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to get book ratings'
+        }), 500

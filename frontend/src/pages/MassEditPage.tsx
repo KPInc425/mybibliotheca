@@ -514,13 +514,23 @@ const MassEditPage: React.FC = () => {
                   <div className="book-cover-wrapper relative mb-3 rounded-lg overflow-hidden shadow-lg aspect-[3/4] w-full h-40 bg-base-200 flex items-center justify-center">
                     <Link to={`/book/${book.uid}`} onClick={(e) => e.stopPropagation()}>
                       <img 
-                        src={book.cover_url || '/bookshelf.png'}
+                        src={book.cover_url ?? '/bookshelf.png'}
                         className="book-cover-shelf w-full h-full object-contain rounded"
                         alt={`${book.title} cover`}
                         loading="lazy"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = '/bookshelf.png';
+                          // Prevent infinite loop by checking if we're already using the fallback
+                          if (target.src !== window.location.origin + '/bookshelf.png') {
+                            target.src = '/bookshelf.png';
+                          } else {
+                            // If fallback also fails, hide the image and show a placeholder
+                            target.style.display = 'none';
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'w-full h-full bg-base-200 rounded flex items-center justify-center text-lg';
+                            placeholder.innerHTML = '📚';
+                            target.parentNode?.appendChild(placeholder);
+                          }
                         }}
                       />
                     </Link>

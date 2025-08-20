@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import Icon from '@/components/Icon';
+import { 
+  BookOpenIcon,
+  EyeIcon,
+  EyeSlashIcon,
+  UserIcon,
+  LockClosedIcon
+} from '@heroicons/react/24/outline';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -10,6 +18,7 @@ const LoginPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const { setUser } = useAuthStore();
   const navigate = useNavigate();
@@ -75,87 +84,128 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Sign in to BookOracle
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Track your reading progress
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4">
-              <div className="text-sm text-red-700 dark:text-red-400">{error}</div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 dark:from-primary/20 dark:via-secondary/20 dark:to-accent/20 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full">
+        {/* Header Card */}
+        <div className="bg-base-100 border-2 border-secondary rounded-2xl p-8 shadow-xl mb-6">
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mb-4">
+              <Icon hero={<BookOpenIcon className="w-8 h-8 text-white" />} emoji="📚" />
             </div>
-          )}
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                value={formData.username}
-                onChange={handleChange}
-                className="mt-1 input"
-                placeholder="Enter your username"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="mt-1 input"
-                placeholder="Enter your password"
-              />
-            </div>
-            <div className="flex items-center">
-              <input
-                id="remember_me"
-                name="remember_me"
-                type="checkbox"
-                checked={formData.remember_me}
-                onChange={handleChange}
-                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember_me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                Remember me
-              </label>
-            </div>
+            <h1 className="text-3xl font-bold text-primary mb-2">Welcome Back</h1>
+            <p className="text-base-content/70">Sign in to continue your reading journey</p>
           </div>
+        </div>
 
-          <div>
+        {/* Login Form Card */}
+        <div className="bg-base-100 border-2 border-secondary rounded-2xl p-8 shadow-xl">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="alert alert-error">
+                <Icon hero={<BookOpenIcon className="w-5 h-5" />} emoji="⚠️" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* Username Field */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold flex items-center gap-2">
+                    <Icon hero={<UserIcon className="w-4 h-4" />} emoji="👤" />
+                    Username
+                  </span>
+                </label>
+                <input
+                  name="username"
+                  type="text"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="input input-bordered w-full focus:input-primary"
+                  placeholder="Enter your username"
+                />
+              </div>
+
+              {/* Password Field */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-semibold flex items-center gap-2">
+                    <Icon hero={<LockClosedIcon className="w-4 h-4" />} emoji="🔒" />
+                    Password
+                  </span>
+                </label>
+                <div className="relative">
+                  <input
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="input input-bordered w-full pr-12 focus:input-primary"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-base-content/50 hover:text-base-content"
+                  >
+                    <Icon 
+                      hero={showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />} 
+                      emoji={showPassword ? "🙈" : "👁️"} 
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember Me */}
+              <div className="flex items-center justify-between">
+                <label className="label cursor-pointer">
+                  <input
+                    name="remember_me"
+                    type="checkbox"
+                    checked={formData.remember_me}
+                    onChange={handleChange}
+                    className="checkbox checkbox-primary checkbox-sm"
+                  />
+                  <span className="label-text ml-2">Remember me</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-primary w-full btn-lg"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Signing in...
+                </>
+              ) : (
+                <>
+                  <Icon hero={<BookOpenIcon className="w-5 h-5" />} emoji="📚" />
+                  Sign In
+                </>
+              )}
             </button>
-          </div>
 
-          <div className="text-center">
-            <Link
-              to="/register"
-              className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-            >
-              Don't have an account? Sign up
-            </Link>
-          </div>
-        </form>
+            {/* Register Link */}
+            <div className="text-center pt-4">
+              <p className="text-base-content/70">
+                Don't have an account?{' '}
+                <Link
+                  to="/register"
+                  className="link link-primary font-semibold hover:link-primary-focus"
+                >
+                  Sign up here
+                </Link>
+              </p>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

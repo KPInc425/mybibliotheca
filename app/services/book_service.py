@@ -142,6 +142,13 @@ class BookService:
                     query = query.filter(Book.want_to_read == True)
                 elif status == 'library_only':
                     query = query.filter(Book.library_only == True)
+
+            # Owned filter (ownedOnly)
+            owned_val = filters.get('owned') or filters.get('ownedOnly')
+            if isinstance(owned_val, str):
+                owned_val = owned_val.lower() in ('1', 'true', 'yes')
+            if owned_val is True:
+                query = query.filter(Book.owned == True)
             
             if filters.get('search'):
                 search_term = f"%{filters['search']}%"
@@ -163,6 +170,20 @@ class BookService:
             Book object or None if not found
         """
         return Book.query.filter_by(uid=uid, user_id=user_id).first()
+
+    def update_book_fields(self, uid: str, user_id: int, fields: Dict[str, Any]) -> Book:
+        """Generic update for simple boolean/string fields like owned, want_to_read, library_only, etc."""
+        book = self.get_book_by_uid(uid, user_id)
+        if not book:
+            raise BookNotFoundError(f"Book with UID {uid} not found")
+
+        allowed_fields = {'owned', 'want_to_read', 'library_only', 'cover_url', 'description', 'publisher', 'language', 'categories', 'published_date', 'format'}
+        for key, value in fields.items():
+            if key in allowed_fields:
+                setattr(book, key, value)
+
+        self.db.commit()
+        return book
     
     def update_book_status(self, uid: str, user_id: int, status: str) -> Book:
         """
