@@ -179,18 +179,67 @@ def forgot_password():
         scheme = request.headers.get('X-Forwarded-Proto') or request.scheme
         host = request.headers.get('X-Forwarded-Host') or request.host
         base_url = f"{scheme}://{host}"
-        reset_url = f"{base_url}/auth/reset-password?token={token}"
+        # Point to React frontend route instead of Flask route
+        reset_url = f"{base_url}/reset-password?token={token}"
 
         try:
             # Import here to avoid circulars and keep scope local
             import socket
             from . import mail as mail_ext
             
-            # Build message
+            # Build message with simple HTML
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Reset Your BookOracle Password</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                    .content {{ background: #f8f9fa; padding: 30px; border-radius: 0 0 10px 10px; }}
+                    .button {{ display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 20px 0; }}
+                    .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #666; }}
+                    .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>📚 BookOracle</h1>
+                    <p>Password Reset Request</p>
+                </div>
+                <div class="content">
+                    <h2>Hello {user.username}!</h2>
+                    <p>We received a request to reset your BookOracle password. If you didn't make this request, you can safely ignore this email.</p>
+                    
+                    <div style="text-align: center;">
+                        <a href="{reset_url}" class="button">Reset My Password</a>
+                    </div>
+                    
+                    <div class="warning">
+                        <strong>⚠️ Security Notice:</strong>
+                        <ul>
+                            <li>This link will expire in 1 hour</li>
+                            <li>Only click this link if you requested a password reset</li>
+                            <li>If you didn't request this, your account is secure</li>
+                        </ul>
+                    </div>
+                    
+                    <p>If the button above doesn't work, copy and paste this link into your browser:</p>
+                    <p style="word-break: break-all; background: #f1f3f4; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px;">{reset_url}</p>
+                </div>
+                <div class="footer">
+                    <p>This is an automated message from BookOracle. Please do not reply to this email.</p>
+                    <p>If you have any questions, please contact your system administrator.</p>
+                </div>
+            </body>
+            </html>
+            """
+            
             msg = Message(
-                subject='BookOracle Password Reset',
+                subject='Reset Your BookOracle Password',
                 recipients=[email],
-                body=f"Click to reset your password: {reset_url}\nThis link expires in 1 hour."
+                html=html_content
             )
 
             # Console prints for development server visibility

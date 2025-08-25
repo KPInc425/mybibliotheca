@@ -414,6 +414,8 @@ def toggle_debug_mode():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+
 @auth.route('/storage-debug')
 def storage_debug():
     """Debug page to show what authentication data is stored locally"""
