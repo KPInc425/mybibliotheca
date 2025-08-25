@@ -168,6 +168,46 @@ def assign_existing_books_to_admin():
         print(f"⚠️  Failed to assign orphaned books to admin: {e}")
         db.session.rollback()
 
+def run_email_normalization_migration():
+    """Normalize all email addresses in the database to lowercase"""
+    try:
+        # Import User model and normalize_email function
+        from .models import User, normalize_email
+        
+        # Get all users
+        users = User.query.all()
+        if not users:
+            print("✅ No users found for email normalization")
+            return
+        
+        # Check which emails need normalization
+        emails_to_normalize = []
+        for user in users:
+            normalized = normalize_email(user.email)
+            if user.email != normalized:
+                emails_to_normalize.append((user, normalized))
+        
+        if not emails_to_normalize:
+            print("✅ All email addresses are already normalized")
+            return
+        
+        print(f"🔄 Normalizing {len(emails_to_normalize)} email addresses...")
+        
+        # Perform the normalization
+        updated_count = 0
+        for user, normalized in emails_to_normalize:
+            print(f"  Normalizing user {user.username}: '{user.email}' -> '{normalized}'")
+            user.email = normalized
+            updated_count += 1
+        
+        # Commit all changes
+        db.session.commit()
+        print(f"✅ Successfully normalized {updated_count} email addresses")
+        
+    except Exception as e:
+        print(f"⚠️  Email normalization migration failed: {e}")
+        db.session.rollback()
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -281,6 +321,13 @@ def create_app():
             
             # Run security/privacy field migration
             run_security_privacy_migration(inspector, db.engine)
+            
+            # Run email normalization migration
+            if 'user' in inspector.get_table_names():
+                try:
+                    run_email_normalization_migration()
+                except Exception as e:
+                    print(f"⚠️  Error during email normalization: {e}")
             
             # Only assign orphaned books AFTER user table exists and columns are added
             if 'user' in inspector.get_table_names():
