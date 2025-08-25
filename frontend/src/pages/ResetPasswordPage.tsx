@@ -37,11 +37,11 @@ const ResetPasswordPage: React.FC = () => {
     try {
       setSubmitting(true);
       const res = await api.auth.resetPassword(token, newPassword);
-      if (res.data?.success) {
+      if (res.success) {
         setSuccess('Password has been reset. You can now sign in.');
         setTimeout(() => navigate('/login'), 1500);
       } else {
-        setError(res.data?.error || 'Failed to reset password');
+        setError(res.error || 'Failed to reset password');
       }
     } catch (err) {
       setError('Failed to reset password');

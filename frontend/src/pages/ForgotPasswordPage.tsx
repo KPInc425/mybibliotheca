@@ -19,7 +19,7 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       setSubmitting(true);
       const res = await api.auth.forgotPassword(email);
-      if (res.success || res.data?.success) {
+      if (res.success) {
         setSuccess('If that email exists, a reset link was sent.');
       } else {
         setSuccess('If that email exists, a reset link was sent.');
