@@ -38,7 +38,9 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('Please use a different username.')
 
     def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
+        from .models import normalize_email
+        normalized_email = normalize_email(email.data)
+        user = User.query.filter_by(email=normalized_email).first()
         if user is not None:
             raise ValidationError('Please use a different email address.')
 
@@ -133,7 +135,9 @@ class SetupForm(FlaskForm):
 
     def validate_email(self, email):
         """Ensure no users exist with this email"""
-        user = User.query.filter_by(email=email.data).first()
+        from .models import normalize_email
+        normalized_email = normalize_email(email.data)
+        user = User.query.filter_by(email=normalized_email).first()
         if user is not None:
             raise ValidationError('Please use a different email address.')
 

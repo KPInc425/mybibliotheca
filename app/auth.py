@@ -85,11 +85,8 @@ def login():
         debug_auth(f"Login form submitted for user: {form.username.data}")
         debug_csrf("Form validation passed, checking CSRF")
         
-        # Try to find user by username or email
-        user = User.query.filter(
-            (User.username == form.username.data) | 
-            (User.email == form.username.data)
-        ).first()
+        # Try to find user by username or email with normalized email lookup
+        user = User.find_by_email_or_username(form.username.data)
         
         if user:
             debug_auth(f"User found: {user.username} (ID: {user.id})")

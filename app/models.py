@@ -7,6 +7,12 @@ import re
 
 db = SQLAlchemy()
 
+def normalize_email(email):
+    """Normalize email address to lowercase and trim whitespace"""
+    if email:
+        return email.strip().lower()
+    return email
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -49,6 +55,31 @@ class User(UserMixin, db.Model):
     # Relationships
     books = db.relationship('Book', backref='user', lazy=True, cascade='all, delete-orphan')
     invite_tokens = db.relationship('InviteToken', foreign_keys='InviteToken.created_by', backref='created_by_user', lazy=True, cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs):
+        # Normalize email before creating user
+        if 'email' in kwargs:
+            kwargs['email'] = normalize_email(kwargs['email'])
+        super().__init__(**kwargs)
+    
+    def set_email(self, email):
+        """Set email with normalization"""
+        self.email = normalize_email(email)
+    
+    @classmethod
+    def find_by_email(cls, email):
+        """Find user by email with case-insensitive lookup"""
+        normalized_email = normalize_email(email)
+        return cls.query.filter_by(email=normalized_email).first()
+    
+    @classmethod
+    def find_by_email_or_username(cls, identifier):
+        """Find user by email or username with case-insensitive email lookup"""
+        normalized_identifier = normalize_email(identifier)
+        return cls.query.filter(
+            (cls.username == identifier) | 
+            (cls.email == normalized_identifier)
+        ).first()
     
     def set_password(self, password, validate=True):
         """Set password hash"""

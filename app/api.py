@@ -12,7 +12,7 @@ import secrets
 
 from .services.book_service import BookService, BookNotFoundError
 from .services.user_service import UserService, UserNotFoundError
-from .models import db, User, Book, ReadingLog, InviteToken, UserRating
+from .models import db, User, Book, ReadingLog, InviteToken, UserRating, normalize_email
 
 from .utils import get_reading_streak
 from flask_mail import Message, Mail
@@ -63,11 +63,8 @@ def api_login():
                 'error': 'Username and password are required'
             }), 400
         
-        # Find user by username or email
-        user = User.query.filter(
-            (User.username == username) | 
-            (User.email == username)
-        ).first()
+        # Find user by username or email with normalized email lookup
+        user = User.find_by_email_or_username(username)
         
         if not user:
             return jsonify({
@@ -160,14 +157,14 @@ def forgot_password():
     """Initiate password reset by sending a reset link to user's email."""
     try:
         data = request.get_json() or {}
-        email = (data.get('email') or '').strip().lower()
+        email = (data.get('email') or '').strip()
         if not email:
             return jsonify({'success': False, 'error': 'Email is required'}), 400
 
         print(f"\n[DEBUG] Forgot password request for email: {email}")
         
-        # Use case-insensitive email lookup
-        user = User.query.filter(User.email.ilike(email)).first()
+        # Use normalized email lookup
+        user = User.find_by_email(email)
         print(f"[DEBUG] User found: {user is not None}")
         
         # Always respond success to prevent user enumeration
@@ -336,7 +333,7 @@ def api_register():
             }), 400
         
         # Check if email matches invite (if invite has specific email)
-        if invite_token.email and invite_token.email.lower() != data['email'].lower():
+        if invite_token.email and normalize_email(invite_token.email) != normalize_email(data['email']):
             return jsonify({
                 'success': False,
                 'error': 'Email does not match the invite'
@@ -350,7 +347,7 @@ def api_register():
             }), 409
         
         # Check if email already exists
-        if User.query.filter_by(email=data['email']).first():
+        if User.find_by_email(data['email']):
             return jsonify({
                 'success': False,
                 'error': 'Email already exists'
@@ -3142,7 +3139,7 @@ def create_user():
             'error': 'Username already exists'
         }), 400
     
-    if User.query.filter(User.email.ilike(email)).first():
+    if User.find_by_email(email):
         return jsonify({
             'success': False,
             'error': 'Email already exists'
