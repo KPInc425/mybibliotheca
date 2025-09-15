@@ -27,16 +27,13 @@ export interface ScanResult {
  * Check if native scanner is available (Capacitor)
  */
 export const checkNativeScanner = (): boolean => {
-  const isCapacitor =
-    typeof window !== "undefined" &&
-    (window as any).Capacitor &&
-    (window as any).Capacitor.isNative;
-
-  const hasBarcodeScanner =
-    typeof window !== "undefined" &&
-    (window as any).Capacitor?.Plugins?.BarcodeScanner;
-
-  return isCapacitor && hasBarcodeScanner;
+  const cap = (window as any).Capacitor;
+  return !!(
+    cap &&
+    typeof cap.getPlatform === "function" &&
+    cap.getPlatform() !== "web" &&
+    cap.Plugins?.BarcodeScanner
+  );
 };
 
 /**

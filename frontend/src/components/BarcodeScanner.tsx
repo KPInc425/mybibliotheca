@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
+import React, { useState, useEffect, useRef } from "react";
+import {
   CameraIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
-  InformationCircleIcon
-} from '@heroicons/react/24/outline';
+  InformationCircleIcon,
+} from "@heroicons/react/24/outline";
 import {
   startNativeScanner,
   startBrowserScanner,
   getScannerAvailability,
-  stopScanner
-} from '@/services/scannerService';
+  stopScanner,
+} from "@/services/scannerService";
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
@@ -31,16 +31,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   onScan,
   onError,
   onClose,
-  isOpen
+  isOpen,
 }) => {
   const [scannerState, setScannerState] = useState<ScannerState>({
     isScanning: false,
     isNativeAvailable: false,
     isBrowserAvailable: false,
     error: null,
-    status: 'Ready to scan'
+    status: "Ready to scan",
   });
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const codeReaderRef = useRef<any>(null);
@@ -50,10 +50,24 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   useEffect(() => {
     const checkAvailability = async () => {
       const availability = await getScannerAvailability();
-      setScannerState(prev => ({
+      // Debug logging for environment and scanner availability
+      const cap = (window as any).Capacitor;
+      console.log("[BarcodeScanner] Modal opened");
+      console.log("[BarcodeScanner] Capacitor:", cap);
+      console.log(
+        "[BarcodeScanner] Capacitor.getPlatform:",
+        cap && typeof cap.getPlatform === "function" ? cap.getPlatform() : "N/A"
+      );
+      console.log(
+        "[BarcodeScanner] BarcodeScanner plugin:",
+        cap?.Plugins?.BarcodeScanner
+      );
+      console.log("[BarcodeScanner] getScannerAvailability:", availability);
+
+      setScannerState((prev) => ({
         ...prev,
         isNativeAvailable: availability.native,
-        isBrowserAvailable: availability.browser
+        isBrowserAvailable: availability.browser,
       }));
     };
 
@@ -64,43 +78,42 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const handleStartNativeScanner = async () => {
     try {
       isScannerActiveRef.current = true;
-      setScannerState(prev => ({
+      setScannerState((prev) => ({
         ...prev,
         isScanning: true,
-        status: 'Starting native scanner...',
-        error: null
+        status: "Starting native scanner...",
+        error: null,
       }));
 
       const result = await startNativeScanner();
-      
+
       if (!isScannerActiveRef.current) {
         return; // Scanner was cancelled
       }
-      
+
       if (result.success && result.barcode) {
         onScan(result.barcode);
-        setScannerState(prev => ({
+        setScannerState((prev) => ({
           ...prev,
           status: `Barcode detected: ${result.barcode}`,
-          isScanning: false
+          isScanning: false,
         }));
       } else {
-        throw new Error(result.error || 'Native scanner failed');
+        throw new Error(result.error || "Native scanner failed");
       }
-
     } catch (error) {
       if (!isScannerActiveRef.current) {
         return; // Scanner was cancelled
       }
-      
-      console.error('Native scanner error:', error);
-      setScannerState(prev => ({
+
+      console.error("Native scanner error:", error);
+      setScannerState((prev) => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Native scanner failed',
+        error: error instanceof Error ? error.message : "Native scanner failed",
         isScanning: false,
-        status: 'Native scanner failed'
+        status: "Native scanner failed",
       }));
-      onError(error instanceof Error ? error.message : 'Native scanner failed');
+      onError(error instanceof Error ? error.message : "Native scanner failed");
     } finally {
       isScannerActiveRef.current = false;
     }
@@ -109,30 +122,30 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   // Start browser scanner
   const handleStartBrowserScanner = async () => {
     if (!videoRef.current) {
-      setScannerState(prev => ({
+      setScannerState((prev) => ({
         ...prev,
-        error: 'Video element not available',
+        error: "Video element not available",
         isScanning: false,
-        status: 'Browser scanner failed'
+        status: "Browser scanner failed",
       }));
-      onError('Video element not available');
+      onError("Video element not available");
       return;
     }
 
     try {
       isScannerActiveRef.current = true;
-      setScannerState(prev => ({
+      setScannerState((prev) => ({
         ...prev,
         isScanning: true,
-        status: 'Starting browser scanner...',
-        error: null
+        status: "Starting browser scanner...",
+        error: null,
       }));
 
       const result = await startBrowserScanner(
         videoRef.current,
         (status) => {
           if (isScannerActiveRef.current) {
-            setScannerState(prev => ({ ...prev, status }));
+            setScannerState((prev) => ({ ...prev, status }));
           }
         },
         () => !isScannerActiveRef.current // Cancellation check
@@ -144,28 +157,30 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       if (result.success && result.barcode) {
         onScan(result.barcode);
-        setScannerState(prev => ({
+        setScannerState((prev) => ({
           ...prev,
           status: `Barcode detected: ${result.barcode}`,
-          isScanning: false
+          isScanning: false,
         }));
       } else {
-        throw new Error(result.error || 'Browser scanner failed');
+        throw new Error(result.error || "Browser scanner failed");
       }
-
     } catch (error) {
       if (!isScannerActiveRef.current) {
         return; // Scanner was cancelled
       }
-      
-      console.error('Browser scanner error:', error);
-      setScannerState(prev => ({
+
+      console.error("Browser scanner error:", error);
+      setScannerState((prev) => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Browser scanner failed',
+        error:
+          error instanceof Error ? error.message : "Browser scanner failed",
         isScanning: false,
-        status: 'Browser scanner failed'
+        status: "Browser scanner failed",
       }));
-      onError(error instanceof Error ? error.message : 'Browser scanner failed');
+      onError(
+        error instanceof Error ? error.message : "Browser scanner failed"
+      );
     } finally {
       isScannerActiveRef.current = false;
     }
@@ -175,19 +190,19 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const stopBrowserScanner = () => {
     isScannerActiveRef.current = false;
     stopScanner(); // Stop global scanner
-    
+
     if (codeReaderRef.current) {
       try {
         codeReaderRef.current.reset();
       } catch (e) {
         // reset() might not exist, try alternative cleanup
-        console.log('[BarcodeScanner] ZXing reader cleanup completed');
+        console.log("[BarcodeScanner] ZXing reader cleanup completed");
       }
       codeReaderRef.current = null;
     }
 
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
 
@@ -199,36 +214,53 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   // Start smart scanner (tries native first, then browser)
   const startSmartScanner = async () => {
     try {
+      // Log scanner state and environment before starting
+      const cap = (window as any).Capacitor;
+      console.log("[BarcodeScanner] startSmartScanner called");
+      console.log("[BarcodeScanner] scannerState:", scannerState);
+      console.log("[BarcodeScanner] Capacitor:", cap);
+      console.log(
+        "[BarcodeScanner] Capacitor.getPlatform:",
+        cap && typeof cap.getPlatform === "function" ? cap.getPlatform() : "N/A"
+      );
+      console.log(
+        "[BarcodeScanner] BarcodeScanner plugin:",
+        cap?.Plugins?.BarcodeScanner
+      );
+
       if (scannerState.isNativeAvailable) {
+        console.log("[BarcodeScanner] Using native scanner");
         await handleStartNativeScanner();
       } else if (scannerState.isBrowserAvailable) {
+        console.log("[BarcodeScanner] Using browser scanner");
         await handleStartBrowserScanner();
       } else {
-        throw new Error('No scanner available');
+        console.log("[BarcodeScanner] No scanner available");
+        throw new Error("No scanner available");
       }
     } catch (error) {
       if (!isScannerActiveRef.current) {
         return; // Scanner was cancelled
       }
-      
-      console.error('Smart scanner error:', error);
-      setScannerState(prev => ({
+
+      console.error("Smart scanner error:", error);
+      setScannerState((prev) => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Scanner failed',
+        error: error instanceof Error ? error.message : "Scanner failed",
         isScanning: false,
-        status: 'Scanner failed'
+        status: "Scanner failed",
       }));
-      onError(error instanceof Error ? error.message : 'Scanner failed');
+      onError(error instanceof Error ? error.message : "Scanner failed");
     }
   };
 
   // Stop scanner
   const stopLocalScanner = () => {
     stopBrowserScanner();
-    setScannerState(prev => ({
+    setScannerState((prev) => ({
       ...prev,
       isScanning: false,
-      status: 'Scanner stopped'
+      status: "Scanner stopped",
     }));
   };
 
@@ -243,11 +275,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   useEffect(() => {
     if (!isOpen) {
       stopBrowserScanner();
-      setScannerState(prev => ({
+      setScannerState((prev) => ({
         ...prev,
         isScanning: false,
         error: null,
-        status: 'Ready to scan'
+        status: "Ready to scan",
       }));
     }
   }, [isOpen]);
@@ -263,7 +295,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             <CameraIcon className="w-5 h-5" />
             Barcode Scanner
           </h3>
-          <button 
+          <button
             onClick={onClose}
             className="btn btn-ghost btn-sm"
             disabled={scannerState.isScanning}
@@ -275,23 +307,47 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         {/* Scanner Status */}
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className={`badge badge-sm ${
-              scannerState.isScanning ? 'badge-warning' : 
-              scannerState.error ? 'badge-error' : 'badge-success'
-            }`}>
-              {scannerState.isScanning ? 'Scanning...' : 
-               scannerState.error ? 'Error' : 'Ready'}
+            <div
+              className={`badge badge-sm ${
+                scannerState.isScanning
+                  ? "badge-warning"
+                  : scannerState.error
+                  ? "badge-error"
+                  : "badge-success"
+              }`}
+            >
+              {scannerState.isScanning
+                ? "Scanning..."
+                : scannerState.error
+                ? "Error"
+                : "Ready"}
             </div>
-            <span className="text-sm text-base-content/70">{scannerState.status}</span>
+            <span className="text-sm text-base-content/70">
+              {scannerState.status}
+            </span>
           </div>
 
           {/* Scanner Availability */}
           <div className="flex gap-2 mb-4">
-            <div className={`badge badge-xs ${scannerState.isNativeAvailable ? 'badge-success' : 'badge-neutral'}`}>
-              Native: {scannerState.isNativeAvailable ? 'Available' : 'Unavailable'}
+            <div
+              className={`badge badge-xs ${
+                scannerState.isNativeAvailable
+                  ? "badge-success"
+                  : "badge-neutral"
+              }`}
+            >
+              Native:{" "}
+              {scannerState.isNativeAvailable ? "Available" : "Unavailable"}
             </div>
-            <div className={`badge badge-xs ${scannerState.isBrowserAvailable ? 'badge-success' : 'badge-neutral'}`}>
-              Browser: {scannerState.isBrowserAvailable ? 'Available' : 'Unavailable'}
+            <div
+              className={`badge badge-xs ${
+                scannerState.isBrowserAvailable
+                  ? "badge-success"
+                  : "badge-neutral"
+              }`}
+            >
+              Browser:{" "}
+              {scannerState.isBrowserAvailable ? "Available" : "Unavailable"}
             </div>
           </div>
         </div>
@@ -326,16 +382,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             <button
               onClick={startSmartScanner}
               className="btn btn-primary"
-              disabled={!scannerState.isNativeAvailable && !scannerState.isBrowserAvailable}
+              disabled={
+                !scannerState.isNativeAvailable &&
+                !scannerState.isBrowserAvailable
+              }
             >
               <CameraIcon className="w-4 h-4 mr-2" />
               Start Scanner
             </button>
           ) : (
-            <button
-              onClick={stopLocalScanner}
-              className="btn btn-secondary"
-            >
+            <button onClick={stopLocalScanner} className="btn btn-secondary">
               <XMarkIcon className="w-4 h-4 mr-2" />
               Stop Scanner
             </button>
