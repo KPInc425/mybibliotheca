@@ -141,7 +141,7 @@ export const startBrowserScanner = async (
           }
           if (codeReader) {
             try {
-              codeReader.reset();
+              // No reset or stopContinuousDecode method in ES module; cleanup handled by stopping stream and nulling srcObject
             } catch (e) {
               // reset() might not exist, try alternative cleanup
               console.log("[ScannerService] ZXing reader cleanup completed");
@@ -160,31 +160,25 @@ export const startBrowserScanner = async (
         }
       }, 100);
 
-      codeReader.decodeFromVideoElement(
-        videoElement,
-        (result: any, error: any) => {
-          if (isCancelled) return;
+      if (codeReader) {
+        codeReader.decodeFromVideoElement(
+          videoElement,
+          (result: any, error: any) => {
+            if (isCancelled) return;
 
-          if (result) {
-            clearInterval(cancellationInterval);
-            // Stop the stream
-            if (stream) {
-              stream.getTracks().forEach((track) => track.stop());
-            }
-            if (codeReader) {
-              try {
-                codeReader.reset();
-              } catch (e) {
-                // reset() might not exist, try alternative cleanup
-                console.log("[ScannerService] ZXing reader cleanup completed");
+            if (result) {
+              clearInterval(cancellationInterval);
+              // Stop the stream
+              if (stream) {
+                stream.getTracks().forEach((track) => track.stop());
               }
+              resolve({ success: true, barcode: result.text });
+            } else if (error && error.name !== "NotFoundException") {
+              console.warn("ZXing error:", error);
             }
-            resolve({ success: true, barcode: result.text });
-          } else if (error && error.name !== "NotFoundException") {
-            console.warn("ZXing error:", error);
           }
-        }
-      );
+        );
+      }
 
       // Set a timeout to stop scanning after 30 seconds
       setTimeout(() => {
@@ -196,7 +190,7 @@ export const startBrowserScanner = async (
         }
         if (codeReader) {
           try {
-            codeReader.reset();
+            // No reset or stopContinuousDecode method in ES module; cleanup handled by stopping stream and nulling srcObject
           } catch (e) {
             // reset() might not exist, try alternative cleanup
             console.log("[ScannerService] ZXing reader cleanup completed");
@@ -212,7 +206,7 @@ export const startBrowserScanner = async (
     }
     if (codeReader) {
       try {
-        codeReader.reset();
+        // No reset or stopContinuousDecode method in ES module; cleanup handled by stopping stream and nulling srcObject
       } catch (e) {
         // reset() might not exist, try alternative cleanup
         console.log("[ScannerService] ZXing reader cleanup completed");
