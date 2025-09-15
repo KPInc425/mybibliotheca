@@ -64,12 +64,27 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
     const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
 
     // Check permissions
-    const { granted } = await BarcodeScanner.checkPermissions();
+    let { granted, denied } = await BarcodeScanner.checkPermissions();
     if (!granted) {
-      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-      if (!newGranted) {
-        return { success: false, error: "Camera permission denied" };
+      const permResult = await BarcodeScanner.requestPermissions();
+      granted = permResult.granted;
+      denied = permResult.denied;
+    }
+
+    if (!granted) {
+      // Optionally, open app settings if denied and App plugin is available
+      if (
+        denied &&
+        Capacitor.Plugins.App &&
+        typeof Capacitor.Plugins.App.openSettings === "function"
+      ) {
+        await Capacitor.Plugins.App.openSettings();
       }
+      return {
+        success: false,
+        error:
+          "Camera permission denied. Please enable camera access in your device settings and try again.",
+      };
     }
 
     // Start scanning

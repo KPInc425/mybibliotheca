@@ -254,6 +254,14 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   };
 
+  // Auto-start scanner when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      startSmartScanner();
+    }
+    // eslint-disable-next-line
+  }, [isOpen, scannerState.isNativeAvailable, scannerState.isBrowserAvailable]);
+
   // Stop scanner
   const stopLocalScanner = () => {
     stopBrowserScanner();
@@ -378,24 +386,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
         {/* Scanner Controls */}
         <div className="flex flex-wrap gap-2 justify-center">
-          {!scannerState.isScanning ? (
-            <button
-              onClick={startSmartScanner}
-              className="btn btn-primary"
-              disabled={
-                !scannerState.isNativeAvailable &&
-                !scannerState.isBrowserAvailable
-              }
-            >
-              <CameraIcon className="w-4 h-4 mr-2" />
-              Start Scanner
-            </button>
-          ) : (
+          {scannerState.isScanning ? (
             <button onClick={stopLocalScanner} className="btn btn-secondary">
               <XMarkIcon className="w-4 h-4 mr-2" />
               Stop Scanner
             </button>
-          )}
+          ) : null}
         </div>
 
         {/* Scanner Tips */}
