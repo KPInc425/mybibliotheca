@@ -63,18 +63,34 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
     const Capacitor = (window as any).Capacitor;
     const BarcodeScanner = Capacitor.Plugins.BarcodeScanner;
 
+    // Check if scanning is supported (optional, for robustness)
+    let supported = true;
+    if (typeof BarcodeScanner.isSupported === "function") {
+      try {
+        const supportResult = await BarcodeScanner.isSupported();
+        supported = supportResult?.supported ?? true;
+      } catch (e) {
+        supported = true; // fallback: assume supported if method fails
+      }
+    }
+    if (!supported) {
+      return {
+        success: false,
+        error: "Barcode scanning not supported on this device",
+      };
+    }
+
     // Check permissions
-    let { granted, denied } = await BarcodeScanner.checkPermissions();
+    let { granted } = await BarcodeScanner.checkPermissions();
     if (!granted) {
+      // Always call requestPermissions to trigger the native modal
       const permResult = await BarcodeScanner.requestPermissions();
       granted = permResult.granted;
-      denied = permResult.denied;
     }
 
     if (!granted) {
-      // Optionally, open app settings if denied and App plugin is available
+      // Now, and only now, suggest opening app settings
       if (
-        denied &&
         Capacitor.Plugins.App &&
         typeof Capacitor.Plugins.App.openSettings === "function"
       ) {
