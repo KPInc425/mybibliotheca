@@ -26,18 +26,19 @@ const DebugToolsPanel: React.FC = () => {
   const collectEnvInfo = () => {
     let info: any = {};
     if (typeof window !== "undefined") {
-      info.Capacitor = window.Capacitor || null;
+      const cap = (window as any).Capacitor;
+      info.Capacitor = cap || null;
       info.Capacitor_Platform =
-        window.Capacitor && typeof window.Capacitor.getPlatform === "function"
-          ? window.Capacitor.getPlatform()
+        cap && typeof cap.getPlatform === "function"
+          ? cap.getPlatform()
           : "N/A";
-      info.BarcodeScanner = window.Capacitor?.Plugins?.BarcodeScanner || null;
+      info.BarcodeScanner = cap?.Plugins?.BarcodeScanner || null;
       info.isNative = !!(
-        window.Capacitor &&
-        typeof window.Capacitor.getPlatform === "function" &&
-        window.Capacitor.getPlatform() !== "web"
+        cap &&
+        typeof cap.getPlatform === "function" &&
+        cap.getPlatform() !== "web"
       );
-      info.hasBarcodeScanner = !!window.Capacitor?.Plugins?.BarcodeScanner;
+      info.hasBarcodeScanner = !!cap?.Plugins?.BarcodeScanner;
       info.navigatorUserAgent = window.navigator.userAgent;
     }
     setEnvInfo(info);
