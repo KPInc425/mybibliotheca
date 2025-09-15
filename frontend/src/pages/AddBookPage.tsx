@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useBooksStore } from '@/store/books';
-import { useSettingsStore } from '@/store/settings';
-import BarcodeScanner from '@/components/BarcodeScanner';
-import { fetchBookData, validateISBN } from '@/services/bookDataService';
-import { extractISBNFromBarcode, handleSuccessfulScan } from '@/services/scannerService';
-import { 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useBooksStore } from "@/store/books";
+import { useSettingsStore } from "@/store/settings";
+import BarcodeScanner from "@/components/BarcodeScanner";
+import { fetchBookData, validateISBN } from "@/services/bookDataService";
+import {
+  extractISBNFromBarcode,
+  handleSuccessfulScan,
+} from "@/services/scannerService";
+import {
   CameraIcon,
   MagnifyingGlassIcon,
   CheckIcon,
@@ -23,10 +26,10 @@ import {
   PhotoIcon,
   ChartBarIcon,
   ClipboardDocumentListIcon,
-  BuildingLibraryIcon
-} from '@heroicons/react/24/outline';
-import Icon from '@/components/Icon';
-import SearchableDropdown from '@/components/SearchableDropdown';
+  BuildingLibraryIcon,
+} from "@heroicons/react/24/outline";
+import Icon from "@/components/Icon";
+import SearchableDropdown from "@/components/SearchableDropdown";
 
 const AddBookPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,73 +40,75 @@ const AddBookPage: React.FC = () => {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [fetchSuccess, setFetchSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    title: '',
-    author: '',
-    isbn: '',
-    description: '',
-    published_date: '',
-    page_count: '',
-    categories: '',
-    publisher: '',
-    language: '',
-    format: '',
-    cover_url: '',
-    custom_id: '',
+    title: "",
+    author: "",
+    isbn: "",
+    description: "",
+    published_date: "",
+    page_count: "",
+    categories: "",
+    publisher: "",
+    language: "",
+    format: "",
+    cover_url: "",
+    custom_id: "",
     want_to_read: false,
-    library_only: false
+    library_only: false,
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  
+
   // Get existing categories from books for suggestions
   const { books } = useBooksStore();
-  const existingCategories = Array.from(new Set(
-    books.flatMap(book => 
-      book.categories ? book.categories.split(',').map(cat => cat.trim()) : []
+  const existingCategories = Array.from(
+    new Set(
+      books.flatMap((book) =>
+        book.categories
+          ? book.categories.split(",").map((cat) => cat.trim())
+          : []
+      )
     )
-  )).sort();
-
-
+  ).sort();
 
   // Handle barcode scan
   const handleBarcodeScan = async (barcode: string) => {
-    console.log('[AddBookPage] Barcode scanned:', barcode);
-    
+    console.log("[AddBookPage] Barcode scanned:", barcode);
+
     // Check for duplicate scans
     if (!handleSuccessfulScan(barcode)) {
-      console.log('[AddBookPage] Duplicate scan ignored');
+      console.log("[AddBookPage] Duplicate scan ignored");
       return;
     }
-    
+
     // Extract ISBN from barcode
     const isbn = extractISBNFromBarcode(barcode);
-    console.log('[AddBookPage] Extracted ISBN:', isbn);
-    
+    console.log("[AddBookPage] Extracted ISBN:", isbn);
+
     // Update ISBN field
-    setFormData(prev => ({ ...prev, isbn }));
-    
+    setFormData((prev) => ({ ...prev, isbn }));
+
     // Auto-fetch book data
     await fetchBookDataFromISBN(isbn);
-    
+
     // Close scanner
     setShowScanner(false);
   };
 
   // Handle scanner error
   const handleScannerError = (error: string) => {
-    console.error('[AddBookPage] Scanner error:', error);
+    console.error("[AddBookPage] Scanner error:", error);
     setFetchError(`Scanner error: ${error}`);
-    setShowScanner(false);
+    // Do NOT close the scanner modal on error; let the user decide in the modal
   };
 
   // Fetch book data from ISBN
   const fetchBookDataFromISBN = async (isbn: string) => {
     if (!isbn.trim()) {
-      setFetchError('Please enter an ISBN number first');
+      setFetchError("Please enter an ISBN number first");
       return;
     }
 
     if (!validateISBN(isbn)) {
-      setFetchError('Please enter a valid ISBN number');
+      setFetchError("Please enter a valid ISBN number");
       return;
     }
 
@@ -112,35 +117,39 @@ const AddBookPage: React.FC = () => {
       setFetchError(null);
       setFetchSuccess(false);
 
-      console.log('[AddBookPage] Fetching book data for ISBN:', isbn);
-      
+      console.log("[AddBookPage] Fetching book data for ISBN:", isbn);
+
       const response = await fetchBookData(isbn);
-      
+
       if (response.success && response.data) {
         // Fill form with fetched data
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          title: response.data!.title || '',
-          author: response.data!.author || '',
+          title: response.data!.title || "",
+          author: response.data!.author || "",
           isbn: response.data!.isbn || isbn,
-          description: response.data!.description || '',
-          published_date: response.data!.published_date || '',
-          page_count: response.data!.page_count?.toString() || '',
-          categories: response.data!.categories || '',
-          publisher: response.data!.publisher || '',
-          language: response.data!.language || '',
-          format: response.data!.format || '',
-          cover_url: response.data!.cover_url || ''
+          description: response.data!.description || "",
+          published_date: response.data!.published_date || "",
+          page_count: response.data!.page_count?.toString() || "",
+          categories: response.data!.categories || "",
+          publisher: response.data!.publisher || "",
+          language: response.data!.language || "",
+          format: response.data!.format || "",
+          cover_url: response.data!.cover_url || "",
         }));
-        
+
         setFetchSuccess(true);
-        console.log('[AddBookPage] Book data fetched and form filled successfully');
+        console.log(
+          "[AddBookPage] Book data fetched and form filled successfully"
+        );
       } else {
-        setFetchError(response.error || 'Failed to fetch book data');
+        setFetchError(response.error || "Failed to fetch book data");
       }
     } catch (error) {
-      console.error('[AddBookPage] Error fetching book data:', error);
-      setFetchError(error instanceof Error ? error.message : 'Failed to fetch book data');
+      console.error("[AddBookPage] Error fetching book data:", error);
+      setFetchError(
+        error instanceof Error ? error.message : "Failed to fetch book data"
+      );
     } finally {
       setIsFetching(false);
     }
@@ -148,23 +157,23 @@ const AddBookPage: React.FC = () => {
 
   // Handle form input changes
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.title.trim()) {
-      setFetchError('Title is required');
+      setFetchError("Title is required");
       return;
     }
 
     if (!formData.author.trim()) {
-      setFetchError('Author is required');
+      setFetchError("Author is required");
       return;
     }
 
@@ -172,17 +181,19 @@ const AddBookPage: React.FC = () => {
       // Convert string values to appropriate types
       const bookData = {
         ...formData,
-        categories: selectedCategories.join(', '), // Use selected categories
+        categories: selectedCategories.join(", "), // Use selected categories
         page_count: formData.page_count ? parseInt(formData.page_count) : null,
         want_to_read: formData.want_to_read,
-        library_only: formData.library_only
+        library_only: formData.library_only,
       };
 
       await addBook(bookData);
-      navigate('/library');
+      navigate("/library");
     } catch (error) {
-      console.error('Error adding book:', error);
-      setFetchError(error instanceof Error ? error.message : 'Failed to add book');
+      console.error("Error adding book:", error);
+      setFetchError(
+        error instanceof Error ? error.message : "Failed to add book"
+      );
     }
   };
 
@@ -197,10 +208,15 @@ const AddBookPage: React.FC = () => {
       {/* Header */}
       <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-4 md:py-8 mb-8">
         <h1 className="text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold m-0 text-shadow-lg relative z-10 flex items-center justify-center gap-2 md:gap-4">
-          <Icon hero={<BookOpenIcon className="w-8 h-8 md:w-16 md:h-16" />} emoji="📚" />
+          <Icon
+            hero={<BookOpenIcon className="w-8 h-8 md:w-16 md:h-16" />}
+            emoji="📚"
+          />
           Add New Book
         </h1>
-        <p className="text-lg md:text-xl opacity-90 mt-2">Scan or search for books to add to your library</p>
+        <p className="text-lg md:text-xl opacity-90 mt-2">
+          Scan or search for books to add to your library
+        </p>
       </div>
 
       {/* Scanner Section */}
@@ -209,28 +225,40 @@ const AddBookPage: React.FC = () => {
           <h2 className="text-2xl font-bold text-primary flex items-center gap-2">
             <Icon hero={<CameraIcon className="w-6 h-6" />} emoji="📱" />
             Barcode Scanner
-            <div className="tooltip tooltip-right" data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices.">
+            <div
+              className="tooltip tooltip-right"
+              data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices."
+            >
               <button type="button" className="btn btn-circle btn-ghost btn-sm">
-                <Icon hero={<InformationCircleIcon className="w-5 h-5" />} emoji="ℹ️" />
+                <Icon
+                  hero={<InformationCircleIcon className="w-5 h-5" />}
+                  emoji="ℹ️"
+                />
               </button>
             </div>
           </h2>
         </div>
-        
+
         {/* Scanner Controls */}
         <div className="flex flex-wrap gap-2 justify-center items-center mb-4">
-          <button 
+          <button
             onClick={() => setShowScanner(true)}
             className="btn btn-primary btn-lg"
           >
             <Icon hero={<CameraIcon className="w-5 h-5" />} emoji="📷" />
             <span className="ml-2">Scan Barcode</span>
           </button>
-          
+
           {/* Scanner Tips Tooltip */}
-          <div className="tooltip tooltip-right" data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices.">
+          <div
+            className="tooltip tooltip-right"
+            data-tip="Scanner Tips: Native App - Best experience with automatic scanning. Browser - Works but may be slower on mobile devices."
+          >
             <button type="button" className="btn btn-circle btn-ghost btn-sm">
-              <Icon hero={<InformationCircleIcon className="w-5 h-5" />} emoji="ℹ️" />
+              <Icon
+                hero={<InformationCircleIcon className="w-5 h-5" />}
+                emoji="ℹ️"
+              />
             </button>
           </div>
         </div>
@@ -244,16 +272,16 @@ const AddBookPage: React.FC = () => {
             </span>
           </label>
           <div className="join w-full">
-            <input 
-              type="text" 
-              className="input input-bordered join-item flex-1" 
+            <input
+              type="text"
+              className="input input-bordered join-item flex-1"
               value={formData.isbn}
-              onChange={(e) => handleInputChange('isbn', e.target.value)}
+              onChange={(e) => handleInputChange("isbn", e.target.value)}
               placeholder="Enter ISBN or scan barcode above (optional for manual books)"
               pattern="[0-9\-X]+"
               title="Enter a valid ISBN (digits, hyphens, and X only)"
             />
-            <button 
+            <button
               type="button"
               onClick={() => fetchBookDataFromISBN(formData.isbn)}
               disabled={isFetching || !formData.isbn.trim()}
@@ -263,7 +291,10 @@ const AddBookPage: React.FC = () => {
                 <div className="loading loading-spinner loading-sm"></div>
               ) : (
                 <>
-                  <Icon hero={<MagnifyingGlassIcon className="w-4 h-4" />} emoji="🔍" />
+                  <Icon
+                    hero={<MagnifyingGlassIcon className="w-4 h-4" />}
+                    emoji="🔍"
+                  />
                   <span className="ml-2">Fetch Book</span>
                 </>
               )}
@@ -280,7 +311,10 @@ const AddBookPage: React.FC = () => {
         {/* Fetch Status */}
         {fetchError && (
           <div className="alert alert-error">
-            <Icon hero={<ExclamationTriangleIcon className="w-6 h-6" />} emoji="⚠️" />
+            <Icon
+              hero={<ExclamationTriangleIcon className="w-6 h-6" />}
+              emoji="⚠️"
+            />
             <span>{fetchError}</span>
           </div>
         )}
@@ -301,15 +335,18 @@ const AddBookPage: React.FC = () => {
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold flex items-center gap-2">
-                  <Icon hero={<BookOpenIcon className="w-5 h-5" />} emoji="📖" />
+                  <Icon
+                    hero={<BookOpenIcon className="w-5 h-5" />}
+                    emoji="📖"
+                  />
                   Title *
                 </span>
               </label>
-              <input 
-                type="text" 
-                className="input input-bordered w-full" 
+              <input
+                type="text"
+                className="input input-bordered w-full"
                 value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                onChange={(e) => handleInputChange("title", e.target.value)}
                 required
                 placeholder="Book title"
               />
@@ -322,11 +359,11 @@ const AddBookPage: React.FC = () => {
                   Author *
                 </span>
               </label>
-              <input 
-                type="text" 
-                className="input input-bordered w-full" 
+              <input
+                type="text"
+                className="input input-bordered w-full"
                 value={formData.author}
-                onChange={(e) => handleInputChange('author', e.target.value)}
+                onChange={(e) => handleInputChange("author", e.target.value)}
                 required
                 placeholder="Author name"
               />
@@ -335,15 +372,18 @@ const AddBookPage: React.FC = () => {
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold flex items-center gap-2">
-                  <Icon hero={<BuildingOfficeIcon className="w-5 h-5" />} emoji="🏢" />
+                  <Icon
+                    hero={<BuildingOfficeIcon className="w-5 h-5" />}
+                    emoji="🏢"
+                  />
                   Publisher
                 </span>
               </label>
-              <input 
-                type="text" 
-                className="input input-bordered w-full" 
+              <input
+                type="text"
+                className="input input-bordered w-full"
                 value={formData.publisher}
-                onChange={(e) => handleInputChange('publisher', e.target.value)}
+                onChange={(e) => handleInputChange("publisher", e.target.value)}
                 placeholder="Publisher name"
               />
             </div>
@@ -351,30 +391,40 @@ const AddBookPage: React.FC = () => {
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold flex items-center gap-2">
-                  <Icon hero={<CalendarIcon className="w-5 h-5" />} emoji="📅" />
+                  <Icon
+                    hero={<CalendarIcon className="w-5 h-5" />}
+                    emoji="📅"
+                  />
                   Published Date
                 </span>
               </label>
-              <input 
-                type="date" 
-                className="input input-bordered w-full" 
+              <input
+                type="date"
+                className="input input-bordered w-full"
                 value={formData.published_date}
-                onChange={(e) => handleInputChange('published_date', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("published_date", e.target.value)
+                }
               />
             </div>
 
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold flex items-center gap-2">
-                  <Icon hero={<DocumentTextIcon className="w-5 h-5" />} emoji="📄" />
+                  <Icon
+                    hero={<DocumentTextIcon className="w-5 h-5" />}
+                    emoji="📄"
+                  />
                   Page Count
                 </span>
               </label>
-              <input 
-                type="number" 
-                className="input input-bordered w-full" 
+              <input
+                type="number"
+                className="input input-bordered w-full"
                 value={formData.page_count}
-                onChange={(e) => handleInputChange('page_count', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("page_count", e.target.value)
+                }
                 placeholder="Number of pages"
                 min="0"
               />
@@ -383,15 +433,18 @@ const AddBookPage: React.FC = () => {
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold flex items-center gap-2">
-                  <Icon hero={<GlobeAltIcon className="w-5 h-5" />} emoji="🌐" />
+                  <Icon
+                    hero={<GlobeAltIcon className="w-5 h-5" />}
+                    emoji="🌐"
+                  />
                   Language
                 </span>
               </label>
-              <input 
-                type="text" 
-                className="input input-bordered w-full" 
+              <input
+                type="text"
+                className="input input-bordered w-full"
                 value={formData.language}
-                onChange={(e) => handleInputChange('language', e.target.value)}
+                onChange={(e) => handleInputChange("language", e.target.value)}
                 placeholder="Language (e.g., English, Spanish)"
               />
             </div>
@@ -403,10 +456,10 @@ const AddBookPage: React.FC = () => {
                   Format
                 </span>
               </label>
-              <select 
+              <select
                 className="select select-bordered w-full"
                 value={formData.format}
-                onChange={(e) => handleInputChange('format', e.target.value)}
+                onChange={(e) => handleInputChange("format", e.target.value)}
               >
                 <option value="">Select format</option>
                 <option value="Hardcover">Hardcover</option>
@@ -420,52 +473,58 @@ const AddBookPage: React.FC = () => {
             <div className="form-control">
               <label className="label">
                 <span className="label-text font-semibold flex items-center gap-2">
-                  <Icon hero={<DocumentIcon className="w-5 h-5" />} emoji="🆔" />
+                  <Icon
+                    hero={<DocumentIcon className="w-5 h-5" />}
+                    emoji="🆔"
+                  />
                   Custom ID
                 </span>
               </label>
-              <input 
-                type="text" 
-                className="input input-bordered w-full" 
+              <input
+                type="text"
+                className="input input-bordered w-full"
                 value={formData.custom_id}
-                onChange={(e) => handleInputChange('custom_id', e.target.value)}
+                onChange={(e) => handleInputChange("custom_id", e.target.value)}
                 placeholder="Custom identifier"
               />
             </div>
           </div>
 
-                     {/* Categories */}
-           <div className="form-control">
-             <label className="label">
-               <span className="label-text font-semibold flex items-center gap-2">
-                 <Icon hero={<TagIcon className="w-5 h-5" />} emoji="🏷️" />
-                 Categories
-               </span>
-             </label>
-             <SearchableDropdown
-               options={existingCategories}
-               value=""
-               onChange={() => {}} // Not used for multiple selection
-               placeholder="Select categories..."
-               multiple={true}
-               selectedValues={selectedCategories}
-               onMultipleChange={setSelectedCategories}
-               className="w-full"
-             />
-           </div>
+          {/* Categories */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-semibold flex items-center gap-2">
+                <Icon hero={<TagIcon className="w-5 h-5" />} emoji="🏷️" />
+                Categories
+              </span>
+            </label>
+            <SearchableDropdown
+              options={existingCategories}
+              value=""
+              onChange={() => {}} // Not used for multiple selection
+              placeholder="Select categories..."
+              multiple={true}
+              selectedValues={selectedCategories}
+              onMultipleChange={setSelectedCategories}
+              className="w-full"
+            />
+          </div>
 
           {/* Description */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-semibold flex items-center gap-2">
-                <Icon hero={<DocumentTextIcon className="w-5 h-5" />} emoji="📝" />
+                <Icon
+                  hero={<DocumentTextIcon className="w-5 h-5" />}
+                  emoji="📝"
+                />
                 Description
               </span>
             </label>
-            <textarea 
-              className="textarea textarea-bordered w-full h-32" 
+            <textarea
+              className="textarea textarea-bordered w-full h-32"
               value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => handleInputChange("description", e.target.value)}
               placeholder="Book description or synopsis"
             />
           </div>
@@ -478,11 +537,11 @@ const AddBookPage: React.FC = () => {
                 Cover Image URL
               </span>
             </label>
-            <input 
-              type="url" 
-              className="input input-bordered w-full" 
+            <input
+              type="url"
+              className="input input-bordered w-full"
               value={formData.cover_url}
-              onChange={(e) => handleInputChange('cover_url', e.target.value)}
+              onChange={(e) => handleInputChange("cover_url", e.target.value)}
               placeholder="https://example.com/cover.jpg"
             />
           </div>
@@ -493,30 +552,40 @@ const AddBookPage: React.FC = () => {
               <Icon hero={<ChartBarIcon className="w-6 h-6" />} emoji="📊" />
               Reading Status
             </h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <label className="flex items-center gap-3 text-base-content font-medium cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="checkbox checkbox-primary" 
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-primary"
                   checked={formData.want_to_read}
-                  onChange={(e) => handleInputChange('want_to_read', e.target.checked)}
+                  onChange={(e) =>
+                    handleInputChange("want_to_read", e.target.checked)
+                  }
                 />
                 <span className="flex items-center gap-2">
-                  <Icon hero={<ClipboardDocumentListIcon className="w-4 h-4" />} emoji="📋" />
+                  <Icon
+                    hero={<ClipboardDocumentListIcon className="w-4 h-4" />}
+                    emoji="📋"
+                  />
                   Want to Read
                 </span>
               </label>
-              
+
               <label className="flex items-center gap-3 text-base-content font-medium cursor-pointer">
-                <input 
-                  type="checkbox" 
-                  className="checkbox checkbox-primary" 
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-primary"
                   checked={formData.library_only}
-                  onChange={(e) => handleInputChange('library_only', e.target.checked)}
+                  onChange={(e) =>
+                    handleInputChange("library_only", e.target.checked)
+                  }
                 />
                 <span className="flex items-center gap-2">
-                  <Icon hero={<BuildingLibraryIcon className="w-4 h-4" />} emoji="📚" />
+                  <Icon
+                    hero={<BuildingLibraryIcon className="w-4 h-4" />}
+                    emoji="📚"
+                  />
                   Library Only
                 </span>
               </label>
@@ -525,17 +594,14 @@ const AddBookPage: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center pt-6">
-            <button 
+            <button
               type="button"
-              onClick={() => navigate('/library')}
+              onClick={() => navigate("/library")}
               className="btn btn-outline"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-            >
+            <button type="submit" className="btn btn-primary">
               <Icon hero={<CheckIcon className="w-4 h-4" />} emoji="✅" />
               <span className="ml-2">Add Book</span>
             </button>
@@ -554,4 +620,4 @@ const AddBookPage: React.FC = () => {
   );
 };
 
-export default AddBookPage; 
+export default AddBookPage;
