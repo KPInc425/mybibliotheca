@@ -256,7 +256,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
   // Auto-start scanner when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !scannerState.isScanning && !scannerState.error) {
       startSmartScanner();
     }
     // eslint-disable-next-line
@@ -269,7 +269,31 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       ...prev,
       isScanning: false,
       status: "Scanner stopped",
+      error: null,
     }));
+  };
+
+  // Retry permission request
+  const handleRetryPermission = () => {
+    setScannerState((prev) => ({
+      ...prev,
+      error: null,
+      status: "Retrying permission request...",
+    }));
+    startSmartScanner();
+  };
+
+  // Open app settings if available
+  const handleOpenAppSettings = async () => {
+    const cap = (window as any).Capacitor;
+    if (
+      cap &&
+      cap.Plugins &&
+      cap.Plugins.App &&
+      typeof cap.Plugins.App.openSettings === "function"
+    ) {
+      await cap.Plugins.App.openSettings();
+    }
   };
 
   // Cleanup on unmount
@@ -392,6 +416,23 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               Stop Scanner
             </button>
           ) : null}
+          {/* Show error controls if permission denied or other error */}
+          {scannerState.error && (
+            <div className="flex flex-col gap-2 w-full items-center">
+              <button
+                onClick={handleRetryPermission}
+                className="btn btn-warning"
+              >
+                Retry Permission Request
+              </button>
+              <button onClick={handleOpenAppSettings} className="btn btn-info">
+                Open App Settings
+              </button>
+              <button onClick={onClose} className="btn btn-outline btn-error">
+                Cancel
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Scanner Tips */}
