@@ -56,76 +56,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
   // Check scanner availability on mount and when modal opens
   useEffect(() => {
-    const checkAvailabilityAndPermissions = async () => {
-      // Always reset error state and status when modal opens
+    const checkAvailability = async () => {
       setScannerState((prev) => ({
         ...prev,
         error: null,
-        status: "Checking permissions...",
+        status: "Ready to scan",
       }));
-
-      // --- Begin detailed permission debug ---
-      let permissionResult: any = {};
-      let permissionGranted = false;
-      try {
-        const cap = (window as any).Capacitor;
-        if (cap && cap.Plugins?.BarcodeScanner) {
-          if (
-            typeof cap.Plugins.BarcodeScanner.checkPermissions === "function"
-          ) {
-            permissionResult =
-              await cap.Plugins.BarcodeScanner.checkPermissions();
-            // FIX: Check for camera: "granted" instead of granted boolean
-            permissionGranted = permissionResult.camera === "granted";
-          }
-        }
-      } catch (e) {
-        permissionResult = { error: String(e) };
-      }
-      setDebugState((prev: any) => ({
-        ...prev,
-        permissionResult,
-        permissionGranted_initial: permissionGranted,
-        checkTime: new Date().toISOString(),
-      }));
-
-      // Force a fresh permission check every time modal opens (legacy logic)
-      const permissionEarlyResult = await requestCameraPermissionsEarly();
-      setDebugState((prev: any) => ({
-        ...prev,
-        permissionEarlyResult,
-        checkTimeEarly: new Date().toISOString(),
-      }));
-
-      // If permission was just granted, force a delayed re-check (bridge sync workaround)
-      let permissionGrantedAfterDelay = permissionEarlyResult;
-      let permissionResultAfterDelay: any = {};
-      if (!permissionEarlyResult) {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
-        try {
-          const cap = (window as any).Capacitor;
-          if (cap && cap.Plugins?.BarcodeScanner) {
-            if (
-              typeof cap.Plugins.BarcodeScanner.checkPermissions === "function"
-            ) {
-              permissionResultAfterDelay =
-                await cap.Plugins.BarcodeScanner.checkPermissions();
-              // FIX: Check for camera: "granted" instead of granted boolean
-              permissionGrantedAfterDelay =
-                permissionResultAfterDelay.camera === "granted";
-            }
-          }
-        } catch (e) {
-          permissionResultAfterDelay = { error: String(e) };
-        }
-        setDebugState((prev: any) => ({
-          ...prev,
-          permissionResultAfterDelay,
-          permissionGrantedAfterDelay,
-          checkTimeAfterDelay: new Date().toISOString(),
-        }));
-      }
-      // --- End detailed permission debug ---
 
       const availability = await getScannerAvailability();
       setDebugState((prev: any) => ({
@@ -138,24 +74,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         ...prev,
         isNativeAvailable: isNative && availability.native,
         isBrowserAvailable: availability.browser,
-        error:
-          !permissionGrantedAfterDelay && availability.native
-            ? "Camera permission denied. Please enable camera access in your device settings and try again."
-            : null,
-        status:
-          !permissionGrantedAfterDelay && availability.native
-            ? "Camera permission denied"
-            : "Ready to scan",
       }));
     };
 
     if (isOpen) {
-      checkAvailabilityAndPermissions();
+      checkAvailability();
     }
     // eslint-disable-next-line
   }, [isOpen, isNative, platform, isCapacitor, Capacitor]);
 
-  // Start native scanner
+  // Start native scanner with direct permission logic (like admin debug button)
   const handleStartNativeScanner = async () => {
     try {
       isScannerActiveRef.current = true;
@@ -166,7 +94,49 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         error: null,
       }));
 
-      const result = await startNativeScanner();
+      const cap = (window as any).Capacitor;
+      let perms: any = {};
+      let granted = false;
+      if (cap && cap.Plugins?.BarcodeScanner) {
+        if (typeof cap.Plugins.BarcodeScanner.checkPermissions === "function") {
+          perms = await cap.Plugins.BarcodeScanner.checkPermissions();
+          granted = perms.camera === "granted";
+        }
+      }
+      setDebugState((prev: any) => ({
+        ...prev,
+        nativeScanCheckPermissions: perms,
+        nativeScanCheckGranted: granted,
+        nativeScanCheckTime: new Date().toISOString(),
+      }));
+
+      if (!granted) {
+        // Try to request permissions
+        let reqPerms: any = {};
+        let reqGranted = false;
+        if (
+          cap &&
+          cap.Plugins?.BarcodeScanner &&
+          typeof cap.Plugins.BarcodeScanner.requestPermissions === "function"
+        ) {
+          reqPerms = await cap.Plugins.BarcodeScanner.requestPermissions();
+          reqGranted = reqPerms.camera === "granted";
+        }
+        setDebugState((prev: any) => ({
+          ...prev,
+          nativeScanRequestPermissions: reqPerms,
+          nativeScanRequestGranted: reqGranted,
+          nativeScanRequestTime: new Date().toISOString(),
+        }));
+        if (!reqGranted) {
+          throw new Error(
+            "Camera permission denied. Please enable camera access in your device settings and try again."
+          );
+        }
+      }
+
+      // Permissions granted, start scan
+      const result = await cap.Plugins.BarcodeScanner.scan();
 
       setDebugState((prev: any) => ({
         ...prev,
@@ -195,8 +165,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       setDebugState((prev: any) => ({
         ...prev,
-        lastNativeScanError:
-          error instanceof Error ? error.message : String(error),
+        lastNativeScanError: error,
         lastNativeScanErrorTime: new Date().toISOString(),
       }));
 
@@ -343,23 +312,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   };
 
-  // Auto-start scanner when modal opens and permissions are granted
-  useEffect(() => {
-    if (
-      isOpen &&
-      !scannerState.isScanning &&
-      !scannerState.error &&
-      (scannerState.isNativeAvailable || scannerState.isBrowserAvailable)
-    ) {
-      startSmartScanner();
-    }
-    // eslint-disable-next-line
-  }, [
-    isOpen,
-    scannerState.isNativeAvailable,
-    scannerState.isBrowserAvailable,
-    scannerState.error,
-  ]);
+  // Remove auto-start logic; scanner is started by explicit user action only
 
   // Stop scanner
   const stopLocalScanner = () => {
