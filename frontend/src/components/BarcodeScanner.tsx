@@ -75,7 +75,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           ) {
             permissionResult =
               await cap.Plugins.BarcodeScanner.checkPermissions();
-            permissionGranted = !!permissionResult.granted;
+            // FIX: Check for camera: "granted" instead of granted boolean
+            permissionGranted = permissionResult.camera === "granted";
           }
         }
       } catch (e) {
@@ -109,8 +110,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             ) {
               permissionResultAfterDelay =
                 await cap.Plugins.BarcodeScanner.checkPermissions();
+              // FIX: Check for camera: "granted" instead of granted boolean
               permissionGrantedAfterDelay =
-                !!permissionResultAfterDelay.granted;
+                permissionResultAfterDelay.camera === "granted";
             }
           }
         } catch (e) {
@@ -525,70 +527,75 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               </div>
             </div>
           </div>
-          {/* ...rest of your modal content goes here... */}
-        </div>
-      </div>
 
-      {/* Error Display */}
-      {scannerState.error && (
-        <div className="alert alert-error mb-4">
-          <ExclamationTriangleIcon className="w-5 h-5" />
-          <span>{scannerState.error}</span>
-        </div>
-      )}
+          {/* Error Display */}
+          {scannerState.error && (
+            <div className="alert alert-error mb-4">
+              <ExclamationTriangleIcon className="w-5 h-5" />
+              <span>{scannerState.error}</span>
+            </div>
+          )}
 
-      {/* Scanner Viewport */}
-      <div className="relative bg-black rounded-lg overflow-hidden mb-4">
-        <video
-          ref={videoRef}
-          className="w-full h-64 object-cover"
-          autoPlay
-          playsInline
-          muted
-        />
-        {scannerState.isScanning && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="scanner-overlay w-64 h-32 border-2 border-primary rounded-lg"></div>
+          {/* Scanner Viewport */}
+          <div className="relative bg-black rounded-lg overflow-hidden mb-4">
+            <video
+              ref={videoRef}
+              className="w-full h-64 object-cover"
+              autoPlay
+              playsInline
+              muted
+            />
+            {scannerState.isScanning && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="scanner-overlay w-64 h-32 border-2 border-primary rounded-lg"></div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Scanner Controls */}
-      <div className="flex flex-wrap gap-2 justify-center">
-        {scannerState.isScanning ? (
-          <button onClick={stopLocalScanner} className="btn btn-secondary">
-            <XMarkIcon className="w-4 h-4 mr-2" />
-            Stop Scanner
-          </button>
-        ) : null}
-        {/* Show error controls if permission denied or other error */}
-        {scannerState.error && (
-          <div className="flex flex-col gap-2 w-full items-center">
-            <button onClick={handleRetryPermission} className="btn btn-warning">
-              Retry Permission Request
-            </button>
-            <button onClick={handleOpenAppSettings} className="btn btn-info">
-              Open App Settings
-            </button>
-            <button onClick={onClose} className="btn btn-outline btn-error">
-              Cancel
-            </button>
+          {/* Scanner Controls */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {scannerState.isScanning ? (
+              <button onClick={stopLocalScanner} className="btn btn-secondary">
+                <XMarkIcon className="w-4 h-4 mr-2" />
+                Stop Scanner
+              </button>
+            ) : null}
+            {/* Show error controls if permission denied or other error */}
+            {scannerState.error && (
+              <div className="flex flex-col gap-2 w-full items-center">
+                <button
+                  onClick={handleRetryPermission}
+                  className="btn btn-warning"
+                >
+                  Retry Permission Request
+                </button>
+                <button
+                  onClick={handleOpenAppSettings}
+                  className="btn btn-info"
+                >
+                  Open App Settings
+                </button>
+                <button onClick={onClose} className="btn btn-outline btn-error">
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Scanner Tips */}
-      <div className="mt-4 p-4 bg-base-200 rounded-lg">
-        <div className="flex items-start gap-2">
-          <InformationCircleIcon className="w-5 h-5 text-info mt-0.5" />
-          <div className="text-sm">
-            <p className="font-semibold mb-1">Scanner Tips:</p>
-            <ul className="space-y-1 text-xs">
-              <li>• Native App: Best experience with automatic scanning</li>
-              <li>• Browser: Works but may be slower on mobile devices</li>
-              <li>• Point camera at barcode clearly</li>
-              <li>• Ensure good lighting for better detection</li>
-            </ul>
+          {/* Scanner Tips */}
+          <div className="mt-4 p-4 bg-base-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <InformationCircleIcon className="w-5 h-5 text-info mt-0.5" />
+              <div className="text-sm">
+                <p className="font-semibold mb-1">Scanner Tips:</p>
+                <ul className="space-y-1 text-xs">
+                  <li>• Native App: Best experience with automatic scanning</li>
+                  <li>• Browser: Works but may be slower on mobile devices</li>
+                  <li>• Point camera at barcode clearly</li>
+                  <li>• Ensure good lighting for better detection</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
