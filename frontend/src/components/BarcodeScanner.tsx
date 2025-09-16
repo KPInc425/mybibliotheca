@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { requestCameraPermissionsEarly } from "@/services/scannerService";
 import {
   CameraIcon,
   XMarkIcon,
@@ -49,9 +50,23 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const codeReaderRef = useRef<any>(null);
   const isScannerActiveRef = useRef<boolean>(false);
 
-  // Check scanner availability on mount
+  // Check scanner availability on mount and when modal opens
   useEffect(() => {
-    const checkAvailability = async () => {
+    const checkAvailabilityAndPermissions = async () => {
+      // Always reset error state and status when modal opens
+      setScannerState((prev) => ({
+        ...prev,
+        error: null,
+        status: "Checking permissions...",
+      }));
+
+      // Force a fresh permission check every time modal opens
+      const permissionGranted = await requestCameraPermissionsEarly();
+      console.log(
+        "[BarcodeScanner] Fresh permission check result:",
+        permissionGranted
+      );
+
       const availability = await getScannerAvailability();
       // Debug logging for environment and scanner availability
       console.log("[BarcodeScanner] Modal opened");
@@ -67,11 +82,22 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         ...prev,
         isNativeAvailable: isNative && availability.native,
         isBrowserAvailable: availability.browser,
+        error:
+          !permissionGranted && availability.native
+            ? "Camera permission denied. Please enable camera access in your device settings and try again."
+            : null,
+        status:
+          !permissionGranted && availability.native
+            ? "Camera permission denied"
+            : "Ready to scan",
       }));
     };
 
-    checkAvailability();
-  }, [isNative, platform, isCapacitor, Capacitor]);
+    if (isOpen) {
+      checkAvailabilityAndPermissions();
+    }
+    // eslint-disable-next-line
+  }, [isOpen, isNative, platform, isCapacitor, Capacitor]);
 
   // Start native scanner
   const handleStartNativeScanner = async () => {
@@ -249,13 +275,23 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   };
 
-  // Auto-start scanner when modal opens
+  // Auto-start scanner when modal opens and permissions are granted
   useEffect(() => {
-    if (isOpen && !scannerState.isScanning && !scannerState.error) {
+    if (
+      isOpen &&
+      !scannerState.isScanning &&
+      !scannerState.error &&
+      (scannerState.isNativeAvailable || scannerState.isBrowserAvailable)
+    ) {
       startSmartScanner();
     }
     // eslint-disable-next-line
-  }, [isOpen, scannerState.isNativeAvailable, scannerState.isBrowserAvailable]);
+  }, [
+    isOpen,
+    scannerState.isNativeAvailable,
+    scannerState.isBrowserAvailable,
+    scannerState.error,
+  ]);
 
   // Stop scanner
   const stopLocalScanner = () => {
