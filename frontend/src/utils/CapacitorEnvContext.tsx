@@ -1,16 +1,25 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 
-interface CapacitorEnv {
+export interface CapacitorEnv {
   isCapacitor: boolean;
   platform: string | undefined;
   isNative: boolean;
   Capacitor: any;
 }
 
-const getCapacitorEnv = (): CapacitorEnv => {
-  const cap = (typeof window !== "undefined" && (window as any).Capacitor) || undefined;
+export const getCapacitorEnv = (): CapacitorEnv => {
+  const cap =
+    (typeof window !== "undefined" && (window as any).Capacitor) || undefined;
   const platform =
-    cap && typeof cap.getPlatform === "function" ? cap.getPlatform() : undefined;
+    cap && typeof cap.getPlatform === "function"
+      ? cap.getPlatform()
+      : undefined;
   return {
     isCapacitor: !!cap,
     platform,
@@ -21,7 +30,9 @@ const getCapacitorEnv = (): CapacitorEnv => {
 
 const CapacitorEnvContext = createContext<CapacitorEnv>(getCapacitorEnv());
 
-export const CapacitorEnvProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const CapacitorEnvProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [env, setEnv] = useState<CapacitorEnv>(getCapacitorEnv());
 
   useEffect(() => {

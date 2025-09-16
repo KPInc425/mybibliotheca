@@ -1,3 +1,4 @@
+import { BrowserMultiFormatReader } from "@zxing/browser";
 /**
  * BookOracle Scanner Service
  * Comprehensive scanner functionality matching legacy implementation
