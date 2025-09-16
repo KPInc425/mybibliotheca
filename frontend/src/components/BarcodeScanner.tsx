@@ -64,13 +64,66 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         status: "Checking permissions...",
       }));
 
-      // Force a fresh permission check every time modal opens
-      const permissionGranted = await requestCameraPermissionsEarly();
+      // --- Begin detailed permission debug ---
+      let permissionResult: any = {};
+      let permissionGranted = false;
+      try {
+        const cap = (window as any).Capacitor;
+        if (cap && cap.Plugins?.BarcodeScanner) {
+          if (
+            typeof cap.Plugins.BarcodeScanner.checkPermissions === "function"
+          ) {
+            permissionResult =
+              await cap.Plugins.BarcodeScanner.checkPermissions();
+            permissionGranted = !!permissionResult.granted;
+          }
+        }
+      } catch (e) {
+        permissionResult = { error: String(e) };
+      }
       setDebugState((prev: any) => ({
         ...prev,
-        permissionGranted,
+        permissionResult,
+        permissionGranted_initial: permissionGranted,
         checkTime: new Date().toISOString(),
       }));
+
+      // Force a fresh permission check every time modal opens (legacy logic)
+      const permissionEarlyResult = await requestCameraPermissionsEarly();
+      setDebugState((prev: any) => ({
+        ...prev,
+        permissionEarlyResult,
+        checkTimeEarly: new Date().toISOString(),
+      }));
+
+      // If permission was just granted, force a delayed re-check (bridge sync workaround)
+      let permissionGrantedAfterDelay = permissionEarlyResult;
+      let permissionResultAfterDelay: any = {};
+      if (!permissionEarlyResult) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        try {
+          const cap = (window as any).Capacitor;
+          if (cap && cap.Plugins?.BarcodeScanner) {
+            if (
+              typeof cap.Plugins.BarcodeScanner.checkPermissions === "function"
+            ) {
+              permissionResultAfterDelay =
+                await cap.Plugins.BarcodeScanner.checkPermissions();
+              permissionGrantedAfterDelay =
+                !!permissionResultAfterDelay.granted;
+            }
+          }
+        } catch (e) {
+          permissionResultAfterDelay = { error: String(e) };
+        }
+        setDebugState((prev: any) => ({
+          ...prev,
+          permissionResultAfterDelay,
+          permissionGrantedAfterDelay,
+          checkTimeAfterDelay: new Date().toISOString(),
+        }));
+      }
+      // --- End detailed permission debug ---
 
       const availability = await getScannerAvailability();
       setDebugState((prev: any) => ({
@@ -84,11 +137,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         isNativeAvailable: isNative && availability.native,
         isBrowserAvailable: availability.browser,
         error:
-          !permissionGranted && availability.native
+          !permissionGrantedAfterDelay && availability.native
             ? "Camera permission denied. Please enable camera access in your device settings and try again."
             : null,
         status:
-          !permissionGranted && availability.native
+          !permissionGrantedAfterDelay && availability.native
             ? "Camera permission denied"
             : "Ready to scan",
       }));
@@ -374,6 +427,41 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         position="bottom-left"
         defaultOpen={false}
       />
+      {/* Permission Debug Output */}
+      <div
+        style={{
+          background: "#222",
+          color: "#fff",
+          fontSize: 12,
+          padding: 8,
+          borderRadius: 8,
+          margin: 8,
+          maxWidth: 400,
+        }}
+      >
+        <div>
+          <b>Permission Debug:</b>
+        </div>
+        <div>
+          Initial checkPermissions:{" "}
+          <pre style={{ display: "inline" }}>
+            {JSON.stringify(debugState.permissionResult, null, 2)}
+          </pre>
+        </div>
+        <div>
+          requestCameraPermissionsEarly:{" "}
+          <b>{String(debugState.permissionEarlyResult)}</b>
+        </div>
+        {debugState.permissionResultAfterDelay && (
+          <div>
+            After delay checkPermissions:{" "}
+            <pre style={{ display: "inline" }}>
+              {JSON.stringify(debugState.permissionResultAfterDelay, null, 2)}
+            </pre>
+            Granted: <b>{String(debugState.permissionGrantedAfterDelay)}</b>
+          </div>
+        )}
+      </div>
       <div className="modal modal-open">
         <div className="modal-box w-11/12 max-w-2xl">
           {/* Header */}
