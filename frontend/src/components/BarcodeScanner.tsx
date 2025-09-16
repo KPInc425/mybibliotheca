@@ -11,6 +11,7 @@ import {
   getScannerAvailability,
   stopScanner,
 } from "@/services/scannerService";
+import { useCapacitorEnv } from "@/utils/CapacitorEnvContext";
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
@@ -41,6 +42,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     status: "Ready to scan",
   });
 
+  const { isNative, platform, isCapacitor, Capacitor } = useCapacitorEnv();
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const codeReaderRef = useRef<any>(null);
@@ -51,28 +54,24 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     const checkAvailability = async () => {
       const availability = await getScannerAvailability();
       // Debug logging for environment and scanner availability
-      const cap = (window as any).Capacitor;
       console.log("[BarcodeScanner] Modal opened");
-      console.log("[BarcodeScanner] Capacitor:", cap);
-      console.log(
-        "[BarcodeScanner] Capacitor.getPlatform:",
-        cap && typeof cap.getPlatform === "function" ? cap.getPlatform() : "N/A"
-      );
-      console.log(
-        "[BarcodeScanner] BarcodeScanner plugin:",
-        cap?.Plugins?.BarcodeScanner
-      );
+      console.log("[BarcodeScanner] CapacitorEnvContext:", {
+        isNative,
+        platform,
+        isCapacitor,
+        Capacitor,
+      });
       console.log("[BarcodeScanner] getScannerAvailability:", availability);
 
       setScannerState((prev) => ({
         ...prev,
-        isNativeAvailable: availability.native,
+        isNativeAvailable: isNative && availability.native,
         isBrowserAvailable: availability.browser,
       }));
     };
 
     checkAvailability();
-  }, []);
+  }, [isNative, platform, isCapacitor, Capacitor]);
 
   // Start native scanner
   const handleStartNativeScanner = async () => {
@@ -215,18 +214,14 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const startSmartScanner = async () => {
     try {
       // Log scanner state and environment before starting
-      const cap = (window as any).Capacitor;
       console.log("[BarcodeScanner] startSmartScanner called");
       console.log("[BarcodeScanner] scannerState:", scannerState);
-      console.log("[BarcodeScanner] Capacitor:", cap);
-      console.log(
-        "[BarcodeScanner] Capacitor.getPlatform:",
-        cap && typeof cap.getPlatform === "function" ? cap.getPlatform() : "N/A"
-      );
-      console.log(
-        "[BarcodeScanner] BarcodeScanner plugin:",
-        cap?.Plugins?.BarcodeScanner
-      );
+      console.log("[BarcodeScanner] CapacitorEnvContext:", {
+        isNative,
+        platform,
+        isCapacitor,
+        Capacitor,
+      });
 
       if (scannerState.isNativeAvailable) {
         console.log("[BarcodeScanner] Using native scanner");

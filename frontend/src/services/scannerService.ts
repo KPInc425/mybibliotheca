@@ -3,11 +3,64 @@
  * Comprehensive scanner functionality matching legacy implementation
  */
 
-import { BrowserMultiFormatReader } from "@zxing/browser";
-
 // Scanner state tracking
 let lastProcessedScan: string | null = null;
 let lastProcessedTime = 0;
+
+/**
+ * Proactively request camera permissions with retry logic (legacy parity)
+ */
+export const requestCameraPermissionsEarly = async (): Promise<boolean> => {
+  try {
+    const cap = (window as any).Capacitor;
+    if (!cap || !cap.Plugins?.BarcodeScanner) {
+      return false;
+    }
+    const BarcodeScanner = cap.Plugins.BarcodeScanner;
+    // Check if scanning is supported
+    let supported = true;
+    if (typeof BarcodeScanner.isSupported === "function") {
+      try {
+        const supportResult = await BarcodeScanner.isSupported();
+        supported = supportResult?.supported ?? true;
+      } catch (e) {
+        supported = true;
+      }
+    }
+    if (!supported) return false;
+
+    // Retry checkPermissions up to 3 times with 1s delay
+    let permissionGranted = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    while (retryCount < maxRetries && !permissionGranted) {
+      try {
+        const { granted } = await BarcodeScanner.checkPermissions();
+        if (granted) {
+          permissionGranted = true;
+          return true;
+        }
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    if (!permissionGranted) {
+      // Request permissions automatically
+      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      return !!newGranted;
+    }
+    return permissionGranted;
+  } catch (error) {
+    return false;
+  }
+};
 
 export interface ScannerState {
   isScanning: boolean;
@@ -24,16 +77,25 @@ export interface ScanResult {
 }
 
 /**
- * Check if native scanner is available (Capacitor)
+ * Check if native scanner is available (Capacitor) using CapacitorEnvContext if in React, fallback to window otherwise.
  */
+import { getCapacitorEnv } from "@/utils/CapacitorEnvContext";
+
 export const checkNativeScanner = (): boolean => {
-  const cap = (window as any).Capacitor;
-  return !!(
-    cap &&
-    typeof cap.getPlatform === "function" &&
-    cap.getPlatform() !== "web" &&
-    cap.Plugins?.BarcodeScanner
-  );
+  // Try to use context if available, fallback to window for non-React usage
+  let capEnv;
+  try {
+    capEnv = getCapacitorEnv();
+  } catch {
+    capEnv = null;
+  }
+  const cap = capEnv?.Capacitor || (window as any).Capacitor;
+  const platform =
+    capEnv?.platform ||
+    (cap && typeof cap.getPlatform === "function"
+      ? cap.getPlatform()
+      : undefined);
+  return !!(cap && platform !== "web" && cap.Plugins?.BarcodeScanner);
 };
 
 /**
@@ -80,15 +142,42 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
       };
     }
 
-    // Check permissions
-    let { granted } = await BarcodeScanner.checkPermissions();
-    if (!granted) {
-      // Always call requestPermissions to trigger the native modal
-      const permResult = await BarcodeScanner.requestPermissions();
-      granted = permResult.granted;
+    // Legacy-style permission check/request with retry logic
+    let permissionGranted = false;
+    let retryCount = 0;
+    const maxRetries = 3;
+    while (retryCount < maxRetries && !permissionGranted) {
+      try {
+        const { granted } = await BarcodeScanner.checkPermissions();
+        if (granted) {
+          permissionGranted = true;
+          break;
+        }
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        retryCount++;
+        if (retryCount < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    if (!permissionGranted) {
+      // Request permissions automatically
+      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      permissionGranted = !!newGranted;
+      // After requesting, check again with a short delay (bridge sync)
+      if (!permissionGranted) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const { granted: grantedAfter } =
+          await BarcodeScanner.checkPermissions();
+        permissionGranted = !!grantedAfter;
+      }
     }
 
-    if (!granted) {
+    if (!permissionGranted) {
       // Now, and only now, suggest opening app settings
       if (
         Capacitor.Plugins.App &&

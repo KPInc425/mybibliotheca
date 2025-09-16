@@ -7,15 +7,13 @@ import { fetchBookData, validateISBN } from "@/services/bookDataService";
 import {
   extractISBNFromBarcode,
   handleSuccessfulScan,
+  requestCameraPermissionsEarly,
 } from "@/services/scannerService";
 import {
   CameraIcon,
   MagnifyingGlassIcon,
   CheckIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
   BookOpenIcon,
-  LightBulbIcon,
   PencilIcon,
   BuildingOfficeIcon,
   CalendarIcon,
@@ -56,6 +54,11 @@ const AddBookPage: React.FC = () => {
     library_only: false,
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  // Proactively request camera permissions on mount (legacy parity)
+  useEffect(() => {
+    requestCameraPermissionsEarly();
+  }, []);
 
   // Get existing categories from books for suggestions
   const { books } = useBooksStore();
