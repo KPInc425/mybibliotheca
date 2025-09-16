@@ -100,61 +100,62 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     // eslint-disable-next-line
   }, [isOpen, isNative, platform, isCapacitor, Capacitor]);
 
- // Start native scanner
- const handleStartNativeScanner = async () => {
-   try {
-     isScannerActiveRef.current = true;
-     setScannerState((prev) => ({
-       ...prev,
-       isScanning: true,
-       status: "Starting native scanner...",
-       error: null,
-     }));
+  // Start native scanner
+  const handleStartNativeScanner = async () => {
+    try {
+      isScannerActiveRef.current = true;
+      setScannerState((prev) => ({
+        ...prev,
+        isScanning: true,
+        status: "Starting native scanner...",
+        error: null,
+      }));
 
-     const result = await startNativeScanner();
+      const result = await startNativeScanner();
 
-     setDebugState((prev: any) => ({
-       ...prev,
-       lastNativeScanResult: result,
-       lastNativeScanTime: new Date().toISOString(),
-     }));
+      setDebugState((prev: any) => ({
+        ...prev,
+        lastNativeScanResult: result,
+        lastNativeScanTime: new Date().toISOString(),
+      }));
 
-     if (!isScannerActiveRef.current) {
-       return; // Scanner was cancelled
-     }
+      if (!isScannerActiveRef.current) {
+        return; // Scanner was cancelled
+      }
 
-     if (result.success && result.barcode) {
-       onScan(result.barcode);
-       setScannerState((prev) => ({
-         ...prev,
-         status: `Barcode detected: ${result.barcode}`,
-         isScanning: false,
-       }));
-     } else {
-       throw new Error(result.error || "Native scanner failed");
-     }
-   } catch (error) {
-     if (!isScannerActiveRef.current) {
-       return; // Scanner was cancelled
-     }
+      if (result.success && result.barcode) {
+        onScan(result.barcode);
+        setScannerState((prev) => ({
+          ...prev,
+          status: `Barcode detected: ${result.barcode}`,
+          isScanning: false,
+        }));
+      } else {
+        throw new Error(result.error || "Native scanner failed");
+      }
+    } catch (error) {
+      if (!isScannerActiveRef.current) {
+        return; // Scanner was cancelled
+      }
 
-     setDebugState((prev: any) => ({
-       ...prev,
-       lastNativeScanError: error instanceof Error ? error.message : String(error),
-       lastNativeScanErrorTime: new Date().toISOString(),
-     }));
+      setDebugState((prev: any) => ({
+        ...prev,
+        lastNativeScanError:
+          error instanceof Error ? error.message : String(error),
+        lastNativeScanErrorTime: new Date().toISOString(),
+      }));
 
-     setScannerState((prev) => ({
-       ...prev,
-       error: error instanceof Error ? error.message : "Native scanner failed",
-       isScanning: false,
-       status: "Native scanner failed",
-     }));
-     onError(error instanceof Error ? error.message : "Native scanner failed");
-   } finally {
-     isScannerActiveRef.current = false;
-   }
- };
+      setScannerState((prev) => ({
+        ...prev,
+        error: error instanceof Error ? error.message : "Native scanner failed",
+        isScanning: false,
+        status: "Native scanner failed",
+      }));
+      onError(error instanceof Error ? error.message : "Native scanner failed");
+    } finally {
+      isScannerActiveRef.current = false;
+    }
+  };
 
   // Start browser scanner
   const handleStartBrowserScanner = async () => {
@@ -359,153 +360,151 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   }, [isOpen]);
 
- if (!isOpen) return null;
+  if (!isOpen) return null;
 
- return (
-   <>
-     {/* Debug Panel for BarcodeScanner */}
-     <DebugPanel
-       debugInfo={{
-         scannerState,
-         debugState,
-       }}
-       title="BarcodeScanner Debug"
-       position="bottom-left"
-       defaultOpen={false}
-     />
-     <div className="modal modal-open">
-       <div className="modal-box w-11/12 max-w-2xl">
-         {/* Header */}
-         <div className="flex items-center justify-between mb-4">
-           <h3 className="font-bold text-lg flex items-center gap-2">
-             <CameraIcon className="w-5 h-5" />
-             Barcode Scanner
-           </h3>
-           <button
-             onClick={onClose}
-             className="btn btn-ghost btn-sm"
-             disabled={scannerState.isScanning}
-           >
-             <XMarkIcon className="w-4 h-4" />
-           </button>
-         </div>
+  return (
+    <>
+      {/* Debug Panel for BarcodeScanner */}
+      <DebugPanel
+        debugInfo={{
+          scannerState,
+          debugState,
+        }}
+        title="BarcodeScanner Debug"
+        position="bottom-left"
+        defaultOpen={false}
+      />
+      <div className="modal modal-open">
+        <div className="modal-box w-11/12 max-w-2xl">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-lg flex items-center gap-2">
+              <CameraIcon className="w-5 h-5" />
+              Barcode Scanner
+            </h3>
+            <button
+              onClick={onClose}
+              className="btn btn-ghost btn-sm"
+              disabled={scannerState.isScanning}
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
 
-        {/* Scanner Status */}
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div
-              className={`badge badge-sm ${
-                scannerState.isScanning
-                  ? "badge-warning"
+          {/* Scanner Status */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className={`badge badge-sm ${
+                  scannerState.isScanning
+                    ? "badge-warning"
+                    : scannerState.error
+                    ? "badge-error"
+                    : "badge-success"
+                }`}
+              >
+                {scannerState.isScanning
+                  ? "Scanning..."
                   : scannerState.error
-                  ? "badge-error"
-                  : "badge-success"
-              }`}
-            >
-              {scannerState.isScanning
-                ? "Scanning..."
-                : scannerState.error
-                ? "Error"
-                : "Ready"}
+                  ? "Error"
+                  : "Ready"}
+              </div>
+              <span className="text-sm text-base-content/70">
+                {scannerState.status}
+              </span>
             </div>
-            <span className="text-sm text-base-content/70">
-              {scannerState.status}
-            </span>
-          </div>
-
-          {/* Scanner Availability */}
-          <div className="flex gap-2 mb-4">
-            <div
-              className={`badge badge-xs ${
-                scannerState.isNativeAvailable
-                  ? "badge-success"
-                  : "badge-neutral"
-              }`}
-            >
-              Native:{" "}
-              {scannerState.isNativeAvailable ? "Available" : "Unavailable"}
-            </div>
-            <div
-              className={`badge badge-xs ${
-                scannerState.isBrowserAvailable
-                  ? "badge-success"
-                  : "badge-neutral"
-              }`}
-            >
-              Browser:{" "}
-              {scannerState.isBrowserAvailable ? "Available" : "Unavailable"}
+            {/* Scanner Availability */}
+            <div className="flex gap-2 mb-4">
+              <div
+                className={`badge badge-xs ${
+                  scannerState.isNativeAvailable
+                    ? "badge-success"
+                    : "badge-neutral"
+                }`}
+              >
+                Native:{" "}
+                {scannerState.isNativeAvailable ? "Available" : "Unavailable"}
+              </div>
+              <div
+                className={`badge badge-xs ${
+                  scannerState.isBrowserAvailable
+                    ? "badge-success"
+                    : "badge-neutral"
+                }`}
+              >
+                Browser:{" "}
+                {scannerState.isBrowserAvailable ? "Available" : "Unavailable"}
+              </div>
             </div>
           </div>
+          {/* ...rest of your modal content goes here... */}
         </div>
+      </div>
 
-        {/* Error Display */}
-        {scannerState.error && (
-          <div className="alert alert-error mb-4">
-            <ExclamationTriangleIcon className="w-5 h-5" />
-            <span>{scannerState.error}</span>
+      {/* Error Display */}
+      {scannerState.error && (
+        <div className="alert alert-error mb-4">
+          <ExclamationTriangleIcon className="w-5 h-5" />
+          <span>{scannerState.error}</span>
+        </div>
+      )}
+
+      {/* Scanner Viewport */}
+      <div className="relative bg-black rounded-lg overflow-hidden mb-4">
+        <video
+          ref={videoRef}
+          className="w-full h-64 object-cover"
+          autoPlay
+          playsInline
+          muted
+        />
+        {scannerState.isScanning && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="scanner-overlay w-64 h-32 border-2 border-primary rounded-lg"></div>
           </div>
         )}
+      </div>
 
-        {/* Scanner Viewport */}
-        <div className="relative bg-black rounded-lg overflow-hidden mb-4">
-          <video
-            ref={videoRef}
-            className="w-full h-64 object-cover"
-            autoPlay
-            playsInline
-            muted
-          />
-          {scannerState.isScanning && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="scanner-overlay w-64 h-32 border-2 border-primary rounded-lg"></div>
-            </div>
-          )}
-        </div>
-
-        {/* Scanner Controls */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          {scannerState.isScanning ? (
-            <button onClick={stopLocalScanner} className="btn btn-secondary">
-              <XMarkIcon className="w-4 h-4 mr-2" />
-              Stop Scanner
+      {/* Scanner Controls */}
+      <div className="flex flex-wrap gap-2 justify-center">
+        {scannerState.isScanning ? (
+          <button onClick={stopLocalScanner} className="btn btn-secondary">
+            <XMarkIcon className="w-4 h-4 mr-2" />
+            Stop Scanner
+          </button>
+        ) : null}
+        {/* Show error controls if permission denied or other error */}
+        {scannerState.error && (
+          <div className="flex flex-col gap-2 w-full items-center">
+            <button onClick={handleRetryPermission} className="btn btn-warning">
+              Retry Permission Request
             </button>
-          ) : null}
-          {/* Show error controls if permission denied or other error */}
-          {scannerState.error && (
-            <div className="flex flex-col gap-2 w-full items-center">
-              <button
-                onClick={handleRetryPermission}
-                className="btn btn-warning"
-              >
-                Retry Permission Request
-              </button>
-              <button onClick={handleOpenAppSettings} className="btn btn-info">
-                Open App Settings
-              </button>
-              <button onClick={onClose} className="btn btn-outline btn-error">
-                Cancel
-              </button>
-            </div>
-          )}
-        </div>
+            <button onClick={handleOpenAppSettings} className="btn btn-info">
+              Open App Settings
+            </button>
+            <button onClick={onClose} className="btn btn-outline btn-error">
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
 
-        {/* Scanner Tips */}
-        <div className="mt-4 p-4 bg-base-200 rounded-lg">
-          <div className="flex items-start gap-2">
-            <InformationCircleIcon className="w-5 h-5 text-info mt-0.5" />
-            <div className="text-sm">
-              <p className="font-semibold mb-1">Scanner Tips:</p>
-              <ul className="space-y-1 text-xs">
-                <li>• Native App: Best experience with automatic scanning</li>
-                <li>• Browser: Works but may be slower on mobile devices</li>
-                <li>• Point camera at barcode clearly</li>
-                <li>• Ensure good lighting for better detection</li>
-              </ul>
-            </div>
+      {/* Scanner Tips */}
+      <div className="mt-4 p-4 bg-base-200 rounded-lg">
+        <div className="flex items-start gap-2">
+          <InformationCircleIcon className="w-5 h-5 text-info mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold mb-1">Scanner Tips:</p>
+            <ul className="space-y-1 text-xs">
+              <li>• Native App: Best experience with automatic scanning</li>
+              <li>• Browser: Works but may be slower on mobile devices</li>
+              <li>• Point camera at barcode clearly</li>
+              <li>• Ensure good lighting for better detection</li>
+            </ul>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

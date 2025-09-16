@@ -1,20 +1,5 @@
-mybibliotheca\frontend\src\components\DebugPanel.tsx
 import React, { useState } from "react";
 
-/**
- * DebugPanel
- * A reusable, toggleable visual debug panel for displaying arbitrary debug info.
- *
- * Usage:
- *   <DebugPanel debugInfo={{ foo: bar, state, props }} title="AddBookPage Debug" />
- *
- * Props:
- *   - debugInfo: Record<string, any> | any[] | any
- *   - title?: string
- *   - defaultOpen?: boolean
- *   - position?: "bottom-right" | "bottom-left" | "top-right" | "top-left"
- *   - style?: React.CSSProperties
- */
 interface DebugPanelProps {
   debugInfo: Record<string, any> | any[] | any;
   title?: string;
@@ -130,7 +115,9 @@ const DebugPanel: React.FC<DebugPanelProps> = ({
               gap: 8,
             }}
           >
-            <span>🐞</span>
+            <span role="img" aria-label="bug">
+              🐞
+            </span>
             <span>{title}</span>
             <button
               onClick={handleCopy}

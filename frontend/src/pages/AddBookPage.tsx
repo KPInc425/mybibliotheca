@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useBooksStore } from "@/store/books";
 import { useSettingsStore } from "@/store/settings";
+import { useCapacitorEnv } from "@/utils/CapacitorEnvContext";
+import DebugPanel from "@/components/DebugPanel";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { fetchBookData, validateISBN } from "@/services/bookDataService";
 import {
