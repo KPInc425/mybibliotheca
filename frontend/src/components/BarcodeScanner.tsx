@@ -6,11 +6,9 @@ import {
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
-  startNativeScanner,
   startBrowserScanner,
   getScannerAvailability,
   stopScanner,
-  requestCameraPermissionsEarly,
 } from "@/services/scannerService";
 import { useCapacitorEnv } from "@/utils/CapacitorEnvContext";
 import DebugPanel from "./DebugPanel";
