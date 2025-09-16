@@ -18,12 +18,12 @@ import {
 } from "@heroicons/react/24/outline";
 import Icon from "@/components/Icon";
 
-// DebugToolsPanel: Visual debugging for Capacitor/BarcodeScanner environment
+// DebugToolsPanel: Enhanced visual debugging for Capacitor/BarcodeScanner/App environment
 const DebugToolsPanel: React.FC = () => {
   const [show, setShow] = useState(false);
   const [envInfo, setEnvInfo] = useState<any>({});
 
-  const collectEnvInfo = () => {
+  const collectEnvInfo = async () => {
     let info: any = {};
     if (typeof window !== "undefined") {
       const cap = (window as any).Capacitor;
@@ -32,14 +32,38 @@ const DebugToolsPanel: React.FC = () => {
         cap && typeof cap.getPlatform === "function"
           ? cap.getPlatform()
           : "N/A";
-      info.BarcodeScanner = cap?.Plugins?.BarcodeScanner || null;
       info.isNative = !!(
         cap &&
         typeof cap.getPlatform === "function" &&
         cap.getPlatform() !== "web"
       );
       info.hasBarcodeScanner = !!cap?.Plugins?.BarcodeScanner;
+      info.hasAppPlugin = !!cap?.Plugins?.App;
       info.navigatorUserAgent = window.navigator.userAgent;
+      info.BarcodeScanner = cap?.Plugins?.BarcodeScanner || null;
+      info.AppPlugin = cap?.Plugins?.App || null;
+
+      // Try to get BarcodeScanner permissions and support
+      if (info.hasBarcodeScanner) {
+        try {
+          if (
+            typeof cap.Plugins.BarcodeScanner.checkPermissions === "function"
+          ) {
+            info.BarcodeScannerPermissions =
+              await cap.Plugins.BarcodeScanner.checkPermissions();
+          }
+        } catch (e) {
+          info.BarcodeScannerPermissions = { error: String(e) };
+        }
+        try {
+          if (typeof cap.Plugins.BarcodeScanner.isSupported === "function") {
+            info.BarcodeScannerSupported =
+              await cap.Plugins.BarcodeScanner.isSupported();
+          }
+        } catch (e) {
+          info.BarcodeScannerSupported = { error: String(e) };
+        }
+      }
     }
     setEnvInfo(info);
   };
@@ -80,25 +104,78 @@ const DebugToolsPanel: React.FC = () => {
             </span>
           </div>
           <div className="mb-2">
+            <strong>hasAppPlugin:</strong>{" "}
+            <span className="badge badge-info">
+              {String(envInfo.hasAppPlugin)}
+            </span>
+          </div>
+          <div className="mb-2">
             <strong>navigator.userAgent:</strong>
             <div className="text-xs break-all">
               {envInfo.navigatorUserAgent}
             </div>
           </div>
+          {envInfo.BarcodeScannerSupported && (
+            <div className="mb-2">
+              <strong>BarcodeScanner.isSupported:</strong>{" "}
+              <span className="badge badge-info">
+                {JSON.stringify(envInfo.BarcodeScannerSupported)}
+              </span>
+            </div>
+          )}
+          {envInfo.BarcodeScannerPermissions && (
+            <div className="mb-2">
+              <strong>BarcodeScanner.checkPermissions:</strong>{" "}
+              <span className="badge badge-info">
+                {JSON.stringify(envInfo.BarcodeScannerPermissions)}
+              </span>
+            </div>
+          )}
           <details className="mt-2">
             <summary className="cursor-pointer">
-              Show Raw Capacitor/BarcodeScanner Objects
+              Show Raw Capacitor/BarcodeScanner/App Objects
             </summary>
-            <pre className="text-xs overflow-x-auto">
-              {JSON.stringify(
-                {
-                  Capacitor: envInfo.Capacitor,
-                  BarcodeScanner: envInfo.BarcodeScanner,
-                },
-                null,
-                2
-              )}
-            </pre>
+            <div className="flex flex-col gap-2">
+              <button
+                className="btn btn-xs btn-outline btn-info w-32 mb-2"
+                type="button"
+                onClick={() => {
+                  const raw = JSON.stringify(
+                    {
+                      Capacitor: envInfo.Capacitor,
+                      BarcodeScanner: envInfo.BarcodeScanner,
+                      AppPlugin: envInfo.AppPlugin,
+                    },
+                    null,
+                    2
+                  );
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(raw);
+                  } else {
+                    // fallback for older browsers
+                    const textarea = document.createElement("textarea");
+                    textarea.value = raw;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textarea);
+                  }
+                }}
+              >
+                Copy Debug Info
+              </button>
+              <pre className="text-xs overflow-x-auto">
+                {JSON.stringify(
+                  {
+                    Capacitor: envInfo.Capacitor,
+                    BarcodeScanner: envInfo.BarcodeScanner,
+                    AppPlugin: envInfo.AppPlugin,
+                  },
+                  null,
+                  2
+                )}
+              </pre>
+            </div>
           </details>
         </div>
       )}
