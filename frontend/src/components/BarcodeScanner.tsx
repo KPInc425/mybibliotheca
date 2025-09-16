@@ -310,7 +310,23 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   };
 
-  // Remove auto-start logic; scanner is started by explicit user action only
+  // Auto-start native scanner on modal open if native available and not already scanning
+  useEffect(() => {
+    if (
+      isOpen &&
+      scannerState.isNativeAvailable &&
+      !scannerState.isScanning &&
+      !scannerState.error
+    ) {
+      handleStartNativeScanner();
+    }
+    // eslint-disable-next-line
+  }, [
+    isOpen,
+    scannerState.isNativeAvailable,
+    scannerState.isScanning,
+    scannerState.error,
+  ]);
 
   // Stop scanner
   const stopLocalScanner = () => {
@@ -509,6 +525,27 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               </div>
             </div>
           </div>
+
+          {/* Start Scan Button for manual/browser fallback */}
+          {!scannerState.isScanning &&
+            !scannerState.error &&
+            (!scannerState.isNativeAvailable || platform === "web") && (
+              <div className="flex justify-center mb-4">
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    if (scannerState.isNativeAvailable) {
+                      handleStartNativeScanner();
+                    } else if (scannerState.isBrowserAvailable) {
+                      handleStartBrowserScanner();
+                    }
+                  }}
+                >
+                  <CameraIcon className="w-5 h-5 mr-2" />
+                  Start Scan
+                </button>
+              </div>
+            )}
 
           {/* Error Display */}
           {scannerState.error && (
