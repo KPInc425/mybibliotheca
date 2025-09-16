@@ -189,6 +189,32 @@ const DebugToolsPanel: React.FC = () => {
             >
               Request Permissions
             </button>
+            {/* Test Native Scan Button */}
+            <button
+              className="btn btn-xs btn-outline btn-error"
+              type="button"
+              onClick={async () => {
+                const cap = (window as any).Capacitor;
+                if (cap && cap.Plugins?.BarcodeScanner) {
+                  try {
+                    const perms =
+                      await cap.Plugins.BarcodeScanner.checkPermissions();
+                    if (perms.camera === "granted") {
+                      const result = await cap.Plugins.BarcodeScanner.scan();
+                      alert(JSON.stringify(result));
+                    } else {
+                      alert("Camera permission not granted");
+                    }
+                  } catch (err) {
+                    alert("Scan error: " + JSON.stringify(err));
+                  }
+                } else {
+                  alert("BarcodeScanner plugin not available");
+                }
+              }}
+            >
+              Test Native Scan
+            </button>
           </div>
           {/* Show Permission Results */}
           {permResult && (

@@ -429,7 +429,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         position="bottom-left"
         defaultOpen={false}
       />
-      {/* Permission Debug Output */}
+      {/* Permission & Native Scanner Debug Output */}
       <div
         style={{
           background: "#222",
@@ -439,6 +439,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           borderRadius: 8,
           margin: 8,
           maxWidth: 400,
+          wordBreak: "break-all",
         }}
       >
         <div>
@@ -461,6 +462,36 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               {JSON.stringify(debugState.permissionResultAfterDelay, null, 2)}
             </pre>
             Granted: <b>{String(debugState.permissionGrantedAfterDelay)}</b>
+          </div>
+        )}
+        <div style={{ marginTop: 8 }}>
+          <b>Native Scanner Call Debug:</b>
+        </div>
+        {debugState.lastNativeScanResult && (
+          <div>
+            <div>
+              <b>lastNativeScanResult:</b>
+              <pre style={{ whiteSpace: "pre-wrap" }}>
+                {JSON.stringify(debugState.lastNativeScanResult, null, 2)}
+              </pre>
+            </div>
+            <div>
+              <b>lastNativeScanTime:</b> {debugState.lastNativeScanTime}
+            </div>
+          </div>
+        )}
+        {debugState.lastNativeScanError && (
+          <div>
+            <div>
+              <b>lastNativeScanError:</b>
+              <pre style={{ whiteSpace: "pre-wrap" }}>
+                {JSON.stringify(debugState.lastNativeScanError, null, 2)}
+              </pre>
+            </div>
+            <div>
+              <b>lastNativeScanErrorTime:</b>{" "}
+              {debugState.lastNativeScanErrorTime}
+            </div>
           </div>
         )}
       </div>
