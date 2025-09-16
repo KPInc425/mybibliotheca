@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { requestCameraPermissionsEarly } from "@/services/scannerService";
 import {
   CameraIcon,
   XMarkIcon,
@@ -11,8 +10,10 @@ import {
   startBrowserScanner,
   getScannerAvailability,
   stopScanner,
+  requestCameraPermissionsEarly,
 } from "@/services/scannerService";
 import { useCapacitorEnv } from "@/utils/CapacitorEnvContext";
+import DebugPanel from "./DebugPanel";
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
@@ -50,6 +51,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const codeReaderRef = useRef<any>(null);
   const isScannerActiveRef = useRef<boolean>(false);
 
+  // Visual debug state
+  const [debugState, setDebugState] = useState<any>({});
+
   // Check scanner availability on mount and when modal opens
   useEffect(() => {
     const checkAvailabilityAndPermissions = async () => {
@@ -62,21 +66,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       // Force a fresh permission check every time modal opens
       const permissionGranted = await requestCameraPermissionsEarly();
-      console.log(
-        "[BarcodeScanner] Fresh permission check result:",
-        permissionGranted
-      );
+      setDebugState((prev: any) => ({
+        ...prev,
+        permissionGranted,
+        checkTime: new Date().toISOString(),
+      }));
 
       const availability = await getScannerAvailability();
-      // Debug logging for environment and scanner availability
-      console.log("[BarcodeScanner] Modal opened");
-      console.log("[BarcodeScanner] CapacitorEnvContext:", {
-        isNative,
-        platform,
-        isCapacitor,
-        Capacitor,
-      });
-      console.log("[BarcodeScanner] getScannerAvailability:", availability);
+      setDebugState((prev: any) => ({
+        ...prev,
+        availability,
+        env: { isNative, platform, isCapacitor, Capacitor },
+      }));
 
       setScannerState((prev) => ({
         ...prev,
@@ -99,50 +100,61 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     // eslint-disable-next-line
   }, [isOpen, isNative, platform, isCapacitor, Capacitor]);
 
-  // Start native scanner
-  const handleStartNativeScanner = async () => {
-    try {
-      isScannerActiveRef.current = true;
-      setScannerState((prev) => ({
-        ...prev,
-        isScanning: true,
-        status: "Starting native scanner...",
-        error: null,
-      }));
+ // Start native scanner
+ const handleStartNativeScanner = async () => {
+   try {
+     isScannerActiveRef.current = true;
+     setScannerState((prev) => ({
+       ...prev,
+       isScanning: true,
+       status: "Starting native scanner...",
+       error: null,
+     }));
 
-      const result = await startNativeScanner();
+     const result = await startNativeScanner();
 
-      if (!isScannerActiveRef.current) {
-        return; // Scanner was cancelled
-      }
+     setDebugState((prev: any) => ({
+       ...prev,
+       lastNativeScanResult: result,
+       lastNativeScanTime: new Date().toISOString(),
+     }));
 
-      if (result.success && result.barcode) {
-        onScan(result.barcode);
-        setScannerState((prev) => ({
-          ...prev,
-          status: `Barcode detected: ${result.barcode}`,
-          isScanning: false,
-        }));
-      } else {
-        throw new Error(result.error || "Native scanner failed");
-      }
-    } catch (error) {
-      if (!isScannerActiveRef.current) {
-        return; // Scanner was cancelled
-      }
+     if (!isScannerActiveRef.current) {
+       return; // Scanner was cancelled
+     }
 
-      console.error("Native scanner error:", error);
-      setScannerState((prev) => ({
-        ...prev,
-        error: error instanceof Error ? error.message : "Native scanner failed",
-        isScanning: false,
-        status: "Native scanner failed",
-      }));
-      onError(error instanceof Error ? error.message : "Native scanner failed");
-    } finally {
-      isScannerActiveRef.current = false;
-    }
-  };
+     if (result.success && result.barcode) {
+       onScan(result.barcode);
+       setScannerState((prev) => ({
+         ...prev,
+         status: `Barcode detected: ${result.barcode}`,
+         isScanning: false,
+       }));
+     } else {
+       throw new Error(result.error || "Native scanner failed");
+     }
+   } catch (error) {
+     if (!isScannerActiveRef.current) {
+       return; // Scanner was cancelled
+     }
+
+     setDebugState((prev: any) => ({
+       ...prev,
+       lastNativeScanError: error instanceof Error ? error.message : String(error),
+       lastNativeScanErrorTime: new Date().toISOString(),
+     }));
+
+     setScannerState((prev) => ({
+       ...prev,
+       error: error instanceof Error ? error.message : "Native scanner failed",
+       isScanning: false,
+       status: "Native scanner failed",
+     }));
+     onError(error instanceof Error ? error.message : "Native scanner failed");
+   } finally {
+     isScannerActiveRef.current = false;
+   }
+ };
 
   // Start browser scanner
   const handleStartBrowserScanner = async () => {
@@ -347,25 +359,36 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+ if (!isOpen) return null;
 
-  return (
-    <div className="modal modal-open">
-      <div className="modal-box w-11/12 max-w-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-lg flex items-center gap-2">
-            <CameraIcon className="w-5 h-5" />
-            Barcode Scanner
-          </h3>
-          <button
-            onClick={onClose}
-            className="btn btn-ghost btn-sm"
-            disabled={scannerState.isScanning}
-          >
-            <XMarkIcon className="w-4 h-4" />
-          </button>
-        </div>
+ return (
+   <>
+     {/* Debug Panel for BarcodeScanner */}
+     <DebugPanel
+       debugInfo={{
+         scannerState,
+         debugState,
+       }}
+       title="BarcodeScanner Debug"
+       position="bottom-left"
+       defaultOpen={false}
+     />
+     <div className="modal modal-open">
+       <div className="modal-box w-11/12 max-w-2xl">
+         {/* Header */}
+         <div className="flex items-center justify-between mb-4">
+           <h3 className="font-bold text-lg flex items-center gap-2">
+             <CameraIcon className="w-5 h-5" />
+             Barcode Scanner
+           </h3>
+           <button
+             onClick={onClose}
+             className="btn btn-ghost btn-sm"
+             disabled={scannerState.isScanning}
+           >
+             <XMarkIcon className="w-4 h-4" />
+           </button>
+         </div>
 
         {/* Scanner Status */}
         <div className="mb-4">

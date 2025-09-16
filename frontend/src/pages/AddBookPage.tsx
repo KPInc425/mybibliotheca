@@ -58,9 +58,18 @@ const AddBookPage: React.FC = () => {
   });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
+  // Visual debug state
+  const [debugState, setDebugState] = useState<any>({});
+  const env = useCapacitorEnv ? useCapacitorEnv() : {};
+
   // Proactively request camera permissions on mount (legacy parity)
   useEffect(() => {
-    requestCameraPermissionsEarly();
+    requestCameraPermissionsEarly().then((result) => {
+      setDebugState((prev: any) => ({
+        ...prev,
+        permissionEarlyResult: result,
+      }));
+    });
   }, []);
 
   // Get existing categories from books for suggestions
@@ -77,17 +86,27 @@ const AddBookPage: React.FC = () => {
 
   // Handle barcode scan
   const handleBarcodeScan = async (barcode: string) => {
-    console.log("[AddBookPage] Barcode scanned:", barcode);
+    setDebugState((prev: any) => ({
+      ...prev,
+      lastBarcode: barcode,
+      scanTime: new Date().toISOString(),
+    }));
 
     // Check for duplicate scans
     if (!handleSuccessfulScan(barcode)) {
-      console.log("[AddBookPage] Duplicate scan ignored");
+      setDebugState((prev: any) => ({
+        ...prev,
+        duplicateScan: true,
+      }));
       return;
     }
 
     // Extract ISBN from barcode
     const isbn = extractISBNFromBarcode(barcode);
-    console.log("[AddBookPage] Extracted ISBN:", isbn);
+    setDebugState((prev: any) => ({
+      ...prev,
+      extractedISBN: isbn,
+    }));
 
     // Update ISBN field
     setFormData((prev) => ({ ...prev, isbn }));
@@ -101,7 +120,11 @@ const AddBookPage: React.FC = () => {
 
   // Handle scanner error
   const handleScannerError = (error: string) => {
-    console.error("[AddBookPage] Scanner error:", error);
+    setDebugState((prev: any) => ({
+      ...prev,
+      scannerError: error,
+      scannerErrorTime: new Date().toISOString(),
+    }));
     setFetchError(`Scanner error: ${error}`);
     // Do NOT close the scanner modal on error; let the user decide in the modal
   };
@@ -211,6 +234,22 @@ const AddBookPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Debug Panel */}
+      <DebugPanel
+        debugInfo={{
+          showScanner,
+          isFetching,
+          fetchError,
+          fetchSuccess,
+          formData,
+          selectedCategories,
+          env,
+          debugState,
+        }}
+        title="AddBookPage Debug"
+        position="top-right"
+        defaultOpen={false}
+      />
       {/* Header */}
       <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-4 md:py-8 mb-8">
         <h1 className="text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold m-0 text-shadow-lg relative z-10 flex items-center justify-center gap-2 md:gap-4">
