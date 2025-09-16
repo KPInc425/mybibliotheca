@@ -22,6 +22,8 @@ import Icon from "@/components/Icon";
 const DebugToolsPanel: React.FC = () => {
   const [show, setShow] = useState(false);
   const [envInfo, setEnvInfo] = useState<any>({});
+  const [permResult, setPermResult] = useState<any>(null);
+  const [permRequestResult, setPermRequestResult] = useState<any>(null);
 
   const collectEnvInfo = async () => {
     let info: any = {};
@@ -66,6 +68,46 @@ const DebugToolsPanel: React.FC = () => {
       }
     }
     setEnvInfo(info);
+  };
+
+  // Check permissions live
+  const handleCheckPermissions = async () => {
+    setPermResult(null);
+    if (typeof window !== "undefined") {
+      const cap = (window as any).Capacitor;
+      if (cap?.Plugins?.BarcodeScanner?.checkPermissions) {
+        try {
+          const result = await cap.Plugins.BarcodeScanner.checkPermissions();
+          setPermResult(result);
+        } catch (e) {
+          setPermResult({ error: String(e) });
+        }
+      } else {
+        setPermResult({
+          error: "BarcodeScanner.checkPermissions not available",
+        });
+      }
+    }
+  };
+
+  // Request permissions live
+  const handleRequestPermissions = async () => {
+    setPermRequestResult(null);
+    if (typeof window !== "undefined") {
+      const cap = (window as any).Capacitor;
+      if (cap?.Plugins?.BarcodeScanner?.requestPermissions) {
+        try {
+          const result = await cap.Plugins.BarcodeScanner.requestPermissions();
+          setPermRequestResult(result);
+        } catch (e) {
+          setPermRequestResult({ error: String(e) });
+        }
+      } else {
+        setPermRequestResult({
+          error: "BarcodeScanner.requestPermissions not available",
+        });
+      }
+    }
   };
 
   useEffect(() => {
@@ -129,6 +171,78 @@ const DebugToolsPanel: React.FC = () => {
               <span className="badge badge-info">
                 {JSON.stringify(envInfo.BarcodeScannerPermissions)}
               </span>
+            </div>
+          )}
+          {/* Live Permission Buttons */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              className="btn btn-xs btn-outline btn-info"
+              type="button"
+              onClick={handleCheckPermissions}
+            >
+              Check Permissions
+            </button>
+            <button
+              className="btn btn-xs btn-outline btn-success"
+              type="button"
+              onClick={handleRequestPermissions}
+            >
+              Request Permissions
+            </button>
+          </div>
+          {/* Show Permission Results */}
+          {permResult && (
+            <div className="mb-2">
+              <strong>Live checkPermissions result:</strong>
+              <button
+                className="btn btn-xs btn-outline btn-info ml-2"
+                type="button"
+                onClick={() => {
+                  const raw = JSON.stringify(permResult, null, 2);
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(raw);
+                  } else {
+                    const textarea = document.createElement("textarea");
+                    textarea.value = raw;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textarea);
+                  }
+                }}
+              >
+                Copy
+              </button>
+              <pre className="text-xs overflow-x-auto">
+                {JSON.stringify(permResult, null, 2)}
+              </pre>
+            </div>
+          )}
+          {permRequestResult && (
+            <div className="mb-2">
+              <strong>Live requestPermissions result:</strong>
+              <button
+                className="btn btn-xs btn-outline btn-info ml-2"
+                type="button"
+                onClick={() => {
+                  const raw = JSON.stringify(permRequestResult, null, 2);
+                  if (navigator.clipboard) {
+                    navigator.clipboard.writeText(raw);
+                  } else {
+                    const textarea = document.createElement("textarea");
+                    textarea.value = raw;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textarea);
+                  }
+                }}
+              >
+                Copy
+              </button>
+              <pre className="text-xs overflow-x-auto">
+                {JSON.stringify(permRequestResult, null, 2)}
+              </pre>
             </div>
           )}
           <details className="mt-2">
