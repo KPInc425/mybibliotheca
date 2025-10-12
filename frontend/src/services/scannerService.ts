@@ -81,6 +81,7 @@ export interface ScanResult {
  * Check if native scanner is available (Capacitor) using CapacitorEnvContext if in React, fallback to window otherwise.
  */
 import { getCapacitorEnv } from "@/utils/CapacitorEnvContext";
+import { normalizeScanResult } from '@/utils/scanNormalizer';
 
 export const checkNativeScanner = (): boolean => {
   // Try to use context if available, fallback to window for non-React usage
@@ -194,13 +195,22 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
     }
 
     // Start scanning
-    const { barcodes } = await BarcodeScanner.scan();
+    const rawResult: any = await BarcodeScanner.scan();
+    const result = normalizeScanResult(rawResult);
+    // Push to global debug console if available
+    if ((globalThis as any).__debugConsoleInstalled) {
+      try {
+        const mod = await import('@/components/DebugConsole');
+        mod.pushLog({ rawResult, normalized: result, time: new Date().toISOString() });
+      } catch (e) {
+        console.debug('Failed to push scan result to DebugConsole', e);
+      }
+    }
 
-    if (barcodes && barcodes.length > 0) {
-      const barcode = barcodes[0];
-      return { success: true, barcode: barcode.rawValue };
+    if (result.success && result.barcode) {
+      return { success: true, barcode: result.barcode };
     } else {
-      return { success: false, error: "No barcode detected" };
+      return { success: false, error: result.error || 'No barcode detected' };
     }
   } catch (error) {
     console.error("Native scanner error:", error);

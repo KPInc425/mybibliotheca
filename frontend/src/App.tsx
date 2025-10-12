@@ -35,6 +35,7 @@ import ImportPage from '@/pages/ImportPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import DebugConsole from '@/components/DebugConsole';
 
 const App: React.FC = () => {
 
@@ -42,6 +43,7 @@ const App: React.FC = () => {
     <ThemeProvider>
       <BrowserRouter future={{ v7_startTransition: true }}>
         <div className="min-h-screen bg-base-200">
+          <DebugConsole />
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />

@@ -12,6 +12,7 @@ import {
 } from "@/services/scannerService";
 import { useCapacitorEnv } from "@/utils/CapacitorEnvContext";
 import DebugPanel from "./DebugPanel";
+import { normalizeScanResult } from '@/utils/scanNormalizer';
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
@@ -134,17 +135,50 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       }
 
       // Permissions granted, start scan
-      const result = await cap.Plugins.BarcodeScanner.scan();
+      const rawResult: any = await cap.Plugins.BarcodeScanner.scan();
 
+      // Store raw result for debugging
       setDebugState((prev: any) => ({
         ...prev,
-        lastNativeScanResult: result,
+        lastNativeScanResult: rawResult,
         lastNativeScanTime: new Date().toISOString(),
       }));
+      // Also push to global debug console if available
+      try {
+        (window as any).__debugConsoleInstalled && (await Promise.resolve());
+      } catch {}
+      if ((window as any).__debugConsoleInstalled) {
+        try {
+          const push = (await import('@/components/DebugConsole')).pushLog;
+          push({ rawResult, time: new Date().toISOString() });
+        } catch (e) {
+          console.debug('Failed to push to DebugConsole', e);
+        }
+      }
 
       if (!isScannerActiveRef.current) {
         return; // Scanner was cancelled
       }
+
+
+      const result = normalizeScanResult(rawResult);
+
+      // Store normalized result for easier debugging
+      setDebugState((prev: any) => ({
+        ...prev,
+        lastNativeScanResultNormalized: result,
+      }));
+      if ((window as any).__debugConsoleInstalled) {
+        try {
+          const push = (await import('@/components/DebugConsole')).pushLog;
+          push({ normalized: result, time: new Date().toISOString() });
+        } catch (e) {
+          console.debug('Failed to push normalized result to DebugConsole', e);
+        }
+      }
+
+      console.debug('[BarcodeScanner] Raw native result:', rawResult);
+      console.debug('[BarcodeScanner] Normalized native result:', result);
 
       if (result.success && result.barcode) {
         onScan(result.barcode);
@@ -154,7 +188,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           isScanning: false,
         }));
       } else {
-        throw new Error(result.error || "Native scanner failed");
+        throw new Error(result.error || 'Native scanner failed');
       }
     } catch (error) {
       if (!isScannerActiveRef.current) {
