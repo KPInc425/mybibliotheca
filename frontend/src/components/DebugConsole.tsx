@@ -75,7 +75,18 @@ const DebugConsole: React.FC = () => {
     };
   }, [user]);
 
-  const visible = adminDebugEnabled === true || settings.scannerDebugMode;
+  // Show console when either per-user scanner debug is enabled, or when the
+  // current user is an admin and the admin system-level debug_mode isn't
+  // explicitly disabled. We treat `adminDebugEnabled === null` as "pending"
+  // and allow admins to see the console immediately so they can capture logs
+  // while we fetch the server setting.
+  const visible = (user?.is_admin && adminDebugEnabled !== false) || settings.scannerDebugMode;
+
+  // Emit a small trace into the debug buffer so we can diagnose visibility
+  // issues on devices where the ladybug doesn't appear.
+  useEffect(() => {
+    pushLog({ event: 'DebugConsole.visibility', userIsAdmin: Boolean(user?.is_admin), adminDebugEnabled, scannerDebugMode: settings.scannerDebugMode, visible });
+  }, [user, adminDebugEnabled, settings.scannerDebugMode, visible]);
   if (!visible) return null;
 
   const handleCopy = async () => {

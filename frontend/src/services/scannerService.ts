@@ -30,14 +30,29 @@ export const requestCameraPermissionsEarly = async (): Promise<boolean> => {
     }
     if (!supported) return false;
 
+    // Helper to normalize permission shapes
+    const permGrantedFromResult = (res: any): boolean => {
+      if (!res && res !== 0) return false;
+      // Common shapes:
+      // { granted: true }
+      // { granted: 'granted' }
+      // { camera: 'granted' }
+      // { camera: { granted: true } }
+      if (typeof res === 'boolean') return res;
+      if (res.granted === true || res.granted === 'granted') return true;
+      if (res.camera === 'granted') return true;
+      if (res.camera && (res.camera.granted === true || res.camera.granted === 'granted')) return true;
+      return false;
+    };
+
     // Retry checkPermissions up to 3 times with 1s delay
     let permissionGranted = false;
     let retryCount = 0;
     const maxRetries = 3;
     while (retryCount < maxRetries && !permissionGranted) {
       try {
-        const { granted } = await BarcodeScanner.checkPermissions();
-        if (granted) {
+        const result = await BarcodeScanner.checkPermissions();
+        if (permGrantedFromResult(result)) {
           permissionGranted = true;
           return true;
         }
@@ -54,7 +69,8 @@ export const requestCameraPermissionsEarly = async (): Promise<boolean> => {
     }
     if (!permissionGranted) {
       // Request permissions automatically
-      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
+      const req = await BarcodeScanner.requestPermissions();
+      const newGranted = permGrantedFromResult(req);
       return !!newGranted;
     }
     return permissionGranted;
@@ -151,13 +167,22 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
     }
 
     // Legacy-style permission check/request with retry logic
+    const permGrantedFromResult = (res: any): boolean => {
+      if (!res && res !== 0) return false;
+      if (typeof res === 'boolean') return res;
+      if (res.granted === true || res.granted === 'granted') return true;
+      if (res.camera === 'granted') return true;
+      if (res.camera && (res.camera.granted === true || res.camera.granted === 'granted')) return true;
+      return false;
+    };
+
     let permissionGranted = false;
     let retryCount = 0;
     const maxRetries = 3;
     while (retryCount < maxRetries && !permissionGranted) {
       try {
-        const { granted } = await BarcodeScanner.checkPermissions();
-        if (granted) {
+        const result = await BarcodeScanner.checkPermissions();
+        if (permGrantedFromResult(result)) {
           permissionGranted = true;
           break;
         }
@@ -174,14 +199,13 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
     }
     if (!permissionGranted) {
       // Request permissions automatically
-      const { granted: newGranted } = await BarcodeScanner.requestPermissions();
-      permissionGranted = !!newGranted;
+      const req = await BarcodeScanner.requestPermissions();
+      permissionGranted = permGrantedFromResult(req);
       // After requesting, check again with a short delay (bridge sync)
       if (!permissionGranted) {
         await new Promise((resolve) => setTimeout(resolve, 500));
-        const { granted: grantedAfter } =
-          await BarcodeScanner.checkPermissions();
-        permissionGranted = !!grantedAfter;
+        const checkAfter = await BarcodeScanner.checkPermissions();
+        permissionGranted = permGrantedFromResult(checkAfter);
       }
     }
 
