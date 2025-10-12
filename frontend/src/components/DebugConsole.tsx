@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { BugAntIcon, ClipboardDocumentIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useSettingsStore } from '@/store/settings';
+import { useAuthStore } from '@/store/auth';
+import { api } from '@/api/client';
 
 // Small in-memory ring buffer for logs
 const MAX_LOGS = 200;
@@ -38,6 +40,8 @@ if (typeof window !== 'undefined' && !(window as any).__debugConsoleInstalled) {
 
 const DebugConsole: React.FC = () => {
   const settings = useSettingsStore((s) => s.settings);
+  const { user } = useAuthStore();
+  const [adminDebugEnabled, setAdminDebugEnabled] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
   const [, forceRerender] = useState(0);
 
@@ -47,7 +51,32 @@ const DebugConsole: React.FC = () => {
     return () => clearInterval(iv);
   }, [open]);
 
-  if (!settings.scannerDebugMode) return null;
+  // Determine visibility: admin can enable system-level debug (debug_mode), otherwise fall back to per-user scannerDebugMode
+  useEffect(() => {
+    let mounted = true;
+    const checkAdmin = async () => {
+      if (user?.is_admin) {
+        try {
+          const res = await api.admin.getSettings();
+          if (mounted && res && res.success && res.data) {
+            setAdminDebugEnabled(Boolean(res.data.debug_mode));
+          }
+        } catch (e) {
+          console.debug('Failed to fetch admin settings for DebugConsole', e);
+          setAdminDebugEnabled(false);
+        }
+      } else {
+        setAdminDebugEnabled(false);
+      }
+    };
+    checkAdmin();
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
+
+  const visible = adminDebugEnabled === true || settings.scannerDebugMode;
+  if (!visible) return null;
 
   const handleCopy = async () => {
     try {

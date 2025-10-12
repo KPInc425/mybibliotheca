@@ -19,6 +19,7 @@ interface BarcodeScannerProps {
   onError: (error: string) => void;
   onClose: () => void;
   isOpen: boolean;
+  suppressModalOnNative?: boolean;
 }
 
 interface ScannerState {
@@ -34,6 +35,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   onError,
   onClose,
   isOpen,
+  suppressModalOnNative = false,
 }) => {
   const [scannerState, setScannerState] = useState<ScannerState>({
     isScanning: false,
@@ -350,7 +352,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       isOpen &&
       scannerState.isNativeAvailable &&
       !scannerState.isScanning &&
-      !scannerState.error
+      !scannerState.error &&
+      !suppressModalOnNative
     ) {
       handleStartNativeScanner();
     }

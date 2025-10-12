@@ -119,6 +119,12 @@ export const checkBrowserScanner = async (): Promise<boolean> => {
  * Start native scanner using Capacitor
  */
 export const startNativeScanner = async (): Promise<ScanResult> => {
+  // Suppress starting a native scan if one just completed very recently (prevents rapid re-open/duplicate)
+  const last = (globalThis as any).__lastNativeScanComplete || 0;
+  if (Date.now() - last < 800) {
+    return { success: false, error: 'Suppressed duplicate native scan' };
+  }
+
   if (!checkNativeScanner()) {
     return { success: false, error: "Native scanner not available" };
   }
@@ -197,6 +203,14 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
     // Start scanning
     const rawResult: any = await BarcodeScanner.scan();
     const result = normalizeScanResult(rawResult);
+    // Mark last native scan completion timestamp when successful to prevent immediate restarts
+    if (result.success) {
+      try {
+        (globalThis as any).__lastNativeScanComplete = Date.now();
+      } catch (e) {
+        // ignore
+      }
+    }
     // Push to global debug console if available
     if ((globalThis as any).__debugConsoleInstalled) {
       try {

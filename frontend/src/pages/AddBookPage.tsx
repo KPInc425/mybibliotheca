@@ -62,7 +62,7 @@ const AddBookPage: React.FC = () => {
 
   // Visual debug state
   const [debugState, setDebugState] = useState<any>({});
-  const env = useCapacitorEnv ? useCapacitorEnv() : {};
+  const env = useCapacitorEnv();
 
   // Proactively request camera permissions on mount (legacy parity)
   useEffect(() => {
@@ -289,7 +289,25 @@ const AddBookPage: React.FC = () => {
         {/* Scanner Controls */}
         <div className="flex flex-wrap gap-2 justify-center items-center mb-4">
           <button
-            onClick={() => setShowScanner(true)}
+            onClick={async () => {
+              // If running on native Capacitor (mobile) and native scanner available, call native scanner directly
+              try {
+                if (env?.isNative && env?.Capacitor?.Plugins?.BarcodeScanner) {
+                  // Call native scanner service which handles permissions and normalization
+                  const { startNativeScanner } = await import('@/services/scannerService');
+                  const res = await startNativeScanner();
+                  if (res.success && res.barcode) {
+                    await handleBarcodeScan(res.barcode);
+                  } else if (res.error) {
+                    handleScannerError(res.error);
+                  }
+                  return;
+                }
+              } catch (e) {
+                console.debug('Native scan shortcut failed, falling back to modal', e);
+              }
+              setShowScanner(true);
+            }}
             className="btn btn-primary btn-lg"
           >
             <Icon hero={<CameraIcon className="w-5 h-5" />} emoji="📷" />
@@ -662,6 +680,7 @@ const AddBookPage: React.FC = () => {
         onScan={handleBarcodeScan}
         onError={handleScannerError}
         onClose={() => setShowScanner(false)}
+        suppressModalOnNative={true}
       />
     </div>
   );
