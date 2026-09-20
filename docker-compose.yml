@@ -6,7 +6,18 @@ services:
     container_name: bookoracle-backend
     build: .
     ports:
-      - "5054:5054"   # Host Nginx proxies /api and /static to this
+      # Loopback-only. Host nginx (server_name books.ilgaming.xyz) proxies
+      # /api/ and /static/ here. This used to publish on 0.0.0.0, which put the
+      # Flask API directly on the LAN and bypassed nginx entirely: any device on
+      # the network could reach http://192.168.0.27:5054/ without TLS, without
+      # Cloudflare, and outside the site's security headers.
+      #
+      # IMPORTANT: nginx must proxy to 127.0.0.1:5054, not localhost:5054.
+      # `localhost` can resolve to ::1 first, and this bind does not listen on
+      # IPv6. Getting that wrong makes every /api/* request 502 while the SPA
+      # shell still loads. The nginx site on the prod box was updated in the same
+      # change.
+      - "127.0.0.1:5054:5054"
     volumes:
       # Bind mount, matching what production actually runs: the database lives
       # at /home/steam/apps/data/bookoracle on the host. The parent directory
@@ -44,7 +55,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3505:80"     # Host Nginx proxies / to this (SPA)
+      # Loopback-only, same reasoning as the backend: the SPA is served to the
+      # public through host nginx, not directly off the LAN.
+      - "127.0.0.1:3505:80"
     depends_on:
       - backend
     restart: unless-stopped

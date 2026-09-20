@@ -37,7 +37,9 @@
 
 ## 🏗️ Architecture
 
-BookOracle now features a **hybrid architecture** with both legacy and modern frontends:
+BookOracle is a **React SPA on a Flask API**. The repository also still contains the original
+Jinja2 server-rendered templates, but they are **not served**: nginx routes every path to the SPA,
+so the template UI is unreachable and is being retired rather than maintained.
 
 ### **Backend (Flask)**
 - **Framework**: Flask 2.2.2 with SQLAlchemy ORM
@@ -54,10 +56,12 @@ BookOracle now features a **hybrid architecture** with both legacy and modern fr
 - **Build Tool**: Vite
 - **Features**: Full feature parity with enhanced UX
 
-#### **Legacy Template Frontend**
+#### **Legacy Template Frontend (not served)**
 - **Templating**: Jinja2 with server-side rendering
-- **Styling**: Tailwind CSS + DaisyUI
-- **Mobile**: Capacitor for native mobile app
+- **Status**: unreachable. nginx sends every path to the SPA, including `/legacy`, so these
+  templates only run if you reach the Flask app directly on its own port. They are kept for
+  reference while features are ported, and are the source of the app's remaining stale branding.
+- **Mobile**: Capacitor for native mobile app (the APK build also targets the SPA)
 
 ---
 
@@ -147,11 +151,16 @@ The React frontend provides a modern, responsive experience with full feature pa
 
 **Access:** Visit `http://localhost:5054` - the React frontend is now the default interface.
 
-### **Legacy Template Frontend**
+### **Legacy Template Frontend (not reachable in production)**
 
-The original Flask template-based frontend is still available:
+The original Flask template-based frontend is **not served by the production site**. nginx proxies
+`location /` to the React SPA, so a request for `/legacy` returns the SPA shell rather than the
+original interface. The templates only respond if you address the Flask app directly on its internal
+port.
 
-**Access:** Visit `http://localhost:5054/legacy` for the original interface.
+Kept deliberately for now: several features still have working server-side implementations here that
+the SPA has not fully ported (notably the monthly wrap-up image generator). They will be removed once
+those are ported, which also removes the outdated "MyBibliotheca" naming they still carry.
 
 ---
 

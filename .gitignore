@@ -251,3 +251,6 @@ ___analysis/
 
 # Backup archives written by scripts/db/backup.sh (data, not source)
 backups/
+
+# curl cookie jars (empty leftovers from ad-hoc testing)
+cookies.txt

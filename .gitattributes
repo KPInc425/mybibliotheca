@@ -1,0 +1,49 @@
+# Line-ending policy.
+#
+# This repo has been checked out on Windows with core.autocrlf=true for most of
+# its life, so some files are stored with LF and some with CRLF, and the working
+# tree gets CRLF. Without this file git re-normalises whole files on commit and
+# a one-line change shows up as a several-hundred-line diff, which hides real
+# changes in review.
+#
+# Text files are stored as LF in the repository (the portable choice) and checked
+# out with the platform's native ending, so Windows editors keep working.
+# Shell scripts stay LF everywhere: a CRLF in a script makes bash fail with
+# "bad interpreter" or silently break, which matters here because cron runs
+# scripts/db/backup.sh.
+
+* text=auto
+
+# Explicit: shell scripts must never be CRLF, on any platform.
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Python and JS/TS: LF in the repo.
+*.py text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sql text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+
+# Windows-only helpers keep CRLF.
+*.bat text eol=crlf
+
+# Binary assets: never touched by the conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.apk binary
+*.exe binary
+*.db binary
+*.gz binary
+*.woff text eol=lf
+*.woff2 text eol=lf
