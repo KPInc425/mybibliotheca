@@ -80,6 +80,144 @@ def create_pre_migration_backup(db_path):
         return None
 
 
+def ensure_book_isbn_nullable():
+    """Relax `book.isbn` to nullable, matching the model.
+
+    The model declares `isbn = db.Column(db.String(13), nullable=True)` ("made
+    optional for manual books"), and production already contains a row with an
+    empty ISBN, so databases created before that change still carry
+    `isbn VARCHAR(13) NOT NULL`. On such a database any manual book or any
+    imported row without an ISBN fails at INSERT with
+    "NOT NULL constraint failed: book.isbn".
+
+    SQLite cannot drop NOT NULL in place, so the table is rebuilt. Done with the
+    stdlib sqlite3 module, NOT the sqlite3 CLI, which the runtime image does not
+    ship (the earlier CLI-based version silently skipped the rebuild there).
+
+    Safety:
+      * no-ops unless the column is actually NOT NULL;
+      * takes its own backup first;
+      * builds and checks the new table BEFORE dropping the old one, and aborts
+        on any foreign-key violation, so a failure leaves the original intact.
+
+    Returns True when a rebuild happened.
+    """
+    import sqlite3
+    import os as _os
+
+    from sqlalchemy import inspect as sa_inspect
+
+    from app.models import db
+
+    db_path = db.engine.url.database
+    if not db_path or not _os.path.exists(db_path):
+        return False
+
+    inspector = sa_inspect(db.engine)
+    if 'book' not in inspector.get_table_names():
+        return False
+
+    isbn_col = next((c for c in inspector.get_columns('book') if c['name'] == 'isbn'), None)
+    if isbn_col is None or isbn_col.get('nullable') is not False:
+        return False  # nothing to do
+
+    create_new = """
+        CREATE TABLE book_new (
+            id INTEGER NOT NULL,
+            uid VARCHAR(12) NOT NULL,
+            user_id INTEGER NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            author VARCHAR(255) NOT NULL,
+            isbn VARCHAR(13),
+            start_date DATE,
+            finish_date DATE,
+            cover_url VARCHAR(512),
+            want_to_read BOOLEAN,
+            library_only BOOLEAN,
+            description TEXT,
+            published_date VARCHAR(50),
+            page_count INTEGER,
+            categories VARCHAR(500),
+            publisher VARCHAR(255),
+            language VARCHAR(10),
+            average_rating FLOAT,
+            rating_count INTEGER,
+            created_at DATETIME,
+            shared_book_id INTEGER REFERENCES shared_book_data(id),
+            owned BOOLEAN DEFAULT 0,
+            PRIMARY KEY (id),
+            CONSTRAINT unique_user_isbn UNIQUE (user_id, isbn),
+            UNIQUE (uid),
+            FOREIGN KEY(user_id) REFERENCES user (id)
+        )
+    """
+    copy_rows = """
+        INSERT INTO book_new SELECT id, uid, user_id, title, author, isbn, start_date,
+            finish_date, cover_url, want_to_read, library_only, description, published_date,
+            page_count, categories, publisher, language, average_rating, rating_count,
+            created_at, shared_book_id, owned FROM book
+    """
+
+    print('INFO  book.isbn is NOT NULL; rebuilding the table to match the model')
+
+    # Own backup before touching the schema.
+    create_pre_migration_backup(db_path)
+
+    # Release pooled connections so the file is not held while rebuilding.
+    db.session.remove()
+    db.engine.dispose()
+
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path, timeout=30)
+        conn.execute('PRAGMA foreign_keys=OFF')
+
+        before = conn.execute('SELECT count(*) FROM book').fetchone()[0]
+
+        conn.execute('DROP TABLE IF EXISTS book_new')
+        conn.execute(create_new)
+        conn.execute(copy_rows)
+
+        after = conn.execute('SELECT count(*) FROM book_new').fetchone()[0]
+        if after != before:
+            raise RuntimeError(f'row count mismatch: {before} -> {after}')
+
+        violations = conn.execute('PRAGMA foreign_key_check').fetchall()
+        if violations:
+            raise RuntimeError(f'foreign key violations in rebuilt table: {violations[:3]}')
+
+        conn.execute('DROP TABLE book')
+        conn.execute('ALTER TABLE book_new RENAME TO book')
+        conn.execute('CREATE INDEX IF NOT EXISTS ix_book_user_id ON book (user_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS ix_book_isbn ON book (isbn)')
+        conn.commit()
+
+        info = {row[1]: row for row in conn.execute('PRAGMA table_info(book)')}
+        if info.get('isbn') and info['isbn'][3] == 1:  # notnull still set
+            raise RuntimeError('rebuild did not clear the NOT NULL flag')
+
+        integrity = conn.execute('PRAGMA integrity_check').fetchone()[0]
+        if integrity != 'ok':
+            raise RuntimeError(f'integrity check after rebuild: {integrity}')
+
+        final = conn.execute('SELECT count(*) FROM book').fetchone()[0]
+        print(f'OK    book.isbn is now nullable ({final} rows preserved)')
+        return True
+    except Exception as exc:
+        print(f'WARN  isbn rebuild failed, original table left in place: {exc}')
+        try:
+            if conn is not None:
+                conn.rollback()
+                conn.execute('DROP TABLE IF EXISTS book_new')
+                conn.commit()
+        except Exception:
+            pass
+        return False
+    finally:
+        if conn is not None:
+            conn.close()
+
+
 def run_migrations(app):
     """Create the schema and apply every incremental migration. Idempotent.
 
@@ -89,6 +227,16 @@ def run_migrations(app):
     """
     with app.app_context():
         db_path = app.config.get("SQLALCHEMY_DATABASE_URI", "").replace("sqlite:///", "")
+
+        # Bring the schema in line with the model BEFORE anything reads columns.
+        # Databases created before `isbn` became optional still have
+        # `isbn VARCHAR(13) NOT NULL`, which breaks every manual/ISBN-less book.
+        try:
+            if ensure_book_isbn_nullable():
+                print("OK    Schema corrected (book.isbn relaxed to nullable).")
+        except Exception as exc:
+            print(f"WARN  isbn nullability check failed: {exc}")
+
         inspector = inspect(db.engine)
 
         migrations_needed, migration_list = check_if_migrations_needed(inspector)
