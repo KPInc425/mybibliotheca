@@ -248,3 +248,6 @@ __buildDocs/
 ___analysis/
 # Local AI dev-bridge state (licence + temp), not part of the app
 .aidevbridge/
+
+# Backup archives written by scripts/db/backup.sh (data, not source)
+backups/
