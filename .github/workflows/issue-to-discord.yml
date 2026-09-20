@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send Discord Notification
+        # Continue-on-error: a notification is not a gate. Without this, an
+        # unconfigured webhook marks the commit red and hides the actual CI result.
+        continue-on-error: true
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}

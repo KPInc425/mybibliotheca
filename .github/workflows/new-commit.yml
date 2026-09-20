@@ -36,6 +36,12 @@ jobs:
           echo "stats=$STATS" >> $GITHUB_OUTPUT
 
       - name: Send Discord Notification
+        # Continue-on-error: this job is a courtesy notification, not a quality
+        # gate. Its secret (NEW_COMMIT) is not configured on this repository, so it
+        # failed on every single push and painted the commit with a red X, which
+        # hid the real CI result and trained everyone to ignore the checks.
+        # A missing webhook should never look like a broken build.
+        continue-on-error: true
         uses: tsickert/discord-webhook@v5.3.0
         with:
           webhook-url: ${{ secrets.NEW_COMMIT }}
