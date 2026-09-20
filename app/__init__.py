@@ -5,7 +5,7 @@ from flask import Flask, session
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 from .models import db, User, InviteToken, UserRating
 from config import Config
 
@@ -13,32 +13,76 @@ login_manager = LoginManager()
 csrf = CSRFProtect()
 mail = Mail()
 
+# The value this file used to hardcode, plus the placeholder shipped in
+# .env.example. Both are public, so any session cookie signed with them can be
+# forged by anyone with read access to the repo.
+_KNOWN_WEAK_SECRET_KEYS = {
+    'your-secret-key',
+    'your-super-secret-key-32-chars-minimum-change-this',
+    'changeme',
+    'secret',
+}
+
+# A 32-char urlsafe token (what `secrets.token_urlsafe(32)` returns) is 43
+# characters. Anything much shorter is not a serious signing key.
+_MIN_SECRET_KEY_LENGTH = 32
+
+
+def _is_production():
+    """True when this process looks like a real deployment, not a dev run.
+
+    Production means: not Flask debug mode, not the app's own debug switch.
+    """
+    if os.environ.get('FLASK_DEBUG', 'false').lower() in ('true', 'on', '1'):
+        return False
+    if os.environ.get('BookOracle_DEBUG', 'false').lower() in ('true', 'on', '1'):
+        return False
+    return os.environ.get('FLASK_ENV', '').lower() != 'development'
+
+
+def _validate_secret_key(secret_key):
+    """Refuse a publicly-known SECRET_KEY in production.
+
+    Session cookies (and therefore every @login_required route, including the
+    admin API) are signed with this value. Flask-Login only checks that the
+    session deserialises, so a forged cookie carrying someone else's _user_id is
+    fully sufficient to act as that user. A hardcoded key in a public repo is
+    therefore a total authentication bypass, not a hardening nit.
+
+    Fails closed in production; warns loudly in development so local work and
+    the test suite keep working.
+    """
+    weak = (
+        not secret_key
+        or secret_key in _KNOWN_WEAK_SECRET_KEYS
+        or len(secret_key) < _MIN_SECRET_KEY_LENGTH
+    )
+    if not weak:
+        return True
+
+    reason = (
+        'is not set' if not secret_key
+        else 'is a known public default' if secret_key in _KNOWN_WEAK_SECRET_KEYS
+        else f'is shorter than {_MIN_SECRET_KEY_LENGTH} characters'
+    )
+    message = (
+        f"SECRET_KEY {reason}. Session cookies signed with it can be forged, "
+        "which grants full access to every account, including admins.\n"
+        "Generate one with:  python3 -c \"import secrets; print(secrets.token_urlsafe(32))\"\n"
+        "then set SECRET_KEY in the environment (or .env) and restart."
+    )
+
+    if _is_production():
+        raise RuntimeError(message)
+
+    import warnings
+    warnings.warn(f"[DEV ONLY] {message}", RuntimeWarning, stacklevel=3)
+    return False
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
-
-def backup_database(db_path):
-    """Create a backup of the database before migration"""
-    if not os.path.exists(db_path):
-        return None
-    
-    # Create backups directory if it doesn't exist
-    db_dir = os.path.dirname(db_path)
-    backup_dir = os.path.join(db_dir, 'backups')
-    os.makedirs(backup_dir, exist_ok=True)
-    
-    # Create backup filename with timestamp
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    db_filename = os.path.basename(db_path)
-    backup_path = os.path.join(backup_dir, f"{db_filename}.backup_{timestamp}")
-    
-    try:
-        shutil.copy2(db_path, backup_path)
-        print(f"✅ Database backup created: {backup_path}")
-        return backup_path
-    except Exception as e:
-        print(f"⚠️  Failed to create database backup: {e}")
-        return None
 
 def check_if_migrations_needed(inspector):
     """Check if any migrations are needed before creating backup"""
@@ -211,7 +255,7 @@ def run_email_normalization_migration():
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
-    app.config['SECRET_KEY'] = 'your-secret-key'
+    _validate_secret_key(app.config.get('SECRET_KEY'))
 
     # Initialize debug utilities
     from .debug_utils import setup_debug_logging, print_debug_banner, debug_middleware
@@ -266,289 +310,16 @@ def create_app():
 
 
 
-    # DATABASE MIGRATION SECTION
-    with app.app_context():
-        db_path = app.config.get('SQLALCHEMY_DATABASE_URI', '').replace('sqlite:///', '')
-        
-        # Create inspector for checking database schema
-        inspector = inspect(db.engine)
-        
-        # Check if migrations are needed BEFORE running any queries
-        migrations_needed, migration_list = check_if_migrations_needed(inspector)
-        
-        if migrations_needed:
-            print("🔄 Creating database backup before migration...")
-            backup_path = backup_database(db_path)
-            if backup_path:
-                print(f"📁 Backup saved to: {backup_path}")
-        else:
-            print("✅ Database schema is up-to-date, no migrations needed")
-        
-        existing_tables = inspector.get_table_names()
-        
-        if not existing_tables:
-            print("📚 Creating fresh database schema...")
-            db.create_all()
-            print("✅ Database schema created. Setup required on first visit.")
-        else:
-            print("📚 Database already exists...")
-            print("✅ Tables present, checking for migrations...")
-            
-            # Check for user table (new in v2)
-            if 'user' not in existing_tables:
-                print("🔄 Adding user authentication tables...")
-                db.create_all()
-                print("✅ User tables created. Setup required on first visit.")
-            
-                    # Check for invite_token table (new invite system)
-        if 'invite_token' not in existing_tables:
-            print("🔄 Adding invite_token table...")
-            db.create_all()  # This will create all missing tables including invite_token
-            print("✅ InviteToken table created for invite system.")
-        
-        # Check for user_rating table (new rating system)
-        if 'user_rating' not in existing_tables:
-            print("🔄 Adding user_rating table...")
-            db.create_all()  # This will create all missing tables including user_rating
-            print("✅ UserRating table created for rating system.")
-            
-            if 'user' in existing_tables:
-                # CRITICAL: Add streak offset column FIRST before any User queries
-                add_streak_offset_column(inspector, db.engine)
-                
-                # Refresh inspector after adding column
-                inspector = inspect(db.engine)
-            
-            # Run security/privacy field migration
-            run_security_privacy_migration(inspector, db.engine)
-            
-            # Run email normalization migration
-            if 'user' in inspector.get_table_names():
-                try:
-                    run_email_normalization_migration()
-                except Exception as e:
-                    print(f"⚠️  Error during email normalization: {e}")
-            
-            # Only assign orphaned books AFTER user table exists and columns are added
-            if 'user' in inspector.get_table_names():
-                try:
-                    # Now it's safe to query User model
-                    admin_users = User.query.filter_by(is_admin=True).count()
-                    if admin_users > 0:
-                        print("📚 Checking for orphaned books...")
-                        assign_existing_books_to_admin()
-                except Exception as e:
-                    print(f"⚠️  Error checking for admin users: {e}")
-            
-            # Check for new columns in book table
-            if 'book' in existing_tables:
-                try:
-                    columns = [column['name'] for column in inspector.get_columns('book')]
-                    
-                    # Check for user_id column (critical for v2)
-                    if 'user_id' not in columns:
-                        print("🔄 Adding user_id to book table...")
-                        with db.engine.connect() as conn:
-                            trans = conn.begin()
-                            try:
-                                conn.execute(text("ALTER TABLE book ADD COLUMN user_id INTEGER"))
-                                trans.commit()
-                                print("✅ user_id column added to book table.")
-                            except Exception as e:
-                                trans.rollback()
-                                raise e
-                        
-                        # Assign books to admin after adding user_id column (only if admin exists)
-                        try:
-                            if User.query.filter_by(is_admin=True).count() > 0:
-                                assign_existing_books_to_admin()
-                        except Exception as e:
-                            print(f"⚠️  Error assigning books to admin: {e}")
-                    
-                    # Check for other missing columns
-                    new_columns = ['description', 'published_date', 'page_count', 'categories', 
-                                 'publisher', 'language', 'average_rating', 'rating_count', 'created_at', 'owned']
-                    missing_columns = [col for col in new_columns if col not in columns]
-                    
-                    if missing_columns:
-                        print(f"🔄 Adding missing book columns: {missing_columns}")
-                        with db.engine.connect() as conn:
-                            trans = conn.begin()
-                            try:
-                                for col_name in missing_columns:
-                                    if col_name in ['page_count', 'rating_count']:
-                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} INTEGER"))
-                                    elif col_name == 'average_rating':
-                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} REAL"))
-                                    elif col_name == 'owned':
-                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} BOOLEAN DEFAULT 0"))
-                                    elif col_name in ['categories', 'publisher']:
-                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} VARCHAR(500)"))
-                                    elif col_name == 'language':
-                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} VARCHAR(10)"))
-                                    elif col_name == 'published_date':
-                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} VARCHAR(50)"))
-                                    elif col_name == 'created_at':
-                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} DATETIME"))
-                                    else:  # description
-                                        conn.execute(text(f"ALTER TABLE book ADD COLUMN {col_name} TEXT"))
-                                trans.commit()
-                                print("✅ Book schema migration completed.")
-                            except Exception as e:
-                                trans.rollback()
-                                raise e
-                except Exception as e:
-                    print(f"⚠️  Book schema migration failed: {e}")
-
-            # --- SHARED BOOK DATA MIGRATION ---
-            # Check for shared_book_data table
-            if 'shared_book_data' not in existing_tables:
-                print("🔄 Creating shared_book_data table...")
-                try:
-                    with db.engine.connect() as conn:
-                        trans = conn.begin()
-                        try:
-                            conn.execute(text('''
-                                CREATE TABLE shared_book_data (
-                                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                    custom_id VARCHAR(20) UNIQUE NOT NULL,
-                                    title VARCHAR(255) NOT NULL,
-                                    author VARCHAR(255) NOT NULL,
-                                    isbn VARCHAR(13),
-                                    cover_url VARCHAR(512),
-                                    description TEXT,
-                                    published_date VARCHAR(50),
-                                    page_count INTEGER,
-                                    categories VARCHAR(500),
-                                    publisher VARCHAR(255),
-                                    language VARCHAR(10),
-                                    average_rating REAL,
-                                    rating_count INTEGER,
-                                    created_at DATETIME,
-                                    updated_at DATETIME,
-                                    created_by INTEGER NOT NULL,
-                                    FOREIGN KEY (created_by) REFERENCES user (id)
-                                )
-                            '''))
-                            trans.commit()
-                            print("✅ shared_book_data table created.")
-                        except Exception as e:
-                            trans.rollback()
-                            raise e
-                except Exception as e:
-                    print(f"⚠️  shared_book_data table creation failed: {e}")
-            else:
-                print("✅ shared_book_data table already exists.")
-
-            # Check for shared_book_id column in book table
-            if 'book' in existing_tables:
-                try:
-                    columns = [column['name'] for column in inspector.get_columns('book')]
-                    if 'shared_book_id' not in columns:
-                        print("🔄 Adding shared_book_id column to book table...")
-                        with db.engine.connect() as conn:
-                            trans = conn.begin()
-                            try:
-                                conn.execute(text("ALTER TABLE book ADD COLUMN shared_book_id INTEGER REFERENCES shared_book_data(id)"))
-                                trans.commit()
-                                print("✅ shared_book_id column added to book table.")
-                            except Exception as e:
-                                trans.rollback()
-                                raise e
-                    else:
-                        print("✅ shared_book_id column already exists in book table.")
-                except Exception as e:
-                    print(f"⚠️  shared_book_id column migration failed: {e}")
-
-            # Ensure 'owned' column exists on book table (always check; refresh inspector)
-            try:
-                if 'book' in existing_tables:
-                    inspector = inspect(db.engine)
-                    columns = [column['name'] for column in inspector.get_columns('book')]
-                    if 'owned' not in columns:
-                        print("🔄 Adding 'owned' column to book table...")
-                        with db.engine.connect() as conn:
-                            trans = conn.begin()
-                            try:
-                                # Use INTEGER for broader SQLite compatibility
-                                conn.execute(text("ALTER TABLE book ADD COLUMN owned INTEGER DEFAULT 0"))
-                                trans.commit()
-                                print("✅ 'owned' column added to book table.")
-                            except Exception as e:
-                                trans.rollback()
-                                # As a last resort, attempt again ignoring errors (duplicate column)
-                                try:
-                                    conn.execute(text("ALTER TABLE book ADD COLUMN owned INTEGER DEFAULT 0"))
-                                    print("✅ 'owned' column add attempted (idempotent).")
-                                except Exception as e2:
-                                    print(f"⚠️  'owned' column migration failed on retry: {e2}")
-            except Exception as e:
-                print(f"⚠️  'owned' column migration failed: {e}")
-
-            # Ensure 'is_pro' column exists on user table (always check; refresh inspector)
-            try:
-                if 'user' in existing_tables:
-                    inspector = inspect(db.engine)
-                    ucols = [column['name'] for column in inspector.get_columns('user')]
-                    if 'is_pro' not in ucols:
-                        print("🔄 Adding 'is_pro' column to user table...")
-                        with db.engine.connect() as conn:
-                            trans = conn.begin()
-                            try:
-                                conn.execute(text("ALTER TABLE user ADD COLUMN is_pro INTEGER DEFAULT 0"))
-                                trans.commit()
-                                print("✅ 'is_pro' column added to user table.")
-                            except Exception as e:
-                                trans.rollback()
-                                try:
-                                    conn.execute(text("ALTER TABLE user ADD COLUMN is_pro INTEGER DEFAULT 0"))
-                                    print("✅ 'is_pro' column add attempted (idempotent).")
-                                except Exception as e2:
-                                    print(f"⚠️  'is_pro' column migration failed on retry: {e2}")
-            except Exception as e:
-                print(f"⚠️  'is_pro' column migration failed: {e}")
-        
-        # Check for reading_log table updates
-            if 'reading_log' in existing_tables:
-                try:
-                    columns = [column['name'] for column in inspector.get_columns('reading_log')]
-                    missing_reading_log_columns = []
-                    
-                    if 'user_id' not in columns:
-                        missing_reading_log_columns.append('user_id')
-                    if 'created_at' not in columns:
-                        missing_reading_log_columns.append('created_at')
-                    
-                    if missing_reading_log_columns:
-                        print(f"🔄 Adding missing reading_log columns: {missing_reading_log_columns}")
-                        with db.engine.connect() as conn:
-                            if 'user_id' in missing_reading_log_columns:
-                                conn.execute(text("ALTER TABLE reading_log ADD COLUMN user_id INTEGER"))
-                            if 'created_at' in missing_reading_log_columns:
-                                conn.execute(text("ALTER TABLE reading_log ADD COLUMN created_at DATETIME"))
-                            conn.commit()
-                        print("✅ reading_log table updated.")
-                        
-                        # Assign reading logs to admin user if needed
-                        if 'user_id' in missing_reading_log_columns:
-                            try:
-                                admin_user = User.query.filter_by(is_admin=True).first()
-                                if admin_user:
-                                    from .models import ReadingLog
-                                    unassigned_logs = ReadingLog.query.filter_by(user_id=None).all()
-                                    if unassigned_logs:
-                                        print(f"🔄 Assigning {len(unassigned_logs)} reading logs to admin user...")
-                                        for log in unassigned_logs:
-                                            log.user_id = admin_user.id
-                                        db.session.commit()
-                                        print("✅ Reading logs assigned to admin user.")
-                            except Exception as e:
-                                print(f"⚠️  Reading log migration failed: {e}")
-                        
-                except Exception as e:
-                    print(f"⚠️  Reading log migration failed: {e}")
-        
-        print("🎉 Database migration completed successfully!")
+    # NOTE: schema creation, migrations and the pre-migration backup no longer
+    # run here. They used to execute inside every gunicorn worker's import of
+    # run:app, so N workers raced each other on a fresh database and the losers
+    # died with "table user already exists" (gunicorn then shut the master
+    # down). Measured cold starts at WORKERS=4 survived 0/3 trials.
+    #
+    # They now run exactly once per container start, before gunicorn, via
+    # `python -m app.bootstrap` in docker-entrypoint.sh. See app/bootstrap.py.
+    # Nothing under /api depends on them: the api blueprint is registered below
+    # and only touches the schema per-request.
 
     # Add middleware to check for setup and forced password changes
     @app.before_request

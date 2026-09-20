@@ -3119,21 +3119,63 @@ def create_backup():
 
     try:
         import os
-        from shutil import copy2
-        
-        data_dir = os.path.join(os.getcwd(), 'data')
-        os.makedirs(data_dir, exist_ok=True)
-        db_path = os.path.join(data_dir, 'bookoracle.db')
-        if not os.path.exists(db_path):
-            return jsonify({'success': False, 'error': 'Database file not found'}), 404
+        import sqlite3
 
+        # Resolve the database from the app's own config instead of assuming a
+        # cwd-relative path and a filename. This used to look for
+        # <cwd>/data/bookoracle.db while the database is /app/data/books.db,
+        # so the endpoint returned "Database file not found" on a healthy
+        # install and had never worked.
+        db_uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        db_path = db_uri.replace('sqlite:///', '').replace('sqlite://', '')
+        if not db_path or not os.path.exists(db_path):
+            return jsonify({
+                'success': False,
+                'error': f'Database file not found at {db_path or "<unset>"}'
+            }), 404
+
+        data_dir = os.path.dirname(os.path.abspath(db_path))
         backups_dir = os.path.join(data_dir, 'backups')
-        os.makedirs(backups_dir, exist_ok=True)
+
+        try:
+            os.makedirs(backups_dir, exist_ok=True)
+        except OSError as exc:
+            return jsonify({
+                'success': False,
+                'error': (
+                    f'Cannot write to {backups_dir}: {exc}. The data directory is '
+                    'owned by another user; use scripts/db/backup.sh from cron instead.'
+                )
+            }), 500
 
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_filename = f'bookoracle_backup_{ts}.db'
+        backup_filename = f'books_{ts}.db'
         backup_path = os.path.join(backups_dir, backup_filename)
-        copy2(db_path, backup_path)
+
+        # sqlite3's backup API gives a consistent snapshot of a live database;
+        # shutil.copy2 of a hot SQLite file can capture a torn page.
+        source = sqlite3.connect(db_path)
+        try:
+            target = sqlite3.connect(backup_path)
+            try:
+                with target:
+                    source.backup(target)
+            finally:
+                target.close()
+        finally:
+            source.close()
+
+        check = sqlite3.connect(backup_path)
+        try:
+            integrity = check.execute('PRAGMA integrity_check;').fetchone()[0]
+        finally:
+            check.close()
+        if integrity != 'ok':
+            os.remove(backup_path)
+            return jsonify({
+                'success': False,
+                'error': f'Backup failed integrity check: {integrity}'
+            }), 500
 
         size_bytes = os.path.getsize(backup_path)
 
@@ -3234,32 +3276,43 @@ def download_backup():
     try:
         import os
         from flask import send_file
-        
-        data_dir = os.path.join(os.getcwd(), 'data')
-        db_path = os.path.join(data_dir, 'bookoracle.db')
-        backups_dir = os.path.join(data_dir, 'backups')
-        os.makedirs(data_dir, exist_ok=True)
 
-        if not os.path.exists(db_path):
-            return jsonify({'success': False, 'error': 'Database file not found'}), 404
+        db_uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        db_path = db_uri.replace('sqlite:///', '').replace('sqlite://', '')
+        if not db_path or not os.path.exists(db_path):
+            return jsonify({
+                'success': False,
+                'error': f'Database file not found at {db_path or "<unset>"}'
+            }), 404
 
-        # Prefer the most recent backup file if it exists
+        # The cron backup job writes into <repo>/backups, while the in-app
+        # backup writes alongside the database. Offer the newest of either,
+        # including the gzipped ones the cron job produces.
+        data_dir = os.path.dirname(os.path.abspath(db_path))
+        candidate_dirs = [
+            os.path.join(data_dir, 'backups'),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backups')),
+        ]
+
         latest_file_path = None
         latest_mtime = -1
-        if os.path.exists(backups_dir):
+        for backups_dir in candidate_dirs:
+            if not os.path.isdir(backups_dir):
+                continue
             for fname in os.listdir(backups_dir):
-                if fname.endswith('.db'):
-                    fpath = os.path.join(backups_dir, fname)
-                    try:
-                        mtime = os.path.getmtime(fpath)
-                        if mtime > latest_mtime:
-                            latest_mtime = mtime
-                            latest_file_path = fpath
-                    except Exception:
-                        pass
+                if not fname.endswith(('.db', '.db.gz')):
+                    continue
+                fpath = os.path.join(backups_dir, fname)
+                try:
+                    mtime = os.path.getmtime(fpath)
+                except OSError:
+                    continue
+                if mtime > latest_mtime:
+                    latest_mtime = mtime
+                    latest_file_path = fpath
 
         file_path = latest_file_path if latest_file_path else db_path
-        download_name = os.path.basename(file_path) if latest_file_path else f"bookoracle_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+        download_name = os.path.basename(file_path) if latest_file_path else f"books_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
 
         return send_file(
             file_path,
@@ -3281,7 +3334,10 @@ def get_backup_status():
         return jsonify({'success': False, 'error': 'Admin access required'}), 403
 
     import os
-    backups_dir = os.path.join(os.getcwd(), 'data', 'backups')
+    db_uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', '')
+    db_path = db_uri.replace('sqlite:///', '').replace('sqlite://', '')
+    data_dir = os.path.dirname(os.path.abspath(db_path)) if db_path else os.path.join(os.getcwd(), 'data')
+    backups_dir = os.path.join(data_dir, 'backups')
     marker_path = os.path.join(backups_dir, 'last_backup.txt')
     last_backup = None
     backup_size = 0

@@ -2,6 +2,24 @@
 .git
 .gitignore
 
+# Local environments and package trees (must not be sent to the daemon)
+venv/
+.venv/
+env/
+node_modules/
+frontend/node_modules/
+android/
+ios/
+
+# Build output and large binaries
+frontend/dist/
+dist/
+build/
+BookOracle-debug.apk
+tailwindcss.exe
+*.apk
+*.exe
+
 # Documentation
 *.md
 MULTI_USER_PROJECT_PLAN.md

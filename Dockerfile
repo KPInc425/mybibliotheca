@@ -83,4 +83,7 @@ ENV WORKERS=6
 # Set timeout to 300 seconds (5 minutes) to handle bulk imports with rate limiting
 # Enable access/error logs to stdout/stderr for Docker logging and allow log level override
 ENV LOG_LEVEL=info
-CMD ["sh", "-c", "gunicorn -w $WORKERS -b 0.0.0.0:5054 --timeout 300 --access-logfile - --error-logfile - --log-level ${LOG_LEVEL} run:app"]
+# --preload imports run:app ONCE in the arbiter and forks the ready app, so
+# workers no longer each re-run import-time work. The database bootstrap itself
+# now happens before gunicorn in docker-entrypoint.sh.
+CMD ["sh", "-c", "gunicorn -w $WORKERS -b 0.0.0.0:5054 --preload --timeout 300 --access-logfile - --error-logfile - --log-level ${LOG_LEVEL} run:app"]

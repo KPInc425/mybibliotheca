@@ -246,3 +246,5 @@ BookOracle-debug.apk
 
 __buildDocs/
 ___analysis/
+# Local AI dev-bridge state (licence + temp), not part of the app
+.aidevbridge/
