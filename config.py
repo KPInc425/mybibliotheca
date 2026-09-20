@@ -29,7 +29,25 @@ data_dir = ensure_data_directory()
 
 class Config:
     # Security
-    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_urlsafe(32)
+    #
+    # SECRET_KEY signs session cookies. It must come from the environment.
+    #
+    # This used to fall back to `secrets.token_urlsafe(32)`, which is worse than
+    # it looks: every gunicorn worker generates its OWN random key at import, so
+    # a session signed by worker A is rejected by worker B and users appear to be
+    # logged out at random (roughly (N-1)/N of requests per worker count). It also
+    # silently hides a missing/blank secret, so a deployment could run for weeks
+    # with sessions that cannot survive a restart.
+    #
+    # Production now gets None, and app._validate_secret_key() refuses to boot.
+    # Development keeps a generated key so `python run_windows.py` still works,
+    # but only when debug mode is explicitly on.
+    _env_secret_key = os.environ.get('SECRET_KEY')
+    _is_debug = (
+        os.environ.get('FLASK_DEBUG', 'false').lower() in ('true', 'on', '1')
+        or os.environ.get('BookOracle_DEBUG', 'false').lower() in ('true', 'on', '1')
+    )
+    SECRET_KEY = _env_secret_key or (secrets.token_urlsafe(32) if _is_debug else None)
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
 
