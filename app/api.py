@@ -2828,6 +2828,124 @@ def search_books():
         payload['data']['warnings'] = result['warnings']
     return jsonify(payload)
 
+@api.route('/import/csv', methods=['POST'])
+@login_required
+def import_csv():
+    """Import books from an uploaded CSV.
+
+    Accepts either a Goodreads "Export Library" file (auto-detected by its
+    column names) or a generic CSV with title/author/isbn/... columns, or a
+    single column of bare ISBNs.
+
+    The frontend has always posted here; the endpoint simply did not exist, so
+    the Import button 404'd.
+    """
+    from .services.book_import import parse_csv, import_rows
+
+    upload = request.files.get('file') or request.files.get('csv_file')
+    if not upload or not upload.filename:
+        return jsonify({'success': False, 'error': 'No file was uploaded.'}), 400
+
+    if not upload.filename.lower().endswith('.csv'):
+        return jsonify({
+            'success': False,
+            'error': 'Please upload a .csv file. A Goodreads "Export Library" download or a '
+                     'plain CSV both work.',
+        }), 400
+
+    raw = upload.read()
+    if len(raw) > 10 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'File is larger than the 10MB limit.'}), 400
+
+    try:
+        rows, fmt = parse_csv(raw)
+    except ValueError as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 400
+
+    if not rows:
+        return jsonify({
+            'success': False,
+            'error': 'No rows found in the file. Check that it has a header row and data.',
+        }), 400
+
+    try:
+        summary = import_rows(current_user.id, rows)
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error(f'Import failed: {exc}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Import failed while saving to the database. The file may contain values '
+                     'that are too long or a malformed row. Nothing was imported.',
+        }), 500
+
+    return jsonify({'success': True, 'data': {
+        'success': True,
+        'format': fmt,
+        'total_rows': len(rows),
+        'message': (f"Imported {summary['imported_count']} book(s); "
+                    f"{summary['skipped_duplicate']} already in your library; "
+                    f"{summary['skipped_invalid']} row(s) skipped as incomplete."),
+        **summary,
+    }})
+
+
+@api.route('/import/goodreads', methods=['POST'])
+@login_required
+def import_goodreads():
+    """Import a Goodreads export.
+
+    Goodreads serves its review pages behind a sign-in wall even for public
+    profiles (`/review/list/<id>` 302s to /user/sign_in), so importing from a
+    profile URL is not possible without the user's Goodreads credentials, which
+    this app never handles. The supported path is Goodreads' own CSV export, so
+    this endpoint accepts either that file (multipart) or a JSON body naming a
+    server-side file, and tells the caller plainly when a URL was supplied.
+    """
+    from .services.book_import import parse_csv, import_rows
+
+    upload = request.files.get('file')
+    if upload and upload.filename:
+        raw = upload.read()
+        try:
+            rows, fmt = parse_csv(raw)
+        except ValueError as exc:
+            return jsonify({'success': False, 'error': str(exc)}), 400
+
+        try:
+            summary = import_rows(current_user.id, rows)
+        except Exception as exc:
+            db.session.rollback()
+            current_app.logger.error(f'Goodreads import failed: {exc}')
+            return jsonify({'success': False, 'error': f'Import failed: {exc}'}), 500
+
+        return jsonify({'success': True, 'data': {
+            'success': True,
+            'format': 'goodreads' if fmt == 'goodreads' else fmt,
+            'total_rows': len(rows),
+            'message': (f"Imported {summary['imported_count']} book(s); "
+                        f"{summary['skipped_duplicate']} already in your library; "
+                        f"{summary['skipped_invalid']} row(s) skipped as incomplete."),
+            **summary,
+        }})
+
+    data = request.get_json(silent=True) or {}
+    url = (data.get('url') or '').strip()
+    if url:
+        return jsonify({
+            'success': False,
+            'error': (
+                'Importing from a Goodreads profile URL is not possible: Goodreads redirects '
+                'those pages to its sign-in page, so the data cannot be read without your '
+                'Goodreads password, which BookOracle will not ask for or store.\n\n'
+                'Use Goodreads\' own export instead: goodreads.com -> My Books -> '
+                'Import/Export -> Export Library, then upload the CSV it emails you.'
+            ),
+        }), 400
+
+    return jsonify({'success': False, 'error': 'No CSV file was uploaded.'}), 400
+
+
 @api.route('/reports/month-wrapup/<int:year>/<int:month>', methods=['GET'])
 @login_required
 def get_month_wrapup(year, month):

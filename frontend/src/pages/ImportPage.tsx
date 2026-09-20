@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '@/api/client';
+import { api, UPLOAD_TIMEOUT_MS } from '@/api/client';
 import { 
   ArrowDownTrayIcon,
   DocumentTextIcon,
@@ -16,16 +16,20 @@ interface ImportResult {
   success: boolean;
   message: string;
   imported_count?: number;
+  skipped_duplicate?: number;
+  skipped_invalid?: number;
+  enrichment_pending?: boolean;
   errors?: string[];
 }
 
 const ImportPage: React.FC = () => {
   const [importType, setImportType] = useState<'csv' | 'goodreads'>('csv');
   const [file, setFile] = useState<File | null>(null);
+  const [goodreadsFile, setGoodreadsFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
-  const [goodreadsUrl, setGoodreadsUrl] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const goodreadsInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -35,9 +39,12 @@ const ImportPage: React.FC = () => {
     }
   };
 
-  const handleGoodreadsUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setGoodreadsUrl(event.target.value);
-    setResult(null);
+  const handleGoodreadsFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      setGoodreadsFile(selectedFile);
+      setResult(null);
+    }
   };
 
   const handleImport = async () => {
@@ -49,10 +56,10 @@ const ImportPage: React.FC = () => {
       return;
     }
 
-    if (importType === 'goodreads' && !goodreadsUrl.trim()) {
+    if (importType === 'goodreads' && !goodreadsFile) {
       setResult({
         success: false,
-        message: 'Please enter a Goodreads URL'
+        message: 'Please select the CSV file you downloaded from Goodreads'
       });
       return;
     }
@@ -66,15 +73,31 @@ const ImportPage: React.FC = () => {
       if (importType === 'csv' && file) {
         const formData = new FormData();
         formData.append('file', file);
-        response = await api.post<ImportResult>('/import/csv', formData);
-      } else if (importType === 'goodreads') {
-        response = await api.post<ImportResult>('/import/goodreads', {
-          url: goodreadsUrl.trim()
-        });
+        response = await api.post<ImportResult>(
+          '/import/csv',
+          formData,
+          { timeout: UPLOAD_TIMEOUT_MS }
+        );
+      } else if (importType === 'goodreads' && goodreadsFile) {
+        const formData = new FormData();
+        formData.append('file', goodreadsFile);
+        response = await api.post<ImportResult>(
+          '/import/goodreads',
+          formData,
+          { timeout: UPLOAD_TIMEOUT_MS }
+        );
       }
 
       if (response?.success) {
-        setResult(response.data || { success: false, message: 'Import failed' });
+        const data = response.data as ImportResult;
+        setResult({
+          ...data,
+          // Enrichment (covers/metadata) runs in the background after the import
+          // is saved, so say so instead of letting the counts look incomplete.
+          message: data.enrichment_pending
+            ? `${data.message} Fetching covers and details in the background.`
+            : data.message,
+        });
       } else {
         setResult({
           success: false,
@@ -83,9 +106,16 @@ const ImportPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Import error:', error);
+      // A 4xx/5xx rejects the promise, so the server's explanation ("This file
+      // does not look like a book CSV", "Please upload a .csv file") lives on the
+      // response body. Without reading it, every validation error surfaced as a
+      // useless "Please try again".
+      const axiosError = error as { response?: { data?: { error?: string } } };
       setResult({
         success: false,
-        message: 'Import failed. Please try again.'
+        message:
+          axiosError.response?.data?.error ||
+          'Import failed. The file could not be uploaded; please try again.'
       });
     } finally {
       setIsUploading(false);
@@ -94,10 +124,13 @@ const ImportPage: React.FC = () => {
 
   const resetImport = () => {
     setFile(null);
-    setGoodreadsUrl('');
+    setGoodreadsFile(null);
     setResult(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (goodreadsInputRef.current) {
+      goodreadsInputRef.current.value = '';
     }
   };
 
@@ -225,28 +258,44 @@ const ImportPage: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-base-content/70 mb-4">
-                  Enter your Goodreads profile URL to import your books. 
-                  Make sure your Goodreads profile is public.
+                  Upload the CSV from Goodreads&rsquo; own export. In Goodreads go to
+                  <strong> My Books &rarr; Import/Export &rarr; Export Library</strong>, then
+                  upload the file it emails you. BookOracle imports titles, authors, ISBNs,
+                  shelves and read dates from it.
                 </p>
-                
+
+                <div className="alert alert-info mb-4 text-sm">
+                  <span>
+                    A Goodreads profile URL cannot be imported: Goodreads redirects those pages
+                    to its sign-in page, so BookOracle will not ask for your Goodreads password.
+                  </span>
+                </div>
+
                 <div className="form-control">
                   <label className="label">
-                    <span className="label-text">Goodreads Profile URL</span>
+                    <span className="label-text">Goodreads CSV file</span>
                   </label>
                   <input
-                    type="url"
-                    placeholder="https://www.goodreads.com/user/show/12345678-username"
-                    value={goodreadsUrl}
-                    onChange={handleGoodreadsUrlChange}
-                    className="input input-bordered w-full"
+                    ref={goodreadsInputRef}
+                    type="file"
+                    accept=".csv"
+                    onChange={handleGoodreadsFileChange}
+                    className="file-input file-input-bordered w-full"
                   />
                 </div>
+
+                {goodreadsFile && (
+                  <div className="alert alert-info">
+                    <Icon hero={<DocumentTextIcon className="w-5 h-5" />} emoji="📄" />
+                    <span>Selected file: {goodreadsFile.name} ({(goodreadsFile.size / 1024).toFixed(1)} KB)</span>
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-2">
                 <button
                   onClick={handleImport}
-                  disabled={!goodreadsUrl.trim() || isUploading}
+                  disabled={!goodreadsFile || isUploading}
                   className="btn btn-primary"
                 >
                   {isUploading ? (
@@ -262,7 +311,7 @@ const ImportPage: React.FC = () => {
                   )}
                 </button>
                 
-                {goodreadsUrl && (
+                {goodreadsFile && (
                   <button
                     onClick={resetImport}
                     className="btn btn-outline"
@@ -325,6 +374,7 @@ const ImportPage: React.FC = () => {
               <ul className="text-sm text-base-content/70 space-y-1">
                 <li>• Export your books as CSV from your current system</li>
                 <li>• Include columns: title, author, isbn (optional)</li>
+                <li>• A Goodreads &ldquo;Export Library&rdquo; file also works here: the format is detected automatically</li>
                 <li>• Additional columns: cover_url, description, published_date</li>
                 <li>• Maximum file size: 10MB</li>
               </ul>
@@ -333,10 +383,11 @@ const ImportPage: React.FC = () => {
             <div>
               <h3 className="font-semibold mb-2">Goodreads Import</h3>
               <ul className="text-sm text-base-content/70 space-y-1">
-                <li>• Make sure your Goodreads profile is public</li>
-                <li>• Use your profile URL, not individual book URLs</li>
-                <li>• Import includes: title, author, isbn, cover</li>
-                <li>• Reading status and dates will be preserved</li>
+                <li>• In Goodreads: <strong>My Books &rarr; Import/Export &rarr; Export Library</strong></li>
+                <li>• Goodreads emails you a CSV: upload that file here</li>
+                <li>• Imports title, author, ISBN, publisher, page count and read dates</li>
+                <li>• &ldquo;to-read&rdquo; shelf books arrive as Want to Read</li>
+                <li>• Re-uploading the same file is safe: duplicates are skipped</li>
               </ul>
             </div>
           </div>

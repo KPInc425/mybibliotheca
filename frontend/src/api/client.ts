@@ -1,20 +1,34 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiResponse, Book, User, UserStatistics, ReadingLog, CommunityActivity } from '@/types';
 
 // Create axios instance
+// 10s is right for normal API calls. File uploads that trigger ISBN lookups need
+// far longer, so callers pass an explicit timeout (see UPLOAD_TIMEOUT_MS).
+export const UPLOAD_TIMEOUT_MS = 180000;
+
 const apiClient: AxiosInstance = axios.create({
   baseURL: '/api',
   timeout: 10000,
   withCredentials: true, // Important for session-based auth
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // Request interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Add any request headers here if needed
+    // Default to JSON, but NEVER force it onto a FormData body. Setting
+    // Content-Type: application/json globally (as this file used to) makes axios
+    // send a multipart body labelled as JSON, and the server then sees no file
+    // at all: every upload (CSV import, cover image, profile picture) failed
+    // with "No file was uploaded". For FormData the browser must set the header
+    // itself so it can include the multipart boundary.
+    const isFormData =
+      typeof FormData !== 'undefined' && config.data instanceof FormData;
+    if (!isFormData && config.headers && !config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json';
+    }
+    if (isFormData && config.headers) {
+      delete config.headers['Content-Type'];
+    }
     return config;
   },
   (error) => {
@@ -65,8 +79,8 @@ export const api = {
   get: <T>(url: string, params?: any): Promise<ApiResponse<T>> =>
     apiClient.get(url, { params }).then(res => res.data),
   
-  post: <T>(url: string, data?: any): Promise<ApiResponse<T>> =>
-    apiClient.post(url, data).then(res => res.data),
+  post: <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> =>
+    apiClient.post(url, data, config).then(res => res.data),
   
   put: <T>(url: string, data?: any): Promise<ApiResponse<T>> =>
     apiClient.put(url, data).then(res => res.data),
