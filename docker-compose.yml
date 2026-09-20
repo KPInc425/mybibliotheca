@@ -8,7 +8,11 @@ services:
     ports:
       - "5054:5054"   # Host Nginx proxies /api and /static to this
     volumes:
-      - bookoracle_data:/app/data
+      # Bind mount, matching what production actually runs: the database lives
+      # at /home/steam/apps/data/bookoracle on the host. The parent directory
+      # must exist before `docker compose up` (data/bookoracle relative to this
+      # repo directory is created automatically by Compose if the parent does).
+      - ../data/bookoracle:/app/data
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - SECURITY_PASSWORD_SALT=${SECURITY_PASSWORD_SALT}
@@ -42,6 +46,3 @@ services:
       - backend
     restart: unless-stopped
 
-volumes:
-  bookoracle_data:
-    driver: local
