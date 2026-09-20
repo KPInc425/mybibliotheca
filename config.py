@@ -46,6 +46,8 @@ class Config:
     
     # Authentication settings
     REMEMBER_COOKIE_DURATION = 86400 * 30  # 30 days (increased from 7 days)
+    KEYCLOAK_ISSUER_URL = os.environ.get('KEYCLOAK_ISSUER_URL')
+    KEYCLOAK_CLIENT_ID = os.environ.get('KEYCLOAK_CLIENT_ID')
     
     # Environment-specific cookie settings
     # For hybrid apps and development, we need to allow HTTP cookies

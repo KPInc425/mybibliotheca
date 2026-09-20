@@ -9,16 +9,47 @@ from datetime import date, datetime, timezone, timedelta
 from typing import Dict, Any
 import requests
 import secrets
+import re
+import jwt
 
 from .services.book_service import BookService, BookNotFoundError
 from .services.user_service import UserService, UserNotFoundError
 from .models import db, User, Book, ReadingLog, InviteToken, UserRating, normalize_email
+from .keycloak_auth import is_keycloak_enabled, verify_keycloak_id_token
 
 from .utils import get_reading_streak
 from flask_mail import Message, Mail
 import itsdangerous
 
 api = Blueprint('api', __name__, url_prefix='/api')
+
+
+def _sanitize_username(value: str) -> str:
+    sanitized = re.sub(r'[^a-z0-9._-]+', '-', value.strip().lower()).strip('-')
+    return (sanitized or 'reader')[:80]
+
+
+def _build_keycloak_username(claims: Dict[str, Any], email: str) -> str:
+    local_part = email.split('@')[0]
+    base_username = (
+        claims.get('preferred_username')
+        or claims.get('name')
+        or claims.get('given_name')
+        or local_part
+    )
+    return _sanitize_username(str(base_username))
+
+
+def _get_available_username(base_username: str) -> str:
+    candidate = base_username
+    suffix = 0
+
+    while User.query.filter_by(username=candidate).first():
+        suffix += 1
+        trimmed = base_username[: max(1, 80 - len(str(suffix)) - 1)]
+        candidate = f'{trimmed}-{suffix}'
+
+    return candidate
 
 
 # Authentication endpoints
@@ -120,6 +151,80 @@ def api_login():
         current_app.logger.error(f"Error in API login: {e}")
         import traceback
         current_app.logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+
+@api.route('/auth/keycloak', methods=['POST'])
+def api_keycloak_login():
+    if not is_keycloak_enabled():
+        return jsonify({
+            'success': False,
+            'error': 'Keycloak login is not configured'
+        }), 503
+
+    try:
+        data = request.get_json() or {}
+        id_token = data.get('idToken') or data.get('id_token')
+        remember_me = bool(data.get('remember_me', False))
+
+        if not id_token:
+            return jsonify({
+                'success': False,
+                'error': 'idToken is required'
+            }), 400
+
+        claims = verify_keycloak_id_token(id_token)
+        email = normalize_email((claims.get('email') or '').strip())
+
+        if not email:
+            return jsonify({
+                'success': False,
+                'error': 'Keycloak account did not include an email address'
+            }), 400
+
+        user = User.find_by_email(email)
+
+        if user and not user.is_active:
+            return jsonify({
+                'success': False,
+                'error': 'Account has been deactivated'
+            }), 403
+
+        if not user:
+            user = User(
+                username=_get_available_username(_build_keycloak_username(claims, email)),
+                email=email,
+                is_active=True,
+                created_at=datetime.now(timezone.utc),
+            )
+            user.set_password(secrets.token_urlsafe(32), validate=False)
+            db.session.add(user)
+
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.last_login = datetime.now(timezone.utc)
+        db.session.commit()
+
+        login_user(user, remember=remember_me)
+
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'data': user.to_dict()
+        }), 200
+
+    except jwt.InvalidTokenError as exc:
+        current_app.logger.warning(f'Invalid Keycloak token: {exc}')
+        return jsonify({
+            'success': False,
+            'error': 'Keycloak login failed'
+        }), 401
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error(f'Error in Keycloak login: {exc}')
         return jsonify({
             'success': False,
             'error': 'Internal server error'

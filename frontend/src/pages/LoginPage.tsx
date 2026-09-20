@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import { beginKeycloakLogin, isKeycloakConfigured } from '@/auth/keycloak';
 import Icon from '@/components/Icon';
 import { 
   BookOpenIcon,
@@ -19,6 +20,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const keycloakEnabled = isKeycloakConfigured();
   
   const { setUser } = useAuthStore();
   const navigate = useNavigate();
@@ -81,6 +83,19 @@ const LoginPage = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+  };
+
+  const handleKeycloakLogin = async () => {
+    setError('');
+
+    try {
+      await beginKeycloakLogin({
+        rememberMe: formData.remember_me,
+        returnTo: '/',
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to start Keycloak login');
+    }
   };
 
   return (
@@ -191,6 +206,22 @@ const LoginPage = () => {
                 </>
               )}
             </button>
+
+            {keycloakEnabled && (
+              <>
+                <div className="divider text-xs uppercase tracking-[0.3em] text-base-content/50">
+                  Or continue with
+                </div>
+                <button
+                  type="button"
+                  onClick={handleKeycloakLogin}
+                  className="btn btn-outline w-full btn-lg"
+                >
+                  <Icon hero={<BookOpenIcon className="w-5 h-5" />} emoji="🔐" />
+                  Sign In with Keycloak
+                </button>
+              </>
+            )}
 
             {/* Register Link */}
             <div className="text-center pt-4 space-y-2">
