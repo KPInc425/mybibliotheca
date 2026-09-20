@@ -175,17 +175,22 @@ const SearchPage: React.FC = () => {
     try {
       const response = await api.books.search(filters.query, page, pageSize);
       if (response.success && response.data) {
-        // response.data: { items, total, page, page_size, pages }
+        // response.data: { items, total, page, page_size, pages, provider }
         setSearchResults(response.data.items || []);
         setTotal(response.data.total || 0);
       } else {
-        setSearchError('No results found');
+        // The API reports provider failures with success:false. Showing those as
+        // "No results found" is what made a total search outage look like an
+        // empty catalogue, so surface the real reason.
+        setSearchError(response.error || 'No results found');
         setSearchResults([]);
         setTotal(0);
       }
     } catch (error) {
       console.error('Search error:', error);
-      setSearchError('Search failed. Please try again.');
+      setSearchError(
+        'Search failed. The book search service may be unavailable; please try again.'
+      );
       setSearchResults([]);
       setTotal(0);
     } finally {

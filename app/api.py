@@ -2774,73 +2774,59 @@ def get_public_books():
 @api.route('/books/search', methods=['GET'])
 @login_required
 def search_books():
-    """Search books using Google Books API with pagination"""
-    query = request.args.get('q', '')
+    """Search external book metadata providers, with failures surfaced.
+
+    This used to call Google Books directly. That project's daily quota is 0, so
+    every call returned 429 and the handler converted it into
+    `{"items": [], "success": true}` - indistinguishable from a genuine "no
+    matches" in the UI. Now: OpenLibrary (keyless) is the default, Google Books
+    is used only when GOOGLE_BOOKS_API_KEY is set, and a total provider failure
+    returns an error the client can show.
+    """
+    query = request.args.get('q', '').strip()
     if not query:
         return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
 
-    # Pagination params
     try:
-        page = int(request.args.get('page', 1))
-    except ValueError:
+        page = max(1, int(request.args.get('page', 1)))
+    except (TypeError, ValueError):
         page = 1
     try:
         page_size = int(request.args.get('pageSize', 20))
-    except ValueError:
+    except (TypeError, ValueError):
         page_size = 20
-    # Google Books maxResults between 1 and 40
     page_size = max(1, min(page_size, 40))
-    page = max(1, page)
-    start_index = (page - 1) * page_size
 
-    try:
-        # Google Books API search
-        resp = requests.get(
-            'https://www.googleapis.com/books/v1/volumes',
-            params={'q': query, 'maxResults': page_size, 'startIndex': start_index}
-        )
-        data = resp.json()
+    from .services.book_search import search_books as run_search
 
-        results = []
-        for item in data.get('items', []):
-            volume_info = item.get('volumeInfo', {})
-            image = volume_info.get('imageLinks', {}).get('thumbnail')
-            isbn = None
-            for iden in volume_info.get('industryIdentifiers', []):
-                if iden['type'] in ('ISBN_13', 'ISBN_10'):
-                    isbn = iden['identifier']
-                    break
+    result = run_search(query, page=page, page_size=page_size)
 
-            results.append({
-                'title': volume_info.get('title'),
-                'author': ', '.join(volume_info.get('authors', [])),
-                'cover_url': image,
-                'isbn': isbn,
-                'description': volume_info.get('description'),
-                'published_date': volume_info.get('publishedDate'),
-                'page_count': volume_info.get('pageCount'),
-                'publisher': volume_info.get('publisher'),
-                'language': volume_info.get('language'),
-                'categories': volume_info.get('categories', []),
-                'average_rating': volume_info.get('averageRating'),
-                'rating_count': volume_info.get('ratingsCount')
-            })
-
-        total_items = data.get('totalItems', len(results))
-        total_pages = (total_items + page_size - 1) // page_size if total_items else 1
-
+    if not result['ok']:
+        # A provider outage is not an empty result set.
+        current_app.logger.error(f"Book search failed for {query!r}: {result['error']}")
         return jsonify({
-            'success': True,
-            'data': {
-                'items': results,
-                'total': total_items,
-                'page': page,
-                'page_size': page_size,
-                'pages': total_pages
-            }
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': f'Search failed: {str(e)}'}), 500
+            'success': False,
+            'error': result['error'],
+            'data': {'items': [], 'total': 0, 'page': page, 'page_size': page_size, 'pages': 1},
+        }), 503
+
+    total = result['total']
+    total_pages = (total + page_size - 1) // page_size if total else 1
+
+    payload = {
+        'success': True,
+        'data': {
+            'items': result['items'],
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+            'pages': total_pages,
+            'provider': result['provider'],
+        }
+    }
+    if result.get('warnings'):
+        payload['data']['warnings'] = result['warnings']
+    return jsonify(payload)
 
 @api.route('/reports/month-wrapup/<int:year>/<int:month>', methods=['GET'])
 @login_required

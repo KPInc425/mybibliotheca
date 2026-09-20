@@ -40,6 +40,12 @@ class Config:
 
     # External APIs
     ISBN_API_KEY = os.environ.get('ISBN_API_KEY') or 'your_isbn_api_key'
+
+    # Optional Google Books key. Without it the app deliberately does not call
+    # Google Books at all, because this project's anonymous quota is exhausted
+    # (every request returns 429). External search runs on OpenLibrary instead,
+    # which needs no key.
+    GOOGLE_BOOKS_API_KEY = os.environ.get('GOOGLE_BOOKS_API_KEY')
     
     # Application settings
     TIMEZONE = os.environ.get('TIMEZONE') or 'UTC'
