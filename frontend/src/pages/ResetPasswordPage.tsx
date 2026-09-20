@@ -43,7 +43,7 @@ const ResetPasswordPage: React.FC = () => {
       } else {
         setError(res.error || 'Failed to reset password');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to reset password');
     } finally {
       setSubmitting(false);

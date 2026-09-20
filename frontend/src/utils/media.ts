@@ -18,11 +18,9 @@ export function resolveMediaUrl(input?: string): string | undefined {
 
 export function debugResolvedMedia(label: string, original?: string, resolved?: string): void {
 	// Only log in dev
-	/* eslint-disable no-console */
 	if (import.meta.env && (import.meta.env as any).DEV) {
 		console.debug(`[media] ${label}`, { original, resolved });
 	}
-	/* eslint-enable no-console */
 }
 
 

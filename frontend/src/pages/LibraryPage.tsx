@@ -37,7 +37,6 @@ const LibraryPage: React.FC = () => {
 		} else {
 			fetchBooks()
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [fetchBooks, filters.owned])
 
 	// Extract unique values for filter options

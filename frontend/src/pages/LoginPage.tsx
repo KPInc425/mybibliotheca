@@ -60,7 +60,7 @@ const LoginPage = () => {
             // Fallback to login response data if profile fetch fails
             setUser(responseData.data);
           }
-        } catch (error) {
+        } catch (_error) {
           // Fallback to login response data if profile fetch fails
           setUser(responseData.data);
         }
@@ -68,7 +68,7 @@ const LoginPage = () => {
       } else {
         setError(responseData.error || 'Login failed');
       }
-    } catch (error) {
+    } catch (_error) {
       setError('An error occurred during login');
     } finally {
       setIsLoading(false);

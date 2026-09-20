@@ -11,9 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
 
-interface PublicLibraryPageProps {}
-
-const PublicLibraryPage: React.FC<PublicLibraryPageProps> = () => {
+const PublicLibraryPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(true);

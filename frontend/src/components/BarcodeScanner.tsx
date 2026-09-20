@@ -81,7 +81,6 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     if (isOpen) {
       checkAvailability();
     }
-    // eslint-disable-next-line
   }, [isOpen, isNative, platform, isCapacitor, Capacitor]);
 
   // Start native scanner with direct permission logic (like admin debug button)
@@ -146,12 +145,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         lastNativeScanTime: new Date().toISOString(),
       }));
       // Also push to global debug console if available
-      try {
-        (window as any).__debugConsoleInstalled && (await Promise.resolve());
-      } catch {}
       if ((window as any).__debugConsoleInstalled) {
         try {
-          const push = (await import('@/components/DebugConsole')).pushLog;
+          const { pushLog: push } = await import('@/utils/debugLog');
           push({ rawResult, time: new Date().toISOString() });
         } catch (e) {
           console.debug('Failed to push to DebugConsole', e);
@@ -172,7 +168,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       }));
       if ((window as any).__debugConsoleInstalled) {
         try {
-          const push = (await import('@/components/DebugConsole')).pushLog;
+          const { pushLog: push } = await import('@/utils/debugLog');
           push({ normalized: result, time: new Date().toISOString() });
         } catch (e) {
           console.debug('Failed to push normalized result to DebugConsole', e);
@@ -290,7 +286,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     if (codeReaderRef.current) {
       try {
         codeReaderRef.current.reset();
-      } catch (e) {
+      } catch (_e) {
         // reset() might not exist, try alternative cleanup
         console.log("[BarcodeScanner] ZXing reader cleanup completed");
       }

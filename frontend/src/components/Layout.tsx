@@ -16,7 +16,7 @@ const Layout: React.FC = () => {
         if (res.success && res.data && isMounted) {
           setUser(res.data);
         }
-      } catch (err) {
+      } catch (_err) {
         // ignore
       }
     })();

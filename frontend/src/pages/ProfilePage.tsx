@@ -136,7 +136,7 @@ const ProfilePage: React.FC = () => {
 				confirmPassword: '',
 			})
 			alert('Password changed successfully!')
-		} catch (error) {
+		} catch (_error) {
 			setPasswordError('Failed to change password. Please try again.')
 		} finally {
 			setIsChangingPassword(false)

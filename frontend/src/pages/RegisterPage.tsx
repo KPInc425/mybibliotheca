@@ -59,7 +59,7 @@ const RegisterPage = () => {
         const errorData = await response.json();
         setError(errorData.error || 'Registration failed');
       }
-    } catch (error) {
+    } catch (_error) {
       setError('An error occurred during registration');
     } finally {
       setIsLoading(false);

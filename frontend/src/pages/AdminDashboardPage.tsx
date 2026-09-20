@@ -26,7 +26,7 @@ const DebugToolsPanel: React.FC = () => {
   const [permRequestResult, setPermRequestResult] = useState<any>(null);
 
   const collectEnvInfo = async () => {
-    let info: any = {};
+    const info: any = {};
     if (typeof window !== "undefined") {
       const cap = (window as any).Capacitor;
       info.Capacitor = cap || null;
@@ -114,7 +114,6 @@ const DebugToolsPanel: React.FC = () => {
     if (show) {
       collectEnvInfo();
     }
-    // eslint-disable-next-line
   }, [show]);
 
   return (

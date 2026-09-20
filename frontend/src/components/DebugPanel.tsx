@@ -40,7 +40,7 @@ const DebugPanel: React.FC<DebugPanelProps> = ({
   let debugString: string;
   try {
     debugString = JSON.stringify(debugInfo, null, 2);
-  } catch (e) {
+  } catch (_e) {
     debugString = String(debugInfo);
   }
 

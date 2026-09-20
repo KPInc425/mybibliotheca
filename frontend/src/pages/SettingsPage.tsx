@@ -37,7 +37,7 @@ const SettingsPage: React.FC = () => {
           share_reading_activity: settings.shareReadingActivity,
           share_library: settings.showInPublicLibrary,
         });
-      } catch (e) {
+      } catch (_e) {
         // ignore for now; UI continues to reflect local settings
       } finally {
         setSaving(false);
@@ -108,7 +108,7 @@ const SettingsPage: React.FC = () => {
       setShowChangePassword(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       alert('Password changed successfully!');
-    } catch (error) {
+    } catch (_error) {
       setPasswordError('Failed to change password. Please try again.');
     } finally {
       setIsChangingPassword(false);

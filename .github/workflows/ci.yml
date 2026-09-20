@@ -149,6 +149,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint
+        # Lint could not run at all before this change: the config was written for
+        # ESLint 9 flat config but package.json pinned ESLint 8 plus the deprecated
+        # per-package @typescript-eslint/* split, and the script still passed the
+        # ESLint 8 --ext flag. Errors must be zero. The remaining warnings are the
+        # `no-explicit-any` backlog at API boundaries, held at a ratchet (150) so
+        # they cannot grow while the typing work happens.
+        run: npm run lint
+
       - name: Typecheck
         run: npx tsc --noEmit
 

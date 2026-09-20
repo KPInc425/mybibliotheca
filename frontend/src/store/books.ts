@@ -57,7 +57,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
       } else {
         set({ error: response.error || 'Failed to fetch books' });
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: 'Failed to fetch books' });
     } finally {
       set({ isLoading: false });
@@ -73,7 +73,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
       } else {
         set({ error: response.error || 'Failed to fetch book' });
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: 'Failed to fetch book' });
     } finally {
       set({ isLoading: false });
@@ -90,7 +90,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
       } else {
         set({ error: response.error || 'Failed to add book' });
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: 'Failed to add book' });
     } finally {
       set({ isLoading: false });
@@ -110,7 +110,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
       } else {
         set({ error: response.error || 'Failed to update book' });
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: 'Failed to update book' });
     } finally {
       set({ isLoading: false });
@@ -128,7 +128,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
       } else {
         set({ error: response.error || 'Failed to delete book' });
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: 'Failed to delete book' });
     } finally {
       set({ isLoading: false });
@@ -148,7 +148,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
       } else {
         set({ error: response.error || 'Failed to update book status' });
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: 'Failed to update book status' });
     } finally {
       set({ isLoading: false });
@@ -165,7 +165,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
       } else {
         set({ error: response.error || 'Failed to log reading' });
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: 'Failed to log reading' });
     } finally {
       set({ isLoading: false });
@@ -182,7 +182,7 @@ export const useBooksStore = create<BooksStore>((set, get) => ({
         set({ error: response.error || 'Failed to lookup book' });
         return null;
       }
-    } catch (error) {
+    } catch (_error) {
       set({ error: 'Failed to lookup book' });
       return null;
     } finally {

@@ -30,7 +30,7 @@ const AdminBackupPage: React.FC = () => {
         setBackupSize(resp.data.backup_size || 0);
         setStatus(resp.data.status || 'unknown');
       }
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
   };

@@ -1,3 +1,6 @@
+/* eslint-disable react-refresh/only-export-components -- this module exports a
+   context, a provider and a hook together on purpose; splitting them purely to
+   satisfy fast-refresh would churn every import site. */
 import React, {
   createContext,
   useContext,

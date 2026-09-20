@@ -24,7 +24,7 @@ const ForgotPasswordPage: React.FC = () => {
       } else {
         setSuccess('If that email exists, a reset link was sent.');
       }
-    } catch (err) {
+    } catch (_err) {
       setSuccess('If that email exists, a reset link was sent.');
     } finally {
       setSubmitting(false);

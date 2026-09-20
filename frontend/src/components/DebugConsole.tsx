@@ -1,42 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { BugAntIcon, ClipboardDocumentIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import {
+  BugAntIcon,
+  ClipboardDocumentIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import { useSettingsStore } from '@/store/settings';
 import { useAuthStore } from '@/store/auth';
 import { api } from '@/api/client';
+import { getLogs, installConsoleHook, pushLog } from '@/utils/debugLog';
 
-// Small in-memory ring buffer for logs
-const MAX_LOGS = 200;
-const logs: string[] = [];
-
-export const pushLog = (entry: any) => {
-  try {
-    const s = typeof entry === 'string' ? entry : JSON.stringify(entry, null, 2);
-    logs.push(`[${new Date().toISOString()}] ${s}`);
-    if (logs.length > MAX_LOGS) logs.splice(0, logs.length - MAX_LOGS);
-  } catch (e) {
-    logs.push(`[${new Date().toISOString()}] ${String(entry)}`);
-  }
-};
-
-// Install a global console hook to capture console.log/warn/error
-if (typeof window !== 'undefined' && !(window as any).__debugConsoleInstalled) {
-  (window as any).__debugConsoleInstalled = true;
-  const origLog = console.log;
-  const origWarn = console.warn;
-  const origError = console.error;
-  console.log = (...args: any[]) => {
-    pushLog(args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
-    origLog.apply(console, args);
-  };
-  console.warn = (...args: any[]) => {
-    pushLog('[WARN] ' + args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
-    origWarn.apply(console, args);
-  };
-  console.error = (...args: any[]) => {
-    pushLog('[ERROR] ' + args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
-    origError.apply(console, args);
-  };
-}
+// The log buffer and the console hook live in @/utils/debugLog so this module
+// exports only a component. Exporting a component plus other values from one
+// module breaks React Fast Refresh (Vite falls back to a full page reload).
+installConsoleHook();
 
 const DebugConsole: React.FC = () => {
   const settings = useSettingsStore((s) => s.settings);
@@ -51,22 +27,22 @@ const DebugConsole: React.FC = () => {
     return () => clearInterval(iv);
   }, [open]);
 
-  // Determine visibility: admin can enable system-level debug (debug_mode), otherwise fall back to per-user scannerDebugMode
+  // Read the admin system-level debug switch.
   useEffect(() => {
     let mounted = true;
     const checkAdmin = async () => {
-      if (user?.is_admin) {
-        try {
-          const res = await api.admin.getSettings();
-          if (mounted && res && res.success && res.data) {
-            setAdminDebugEnabled(Boolean(res.data.debug_mode));
-          }
-        } catch (e) {
-          console.debug('Failed to fetch admin settings for DebugConsole', e);
-          setAdminDebugEnabled(false);
-        }
-      } else {
+      if (!user?.is_admin) {
         setAdminDebugEnabled(false);
+        return;
+      }
+      try {
+        const res = await api.admin.getSettings();
+        if (mounted && res && res.success && res.data) {
+          setAdminDebugEnabled(Boolean(res.data.debug_mode));
+        }
+      } catch (e) {
+        console.debug('Failed to fetch admin settings for DebugConsole', e);
+        if (mounted) setAdminDebugEnabled(false);
       }
     };
     checkAdmin();
@@ -75,23 +51,35 @@ const DebugConsole: React.FC = () => {
     };
   }, [user]);
 
-  // Show console when either per-user scanner debug is enabled, or when the
-  // current user is an admin and the admin system-level debug_mode isn't
-  // explicitly disabled. We treat `adminDebugEnabled === null` as "pending"
-  // and allow admins to see the console immediately so they can capture logs
-  // while we fetch the server setting.
-  const visible = (user?.is_admin && adminDebugEnabled !== false) || settings.scannerDebugMode;
+  // Visibility: debug must be explicitly switched on.
+  //
+  // This used to read `user?.is_admin && adminDebugEnabled !== false || scannerDebugMode`,
+  // which treated the "still fetching" null state as enabled, so every admin saw
+  // the floating ladybug as soon as the page loaded. Both accounts on this
+  // instance are admins, so the debug tool was effectively always on screen in
+  // production. Now an admin needs the system-level debug_mode switched on, and
+  // a regular user needs their own scanner debug switched on.
+  const visible =
+    (Boolean(user?.is_admin) && adminDebugEnabled === true) ||
+    settings.scannerDebugMode;
 
-  // Emit a small trace into the debug buffer so we can diagnose visibility
-  // issues on devices where the ladybug doesn't appear.
+  // Emit a small trace so visibility can be diagnosed on devices where the
+  // ladybug does not appear.
   useEffect(() => {
-    pushLog({ event: 'DebugConsole.visibility', userIsAdmin: Boolean(user?.is_admin), adminDebugEnabled, scannerDebugMode: settings.scannerDebugMode, visible });
+    pushLog({
+      event: 'DebugConsole.visibility',
+      userIsAdmin: Boolean(user?.is_admin),
+      adminDebugEnabled,
+      scannerDebugMode: settings.scannerDebugMode,
+      visible,
+    });
   }, [user, adminDebugEnabled, settings.scannerDebugMode, visible]);
+
   if (!visible) return null;
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(logs.join('\n'));
+      await navigator.clipboard.writeText(getLogs().join('\n'));
       alert('Copied debug logs to clipboard');
     } catch (e) {
       alert('Failed to copy logs: ' + String(e));
@@ -120,14 +108,18 @@ const DebugConsole: React.FC = () => {
                 <button className="btn btn-ghost" onClick={handleCopy} title="Copy logs">
                   <ClipboardDocumentIcon className="w-5 h-5" />
                 </button>
-                <button className="btn btn-ghost" onClick={() => setOpen(false)} title="Close">
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setOpen(false)}
+                  title="Close"
+                >
                   <XMarkIcon className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             <div style={{ maxHeight: '60vh', overflowY: 'auto', fontSize: 12 }}>
-              <pre style={{ whiteSpace: 'pre-wrap' }}>{logs.join('\n')}</pre>
+              <pre style={{ whiteSpace: 'pre-wrap' }}>{getLogs().join('\n')}</pre>
             </div>
           </div>
         </div>

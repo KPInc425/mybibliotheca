@@ -24,7 +24,7 @@ export const requestCameraPermissionsEarly = async (): Promise<boolean> => {
       try {
         const supportResult = await BarcodeScanner.isSupported();
         supported = supportResult?.supported ?? true;
-      } catch (e) {
+      } catch (_e) {
         supported = true;
       }
     }
@@ -60,7 +60,7 @@ export const requestCameraPermissionsEarly = async (): Promise<boolean> => {
         if (retryCount < maxRetries) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
-      } catch (error) {
+      } catch (_error) {
         retryCount++;
         if (retryCount < maxRetries) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -74,7 +74,7 @@ export const requestCameraPermissionsEarly = async (): Promise<boolean> => {
       return !!newGranted;
     }
     return permissionGranted;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 };
@@ -155,7 +155,7 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
       try {
         const supportResult = await BarcodeScanner.isSupported();
         supported = supportResult?.supported ?? true;
-      } catch (e) {
+      } catch (_e) {
         supported = true; // fallback: assume supported if method fails
       }
     }
@@ -190,7 +190,7 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
         if (retryCount < maxRetries) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
-      } catch (error) {
+      } catch (_error) {
         retryCount++;
         if (retryCount < maxRetries) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -231,15 +231,15 @@ export const startNativeScanner = async (): Promise<ScanResult> => {
     if (result.success) {
       try {
         (globalThis as any).__lastNativeScanComplete = Date.now();
-      } catch (e) {
+      } catch (_e) {
         // ignore
       }
     }
     // Push to global debug console if available
     if ((globalThis as any).__debugConsoleInstalled) {
       try {
-        const mod = await import('@/components/DebugConsole');
-        mod.pushLog({ rawResult, normalized: result, time: new Date().toISOString() });
+        const { pushLog } = await import('@/utils/debugLog');
+        pushLog({ rawResult, normalized: result, time: new Date().toISOString() });
       } catch (e) {
         console.debug('Failed to push scan result to DebugConsole', e);
       }
@@ -308,7 +308,7 @@ export const startBrowserScanner = async (
           if (codeReader) {
             try {
               // No reset or stopContinuousDecode method in ES module; cleanup handled by stopping stream and nulling srcObject
-            } catch (e) {
+            } catch (_e) {
               // reset() might not exist, try alternative cleanup
               console.log("[ScannerService] ZXing reader cleanup completed");
             }
@@ -357,7 +357,7 @@ export const startBrowserScanner = async (
         if (codeReader) {
           try {
             // No reset or stopContinuousDecode method in ES module; cleanup handled by stopping stream and nulling srcObject
-          } catch (e) {
+          } catch (_e) {
             // reset() might not exist, try alternative cleanup
             console.log("[ScannerService] ZXing reader cleanup completed");
           }
@@ -373,7 +373,7 @@ export const startBrowserScanner = async (
     if (codeReader) {
       try {
         // No reset or stopContinuousDecode method in ES module; cleanup handled by stopping stream and nulling srcObject
-      } catch (e) {
+      } catch (_e) {
         // reset() might not exist, try alternative cleanup
         console.log("[ScannerService] ZXing reader cleanup completed");
       }
