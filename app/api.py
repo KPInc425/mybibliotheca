@@ -14,7 +14,7 @@ from .services.book_service import BookService, BookNotFoundError
 from .services.user_service import UserService, UserNotFoundError
 from .models import db, User, Book, ReadingLog, InviteToken, UserRating, normalize_email
 
-from .utils import get_reading_streak
+from .utils import get_reading_streak, generate_month_review_image
 from flask_mail import Message, Mail
 import itsdangerous
 
@@ -2944,6 +2944,64 @@ def import_goodreads():
         }), 400
 
     return jsonify({'success': False, 'error': 'No CSV file was uploaded.'}), 400
+
+
+@api.route('/reports/month-wrapup/<int:year>/<int:month>/image', methods=['GET'])
+@login_required
+def get_month_wrapup_image(year, month):
+    """Render the shareable Month Wrap-up image.
+
+    The Flask templates have served this at /month_review/<year>/<month>.jpg all
+    along (that is the feature the README leads with), but the React app never
+    called it, so the SPA only ever showed the statistics and the shareable image
+    was unreachable for real users. This exposes the same generator over the API.
+
+    Renders on demand as JPEG. `?download=1` sends it as an attachment.
+    """
+    from io import BytesIO
+    from flask import send_file
+
+    if not (1 <= month <= 12):
+        return jsonify({'success': False, 'error': 'month must be between 1 and 12'}), 400
+
+    start_date = datetime(year, month, 1)
+    end_date = (datetime(year + 1, 1, 1) - timedelta(days=1)) if month == 12 \
+        else (datetime(year, month + 1, 1) - timedelta(days=1))
+
+    books = Book.query.filter(
+        Book.user_id == current_user.id,
+        Book.finish_date.isnot(None),
+        Book.finish_date >= start_date,
+        Book.finish_date <= end_date,
+    ).order_by(Book.finish_date.asc()).all()
+
+    if not books:
+        return jsonify({
+            'success': False,
+            'error': f'No books were finished in {year}-{month:02d}, so there is nothing to '
+                     'put on a wrap-up image yet.'
+        }), 404
+
+    try:
+        image = generate_month_review_image(books, month, year)
+    except Exception as exc:
+        current_app.logger.error(f'Month wrap-up image failed: {exc}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Could not generate the image. This is usually a problem fetching a book '
+                     'cover or a missing font on the server.',
+        }), 500
+
+    buffer = BytesIO()
+    image.save(buffer, format='JPEG', quality=90)
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        mimetype='image/jpeg',
+        as_attachment=request.args.get('download') == '1',
+        download_name=f'month_review_{year}_{month:02d}.jpg',
+    )
 
 
 @api.route('/reports/month-wrapup/<int:year>/<int:month>', methods=['GET'])

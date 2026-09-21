@@ -200,9 +200,14 @@ def generate_month_review_image(books, month, year):
     grid_w = cols * cover_w + (cols - 1) * padding
     rows = ((len(books) - 1) // cols) + 1 if books else 1
     grid_h = rows * cover_h + (rows - 1) * padding
-    # Move grid lower to avoid overlap
-    grid_top = title_height + 40
+    # Start below the title band, with a small gap. (The grid used to start at
+    # title_height + 40 while the over-sized title ran past the band, which is how
+    # covers ended up drawn over the text.)
+    grid_top = title_height + 24
     grid_left = (img_size - grid_w) // 2
+    if grid_top + grid_h > img_size - 10:
+        print(f"WARN  month review image: {len(books)} covers do not fit the {img_size}px "
+              f"canvas; the bottom rows will be cropped")
 
     # Try bookshelf background
     bg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'static', 'bookshelf.png'))
@@ -216,29 +221,68 @@ def generate_month_review_image(books, month, year):
 
     draw = ImageDraw.Draw(bg)
 
-    # Draw month title in white
+    # Draw the month title.
+    #
+    # Two bugs lived here:
+    #   * the starting font size (220px) was measured once at that size and never
+    #     re-measured after the loop shrank it, so the centred position used the
+    #     wrong width and the title drifted off-centre;
+    #   * the band is only title_height (220px), but a 220px font needs roughly
+    #     1.2x that to render, so the text overran the band and the first row of
+    #     covers drew straight over it (visible as covers over the title).
+    # Size the text to the band, and centre on the final fitted font.
     month_name = f"{calendar.month_name[month].upper()} {year}"
     max_width = img_size - 80  # 40px margin on each side
-    font_size = 220
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    if not os.path.exists(font_path):
-        font_path = os.path.join(os.path.dirname(__file__), "static", "Arial.ttf")
-    while font_size > 10:
-        try:
-            font = ImageFont.truetype(font_path, font_size)
-        except Exception as e:
-            print("Font load failed:", e)
-            font = ImageFont.load_default()
-        bbox = draw.textbbox((0, 0), month_name, font=font)
-        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        if w <= max_width:
-            break
-        font_size -= 10
+    max_text_height = title_height - 80  # leave breathing room above and below
+
+    # Font resolution. The image ships fonts-dejavu-core (see Dockerfile); a
+    # deployment without it silently fell back to Pillow's ~11px bitmap default,
+    # so the month title rendered as a speck on a 1080px canvas. Search real
+    # candidates and say so when none work, rather than failing quietly.
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    font_candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        os.path.join(static_dir, "Arial.ttf"),
+        os.path.join(static_dir, "DejaVuSans-Bold.ttf"),
+    ]
+    font_path = next((f for f in font_candidates if os.path.exists(f)), None)
+    if font_path is None:
+        print("WARN  month review image: no TrueType font found; the title will render "
+              "at the tiny default size. Install fonts-dejavu-core.")
+
+    def fit_font(text, max_w, max_h, start):
+        size = start
+        while size > 10:
+            try:
+                if font_path is None:
+                    raise OSError("no font available")
+                f = ImageFont.truetype(font_path, size)
+            except Exception as exc:
+                print("Font load failed:", exc)
+                f = ImageFont.load_default()
+            box = draw.textbbox((0, 0), text, font=f)
+            if (box[2] - box[0]) <= max_w and (box[3] - box[1]) <= max_h:
+                return f, box
+            size -= 4
+        f = ImageFont.load_default()
+        return f, draw.textbbox((0, 0), text, font=f)
+
+    font, bbox = fit_font(month_name, max_width, max_text_height, 140)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+    x = (img_size - text_w) // 2 - bbox[0]
+    y = (title_height - text_h) // 2 - bbox[1]
+
+    # Darken the title band so white text stays readable on any background.
+    band = Image.new("RGBA", (img_size, title_height), (0, 0, 0, 110))
+    bg.alpha_composite(band, (0, 0))
+
     shadow_offset = 4
-    # Draw shadow for readability
-    draw.text(((img_size - w) // 2 + shadow_offset, 40 + shadow_offset), month_name, fill=(0,0,0,128), font=font)
-    # Draw main text in white
-    draw.text(((img_size - w) // 2, 40), month_name, fill=(255, 255, 255), font=font)
+    draw.text((x + shadow_offset, y + shadow_offset), month_name, fill=(0, 0, 0, 160), font=font)
+    draw.text((x, y), month_name, fill=(255, 255, 255), font=font)
 
     # Place covers
     for idx, book in enumerate(books):

@@ -8,7 +8,9 @@ import {
   ClockIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
-  FireIcon
+  FireIcon,
+  SparklesIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
 
@@ -30,22 +32,47 @@ interface MonthWrapupData {
 }
 
 const MonthWrapupPage: React.FC = () => {
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11
+  const currentYear = now.getFullYear();
+
+  const monthOptions = Array.from({ length: 12 }, (_, i) => i + 1);
+  const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i);
+
+  const resetImage = () => {
+    setImageReady(false);
+    setImageFailed(false);
+    setImageError(null);
+    setImageVersion((v) => v + 1);
+  };
+
   const [wrapupData, setWrapupData] = useState<MonthWrapupData | null>(null);
+  // Shareable image state. The <img> is the probe: if the endpoint cannot render
+  // (no finished books, unfetchable cover, missing font) the browser fires onError
+  // and we show the reason instead of a broken image.
+  const [imageReady, setImageReady] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [imageVersion, setImageVersion] = useState(0);
+  // Which month the shareable image is for, independent of the page's month.
+  // (The legacy UI generated the previous month's collage, which is why the old
+  // view so often had nothing to show.)
+  const [imageMonth, setImageMonth] = useState(currentMonth === 1 ? 12 : currentMonth - 1);
+  const [imageYear, setImageYear] = useState(
+    currentMonth === 1 ? currentYear - 1 : currentYear
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(false);
+
+  // Hoisted out of the fetch effect so the shareable-image URLs below can use them.
 
   useEffect(() => {
     const fetchMonthWrapup = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        
-        // Get current month and year
-        const now = new Date();
-        const currentMonth = now.getMonth() + 1; // getMonth() returns 0-11
-        const currentYear = now.getFullYear();
-        
+
         // Try to fetch month wrapup data
         const response = await api.get<any>(`/reports/month-wrapup/${currentYear}/${currentMonth}`);
         
@@ -223,6 +250,117 @@ const MonthWrapupPage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Shareable image. The Flask templates served this all along and the
+              README leads with it, but the SPA never called it, so the feature
+              was unreachable for real users. */}
+          <div className="card bg-base-100 shadow-xl">
+            <div className="card-body">
+              <h2 className="card-title text-primary mb-4">
+                <Icon hero={<SparklesIcon className="w-6 h-6" />} emoji="🖼️" />
+                Shareable Wrap-up Image
+              </h2>
+              <p className="text-base-content/70 mb-4">
+                A collage of every book you finished in a month, ready to share.
+              </p>
+
+              <div className="flex flex-wrap items-end gap-3 mb-4">
+                <label className="form-control">
+                  <span className="label-text mb-1">Month</span>
+                  <select
+                    className="select select-bordered select-sm"
+                    value={imageMonth}
+                    onChange={(e) => {
+                      setImageMonth(Number(e.target.value));
+                      resetImage();
+                    }}
+                  >
+                    {monthOptions.map((m) => (
+                      <option key={m} value={m}>
+                        {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="form-control">
+                  <span className="label-text mb-1">Year</span>
+                  <select
+                    className="select select-bordered select-sm"
+                    value={imageYear}
+                    onChange={(e) => {
+                      setImageYear(Number(e.target.value));
+                      resetImage();
+                    }}
+                  >
+                    {yearOptions.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {imageError && (
+                <div className="alert alert-warning mb-4">
+                  <span>{imageError}</span>
+                </div>
+              )}
+
+              {/*
+                The <img> is always mounted: its own onLoad/onError are what tell
+                us whether the server could render. An earlier version gated it on
+                `!loading`, but only onLoad clears that flag, so the element never
+                mounted and the spinner ran forever. It is hidden rather than
+                unmounted so the request still happens.
+              */}
+              <div className={imageFailed ? 'hidden' : 'block'}>
+                <div className="flex items-center gap-3 mb-3">
+                  {!imageReady && (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      <span className="text-base-content/70 text-sm">Building your image...</span>
+                    </>
+                  )}
+                </div>
+                <img
+                  key={`${imageYear}-${imageMonth}-${imageVersion}`}
+                  src={api.reports.monthWrapupImageUrl(imageYear, imageMonth, false)}
+                  alt={`Books finished in ${imageYear}-${String(imageMonth).padStart(2, '0')}`}
+                  className={`w-full max-w-md rounded-lg border border-base-300 shadow ${
+                    imageReady ? '' : 'hidden'
+                  }`}
+                  onLoad={() => setImageReady(true)}
+                  onError={() => {
+                    setImageFailed(true);
+                    setImageError(
+                      'No image for that month yet, or it could not be rendered. That usually ' +
+                        'means no books were finished in the month you picked, or a book cover ' +
+                        'could not be fetched.'
+                    );
+                  }}
+                />
+              </div>
+
+              {(imageReady || imageError || imageFailed) && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {imageReady && (
+                    <a
+                      href={api.reports.monthWrapupImageUrl(imageYear, imageMonth, true)}
+                      className="btn btn-primary"
+                      download
+                    >
+                      <Icon hero={<ArrowDownTrayIcon className="w-5 h-5" />} emoji="⬇️" />
+                      Download
+                    </a>
+                  )}
+                  <button onClick={resetImage} className="btn btn-outline">
+                    Regenerate
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </>
       )}
 

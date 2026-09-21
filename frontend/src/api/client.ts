@@ -154,6 +154,9 @@ export const api = {
   // Reports endpoints
   reports: {
     getMonthWrapup: (year: number, month: number) => api.get<any>(`/reports/month-wrapup/${year}/${month}`),
+    // Returns binary JPEG data, so this bypasses the JSON api helper.
+    monthWrapupImageUrl: (year: number, month: number, download = false) =>
+      `/api/reports/month-wrapup/${year}/${month}/image${download ? '?download=1' : ''}`,
   },
 
   // User-related endpoints
