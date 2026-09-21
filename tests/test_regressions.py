@@ -163,8 +163,36 @@ class TestCsvImportParsing:
         assert [r['isbn'] for r in rows] == ['9780441172719', '0261102214']
 
     def test_binary_garbage_is_rejected_with_a_readable_message(self):
-        raw = os.urandom(400)
+        # Constructed, not os.urandom. Unseeded random input made this test flaky
+        # AND hid a real bug: when the random buffer happened to contain a
+        # comma or tab on its first line, parsing took the csv branch, the
+        # unrecognised single field was labelled an ISBN list, and the junk was
+        # written to the database as rows with NULL titles instead of being
+        # rejected. That happened roughly one run in three.
+        raw = (
+            b'\xf0\x1a,b\x9c\x02G\x7f\x11\xe3'      # line 1: has a comma, high bytes
+            b'\n\xba\x03\xdd\xfe\x08\x1f\x99\x02\x04\x07'
+            b'\n\xcd\xee\x01\x05\xa0\x0b\x12\x7e\x03\x02'
+            b'\n\x9c\x9d\x01\x02\xff\xfe\xfd\x07\x08\x1f'
+        )
         with pytest.raises(ValueError, match='does not look like a book CSV'):
+            book_import.parse_csv(raw)
+
+    def test_unrecognised_single_column_header_is_rejected(self):
+        # The same shape, with no delimiters, so it takes the ISBN-list branch.
+        raw = b'nonsense_column\nvalue_one\nvalue_two\n'
+        with pytest.raises(ValueError, match='does not look like a book CSV'):
+            book_import.parse_csv(raw)
+
+    def test_nul_byte_is_rejected(self):
+        # NUL never appears in a real text export; it is the clearest binary tell.
+        raw = b'title,author\n\x00\x00\x00\x00'
+        with pytest.raises(ValueError):
+            book_import.parse_csv(raw)
+
+    def test_control_heavy_payload_is_rejected(self):
+        raw = b'\x01\x02\x03\x04\xff\xfe\xfd\x07\x08\x1f\x9c\x9d\x01\x02\x0e'
+        with pytest.raises(ValueError):
             book_import.parse_csv(raw)
 
     def test_empty_file_is_rejected(self):

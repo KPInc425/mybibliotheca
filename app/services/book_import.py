@@ -59,23 +59,25 @@ def _first(row, *names):
 
 
 def detect_format(fieldnames):
-    """Return 'goodreads', 'generic' or 'isbn_list' for the given CSV header.
+    """Return 'goodreads', 'generic', 'isbn_list' or 'unknown' for a CSV header.
 
     Goodreads is detected only on columns unique to its export. Using shared
     columns like `title`/`author`/`isbn` made every generic CSV look like a
     Goodreads file, which then imported nothing because the Goodreads branch
     looks for its own capitalised headers.
+
+    'unknown' matters. This used to answer 'isbn_list' for an empty header and
+    for any unrecognised single-column header, and the caller skipped its
+    "not a book CSV" rejection for 'isbn_list'. So random binary decoded as
+    latin-1 produced one unrecognised field, was labelled an ISBN list, and was
+    written to the database as a row of junk with a NULL title.
     """
     names = {str(f).strip().lower() for f in (fieldnames or []) if f is not None}
-    if not names:
-        return 'isbn_list'
     if names & GOODREADS_ONLY_COLUMNS:
         return 'goodreads'
     if names & GENERIC_COLUMNS:
         return 'generic'
-    if len(names) == 1:
-        return 'isbn_list'
-    return 'generic'
+    return 'unknown'
 
 
 # Column widths from app/models.py. Overflowing them raises at INSERT time with a
@@ -142,6 +144,20 @@ def parse_csv(raw_bytes):
     else:
         raise ValueError('The file is not readable as text. Upload a CSV, not a spreadsheet binary.')
 
+    # Reject binary before attempting to parse it. latin-1 decodes ANY byte
+    # sequence, so without this a binary upload becomes plausible-looking mojibake
+    # and is only caught later, or not at all.
+    _BINARY_MSG = ('This file does not look like a book CSV. Expected a header row with '
+                   'columns such as title, author and isbn, a Goodreads "Export Library" '
+                   'file, or one ISBN per line.')
+    # NUL is the clearest binary tell and never appears in a real text export.
+    if '\x00' in text:
+        raise ValueError(_BINARY_MSG)
+    allowed_controls = {'\t', '\n', '\r', '\x0b', '\x0c'}
+    controls = [c for c in text if ord(c) < 32 and c not in allowed_controls]
+    if controls and len(controls) / max(len(text), 1) > 0.01:
+        raise ValueError(_BINARY_MSG)
+
     lines = text.splitlines()
     if not lines:
         raise ValueError('The uploaded file has no lines.')
@@ -173,8 +189,12 @@ def parse_csv(raw_bytes):
     # Reject anything that is not recognisably a book CSV. Without this, a binary
     # file (or any random bytes) decoded as latin-1 and produced rows of noise,
     # which then failed deep inside the ORM with an unreadable autoflush error.
-    header = {str(f).strip().lower() for f in (reader.fieldnames or []) if f is not None}
-    if fmt != 'isbn_list' and not (header & (GENERIC_COLUMNS | GOODREADS_ONLY_COLUMNS)):
+    # Anything whose header we cannot recognise is not one of our formats. This
+    # previously read `if fmt != 'isbn_list' and ...`, which let exactly the junk
+    # case through, because detect_format mislabelled unrecognised headers as
+    # isbn_list. There is no legitimate isbn_list arriving down this branch: a
+    # real bare-ISBN file has no delimiters and was handled above.
+    if fmt not in ('generic', 'goodreads'):
         raise ValueError(
             'This file does not look like a book CSV. Expected a header row with columns '
             'such as title, author and isbn, or a Goodreads "Export Library" file.'
