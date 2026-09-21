@@ -4,7 +4,8 @@
 
 🆕 **Multi-User Features**: Multi-user authentication, user data isolation, admin management, and secure password handling.
 
-🆕 **Modern React Frontend**: Complete React frontend with **100% feature parity** to the legacy Flask app, featuring modern UI/UX, responsive design, consistent icon system, and React Native readiness.
+**Modern React Frontend**: a React SPA on a Flask API. The legacy Jinja templates are still in the
+repo for reference but are not served (see Architecture below).
 
 [![Documentation](https://img.shields.io/badge/Documentation-BookOracle-4a90e2?style=for-the-badge&logo=read-the-docs&logoColor=white)](https://bookoracle.org)
 
@@ -18,12 +19,12 @@
 - ✅ **Track Progress**: Mark books as *Currently Reading*, *Want to Read*, *Finished*, or *Library Only*.
 - 📅 **Reading Logs**: Log daily reading activity and maintain streaks.
 - 🖼️ **Monthly Wrap-Ups**: Generate shareable image collages of books completed each month.
-- 🔎 **Search**: Find and import books using the Google Books API.
+- 🔎 **Search**: Find and import books by title, author, or ISBN. Uses OpenLibrary by default; set `GOOGLE_BOOKS_API_KEY` to also query Google Books.
 - 📱 **Responsive UI**: Clean, mobile-friendly interface built with React and Tailwind CSS.
 - 🔐 **Multi-User Support**: Secure authentication with user data isolation
 - 👤 **Admin Management**: Administrative tools and user management
 - 📱 **Smart Barcode Scanner**: Intelligent scanner that automatically chooses between native MLKit (Android) and browser-based scanning with seamless fallback
-- 🎨 **Modern Frontend**: React 18 + TypeScript + Tailwind CSS with **100% feature parity**
+- 🎨 **Modern Frontend**: React 18 + TypeScript + Tailwind CSS
 - 🎯 **Icon System**: Consistent icon display with user preference control (HeroIcons vs Emojis)
 
 ---
@@ -54,7 +55,7 @@ so the template UI is unreachable and is being retired rather than maintained.
 - **State Management**: Zustand
 - **Styling**: Tailwind CSS + DaisyUI
 - **Build Tool**: Vite
-- **Features**: Full feature parity with enhanced UX
+- **Features**: the only served UI
 
 #### **Legacy Template Frontend (not served)**
 - **Templating**: Jinja2 with server-side rendering
@@ -135,10 +136,9 @@ docker compose up -d
 
 ### **🆕 Modern React Frontend (Default)**
 
-The React frontend provides a modern, responsive experience with full feature parity:
+The React frontend is the only UI served in production:
 
 **Features:**
-- ✅ Complete feature parity with legacy app
 - ✅ Modern React 18 + TypeScript
 - ✅ Responsive design with mobile-first approach
 - ✅ Enhanced user experience with client-side state management
@@ -213,12 +213,15 @@ Existing single-user installations are **automatically migrated** to multi-user:
 - **Setup required** if no admin user exists after migration
 
 📖 **Documentation:**
-- **[MIGRATION.md](MIGRATION.md)** - Automatic migration system details
-- **[AUTHENTICATION.md](AUTHENTICATION.md)** - Complete authentication guide
-- **[ADMIN_TOOLS.md](ADMIN_TOOLS.md)** - Admin tools and user management
-- **[TESTING.md](TESTING.md)** - Comprehensive testing documentation and procedures
-- **[NATIVE_BARCODE_SCANNER.md](NATIVE_BARCODE_SCANNER.md)** - Native Android barcode scanner implementation guide
-- **[FRONTEND_MIGRATION_SUMMARY.md](FRONTEND_MIGRATION_SUMMARY.md)** - Complete React frontend migration summary
+- **[CURRENT_STATUS.md](CURRENT_STATUS.md)** - what is deployed, what works, and the honest caveats. Start here.
+- **[MIGRATION.md](MIGRATION.md)** - automatic database migration details
+- **[AUTHENTICATION.md](AUTHENTICATION.md)** - authentication guide
+- **[ADMIN_TOOLS.md](ADMIN_TOOLS.md)** - admin tools and user management
+- **[TESTING.md](TESTING.md)** - testing procedures
+- **[_docs/](_docs/)** - architecture and project overview
+- **[_docs/history/](_docs/history/)** - historical migration and feature reports. These describe the
+  project as it was when written, not as it is now, and their "100% feature parity" claims
+  were never accurate.
 
 ---
 
@@ -237,7 +240,7 @@ Existing single-user installations are **automatically migrated** to multi-user:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/pickles4evaaaa/bookoracle.git
+   git clone https://github.com/KPInc425/mybibliotheca.git
    cd bookoracle
    ```
 

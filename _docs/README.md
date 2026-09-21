@@ -1,50 +1,51 @@
-# BookOracle Documentation
+# BookOracle documentation
 
-Welcome to the official documentation for BookOracle, a self-hosted personal library and reading tracker.
+Index of what actually exists. This file previously listed twelve documents
+(API reference, database schema, user manual, security, performance, and so on)
+that were never written; the links are now removed rather than left pointing at
+nothing.
 
-## 📚 Table of Contents
+## Start here
 
-### Core Documentation
-- [Architecture Overview](./architecture.md) - System architecture and design patterns
-- [API Reference](./api-reference.md) - REST API endpoints and usage
-- [Database Schema](./database-schema.md) - Database models and relationships
-- [Authentication System](./authentication.md) - User authentication and security
-- [Mobile App Integration](./mobile-integration.md) - Capacitor and native features
+- **[../CURRENT_STATUS.md](../CURRENT_STATUS.md)** - what is deployed, what works,
+  and the honest caveats. If you read one thing, read this.
 
-### User Guides
-- [User Manual](./user-manual.md) - How to use BookOracle
-- [Admin Guide](./admin-guide.md) - Administrative features and management
-- [Mobile App Guide](./mobile-guide.md) - Using the mobile application
+## Core
 
-### Development
-- [Development Setup](./development-setup.md) - Setting up the development environment
-- [Testing Guide](./testing-guide.md) - Running tests and quality assurance
-- [Deployment Guide](./deployment-guide.md) - Production deployment instructions
+- [Architecture Overview](./architecture.md) - system structure and data flow
+- [Project Overview](./project-overview.md) - what the app is and who it is for
+- [History](./history/) - historical migration and feature reports. **Point-in-time
+  only**; do not treat them as current documentation.
 
-### Technical Reference
-- [Configuration](./configuration.md) - Environment variables and settings
-- [Security](./security.md) - Security features and best practices
-- [Performance](./performance.md) - Performance optimization and monitoring
+## Operational
 
-## 🚀 Quick Start
+- [Deployment](../DEPLOYMENT.md)
+- [Database migration](../MIGRATION.md)
+- [Migration system internals](../MIGRATION_SYSTEM.md)
+- [Testing](../TESTING.md)
 
-1. **Installation**: See [Development Setup](./development-setup.md)
-2. **Configuration**: See [Configuration](./configuration.md)
-3. **Deployment**: See [Deployment Guide](./deployment-guide.md)
+## Subsystem reference
 
-## 📖 About BookOracle
+- [Authentication](../AUTHENTICATION.md)
+- [Admin tools](../ADMIN_TOOLS.md)
 
-BookOracle is an open-source alternative to Goodreads, StoryGraph, and Fable that lets you:
-- Add books by ISBN with automatic metadata fetching
-- Track reading progress and daily reading logs
-- Generate monthly wrap-up images
-- Manage your personal library with multi-user support
-- Use native mobile features like barcode scanning
+## API
 
-## 🤝 Contributing
+There is no hand-written API reference. The app serves a live OpenAPI spec, which
+is the only version worth trusting:
 
-See the [Development Setup](./development-setup.md) guide for information on contributing to the project.
+- Running locally: `http://localhost:5054/api-docs`
+- Spec: `http://localhost:5054/api/openapi.json`
 
-## 📄 License
+In production the API is not reachable directly (containers bind to loopback), so
+generate the spec from a local instance.
 
-Licensed under the MIT License. See the [LICENSE](../LICENSE) file for details. 
+## About
+
+BookOracle is a self-hosted personal library and reading tracker, an alternative
+to Goodreads, StoryGraph, and Fable. It exists as a fork of MyBibliotheca, which
+is why older files in this repo still carry that name.
+
+## License
+
+MIT. See [../LICENSE](../LICENSE).
