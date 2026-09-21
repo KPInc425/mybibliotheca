@@ -197,38 +197,38 @@ const MonthWrapupPage: React.FC = () => {
           {/* Monthly Statistics */}
           <div className="stats shadow bg-base-100">
             <div className="stat">
-              <div className="stat-figure text-primary">
+              <div className="stat-figure text-base-content/50">
                 <Icon hero={<BookOpenIcon className="w-8 h-8" />} emoji="📚" />
               </div>
               <div className="stat-title">Books Finished</div>
-              <div className="stat-value text-primary">{wrapupData?.books_finished?.length || 0}</div>
+              <div className="stat-value tnum">{wrapupData?.books_finished?.length || 0}</div>
               <div className="stat-desc">This month</div>
             </div>
             
             <div className="stat">
-              <div className="stat-figure text-success">
+              <div className="stat-figure text-base-content/50">
                 <Icon hero={<ArrowTrendingUpIcon className="w-8 h-8" />} emoji="📈" />
               </div>
               <div className="stat-title">Pages Read</div>
-              <div className="stat-value text-success">{wrapupData?.total_pages_read || 0}</div>
+              <div className="stat-value tnum">{wrapupData?.total_pages_read || 0}</div>
               <div className="stat-desc">Total pages</div>
             </div>
             
             <div className="stat">
-              <div className="stat-figure text-warning">
+              <div className="stat-figure text-base-content/50">
                 <Icon hero={<ClockIcon className="w-8 h-8" />} emoji="⏱️" />
               </div>
               <div className="stat-title">Reading Sessions</div>
-              <div className="stat-value text-warning">{wrapupData?.reading_sessions || 0}</div>
+              <div className="stat-value tnum">{wrapupData?.reading_sessions || 0}</div>
               <div className="stat-desc">This month</div>
             </div>
             
             <div className="stat">
-              <div className="stat-figure text-info">
+              <div className="stat-figure text-base-content/50">
                 <Icon hero={<FireIcon className="w-8 h-8" />} emoji="🔥" />
               </div>
               <div className="stat-title">Reading Streak</div>
-              <div className="stat-value text-info">{wrapupData?.reading_streak || 0}</div>
+              <div className="stat-value tnum">{wrapupData?.reading_streak || 0}</div>
               <div className="stat-desc">Consecutive days</div>
             </div>
           </div>

@@ -200,29 +200,29 @@ const UserInvitesPage: React.FC = () => {
       {/* Token Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="stat bg-base-100 shadow-xl rounded-box">
-          <div className="stat-figure text-primary">
+          <div className="stat-figure text-base-content/50">
             <Icon hero={<GiftIcon className="w-8 h-8" />} emoji="🎁" />
           </div>
           <div className="stat-title">Tokens Remaining</div>
-          <div className="stat-value text-primary">{stats.remaining}</div>
+          <div className="stat-value tnum">{stats.remaining}</div>
           <div className="stat-desc">Available for creating invites</div>
         </div>
         
         <div className="stat bg-base-100 shadow-xl rounded-box">
-          <div className="stat-figure text-secondary">
+          <div className="stat-figure text-base-content/50">
             <Icon hero={<CheckCircleIcon className="w-8 h-8" />} emoji="✅" />
           </div>
           <div className="stat-title">Total Granted</div>
-          <div className="stat-value text-secondary">{stats.granted}</div>
+          <div className="stat-value tnum">{stats.granted}</div>
           <div className="stat-desc">Tokens given to you by admins</div>
         </div>
         
         <div className="stat bg-base-100 shadow-xl rounded-box">
-          <div className="stat-figure text-accent">
+          <div className="stat-figure text-base-content/50">
             <Icon hero={<UserIcon className="w-8 h-8" />} emoji="👤" />
           </div>
           <div className="stat-title">Invites Used</div>
-          <div className="stat-value text-accent">{stats.used}</div>
+          <div className="stat-value tnum">{stats.used}</div>
           <div className="stat-desc">Successful registrations</div>
         </div>
       </div>

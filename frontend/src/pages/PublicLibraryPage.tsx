@@ -214,42 +214,42 @@ const PublicLibraryPage: React.FC = () => {
       {books.length > 0 && (
         <div className="stats shadow bg-base-100">
           <div className="stat">
-            <div className="stat-figure text-primary">
+            <div className="stat-figure text-base-content/50">
               <Icon hero={<BookOpenIcon className="w-8 h-8" />} emoji="📚" />
             </div>
             <div className="stat-title">Total Books</div>
-            <div className="stat-value text-primary">{books.length}</div>
+            <div className="stat-value tnum">{books.length}</div>
             <div className="stat-desc">Shared by the community</div>
           </div>
           
           <div className="stat">
-            <div className="stat-figure text-warning">
+            <div className="stat-figure text-base-content/50">
               <Icon hero={<ClockIcon className="w-8 h-8" />} emoji="⏱️" />
             </div>
             <div className="stat-title">Currently Reading</div>
-            <div className="stat-value text-warning">
+            <div className="stat-value tnum">
               {books.filter(b => !b.finish_date && !b.want_to_read && !b.library_only).length}
             </div>
             <div className="stat-desc">Active readers</div>
           </div>
           
           <div className="stat">
-            <div className="stat-figure text-info">
+            <div className="stat-figure text-base-content/50">
               <Icon hero={<HeartIcon className="w-8 h-8" />} emoji="💙" />
             </div>
             <div className="stat-title">Want to Read</div>
-            <div className="stat-value text-info">
+            <div className="stat-value tnum">
               {books.filter(b => b.want_to_read).length}
             </div>
             <div className="stat-desc">Wishlist items</div>
           </div>
           
           <div className="stat">
-            <div className="stat-figure text-success">
+            <div className="stat-figure text-base-content/50">
               <Icon hero={<CheckCircleIcon className="w-8 h-8" />} emoji="✅" />
             </div>
             <div className="stat-title">Finished</div>
-            <div className="stat-value text-success">
+            <div className="stat-value tnum">
               {books.filter(b => b.finish_date).length}
             </div>
             <div className="stat-desc">Completed books</div>
