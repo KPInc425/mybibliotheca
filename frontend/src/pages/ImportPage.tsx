@@ -137,7 +137,7 @@ const ImportPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-base-content">📥 Import Books</h1>
+        <h1 className="text-3xl font-bold text-base-content">Import Books</h1>
         <p className="text-base-content/70 mt-1">Import your books from CSV or Goodreads</p>
       </div>
 

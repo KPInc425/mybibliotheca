@@ -258,9 +258,9 @@ const MassEditPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Mass Edit Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">✏️ Mass Edit</h1>
-        <p className="text-xl opacity-90 mt-2">Select multiple books and perform bulk operations</p>
+      <div className="page-header px-6 py-5 mb-6">
+        <h1 className="page-header-title">Mass Edit</h1>
+        <p className="page-header-subtitle">Select multiple books and perform bulk operations</p>
       </div>
 
       {/* Navigation Tabs */}
@@ -485,7 +485,7 @@ const MassEditPage: React.FC = () => {
       </div>
 
       {/* Books Grid */}
-      <div className="bookshelf-container bg-gradient-to-br from-base-200 to-base-300 rounded-3xl p-6 shadow-inner relative">
+      <div className="bookshelf-container bg-base-200 rounded-box p-6 relative">
         {sortedBooks.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
             {sortedBooks.map((book) => {
@@ -514,15 +514,15 @@ const MassEditPage: React.FC = () => {
                   <div className="book-cover-wrapper relative mb-3 rounded-lg overflow-hidden shadow-lg aspect-[3/4] w-full h-40 bg-base-200 flex items-center justify-center">
                     <Link to={`/book/${book.uid}`} onClick={(e) => e.stopPropagation()}>
                       <img 
-                        src={book.cover_url ?? '/bookshelf.png'}
+                        src={book.cover_url?.trim() || '/static/bookshelf.png'}
                         className="book-cover-shelf w-full h-full object-contain rounded"
                         alt={`${book.title} cover`}
                         loading="lazy"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           // Prevent infinite loop by checking if we're already using the fallback
-                          if (target.src !== window.location.origin + '/bookshelf.png') {
-                            target.src = '/bookshelf.png';
+                          if (target.src !== window.location.origin + '/static/bookshelf.png') {
+                            target.src = '/static/bookshelf.png';
                           } else {
                             // If fallback also fails, hide the image and show a placeholder
                             target.style.display = 'none';

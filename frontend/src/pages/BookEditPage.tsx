@@ -173,7 +173,7 @@ const BookEditPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📖 Title *</span>
+                <span className="label-text font-semibold">Title *</span>
               </label>
               <input 
                 type="text" 
@@ -187,7 +187,7 @@ const BookEditPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">✍️ Author *</span>
+                <span className="label-text font-semibold">Author *</span>
               </label>
               <input 
                 type="text" 
@@ -201,7 +201,7 @@ const BookEditPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📚 ISBN</span>
+                <span className="label-text font-semibold">ISBN</span>
               </label>
               <input 
                 type="text" 
@@ -214,7 +214,7 @@ const BookEditPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">🏢 Publisher</span>
+                <span className="label-text font-semibold">Publisher</span>
               </label>
               <input 
                 type="text" 
@@ -227,7 +227,7 @@ const BookEditPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📅 Published Date</span>
+                <span className="label-text font-semibold">Published Date</span>
               </label>
               <input 
                 type="date" 
@@ -239,7 +239,7 @@ const BookEditPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📄 Page Count</span>
+                <span className="label-text font-semibold">Page Count</span>
               </label>
               <input 
                 type="number" 
@@ -253,7 +253,7 @@ const BookEditPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">🌐 Language</span>
+                <span className="label-text font-semibold">Language</span>
               </label>
               <input 
                 type="text" 
@@ -266,7 +266,7 @@ const BookEditPage: React.FC = () => {
 
             <div className="form-control">
               <label className="label">
-                <span className="label-text font-semibold">📦 Format</span>
+                <span className="label-text font-semibold">Format</span>
               </label>
               <select 
                 className="select select-bordered w-full"
@@ -299,7 +299,7 @@ const BookEditPage: React.FC = () => {
           {/* Categories */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-semibold">🏷️ Categories</span>
+              <span className="label-text font-semibold">Categories</span>
             </label>
             <input 
               type="text" 
@@ -316,7 +316,7 @@ const BookEditPage: React.FC = () => {
           {/* Description */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-semibold">📝 Description</span>
+              <span className="label-text font-semibold">Description</span>
             </label>
             <textarea 
               className="textarea textarea-bordered w-full h-32" 
@@ -329,7 +329,7 @@ const BookEditPage: React.FC = () => {
           {/* Cover URL */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text font-semibold">🖼️ Cover Image URL</span>
+              <span className="label-text font-semibold">Cover Image URL</span>
             </label>
             <input 
               type="url" 
@@ -342,7 +342,7 @@ const BookEditPage: React.FC = () => {
 
           {/* Reading Status */}
           <div className="bg-base-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-primary mb-4">📊 Reading Status</h3>
+            <h3 className="text-lg font-semibold text-primary mb-4">Reading Status</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <label className="flex items-center gap-3 text-base-content font-medium cursor-pointer">
@@ -352,7 +352,7 @@ const BookEditPage: React.FC = () => {
                   checked={formData.want_to_read}
                   onChange={(e) => handleInputChange('want_to_read', e.target.checked)}
                 />
-                <span>📋 Want to Read</span>
+                <span>Want to Read</span>
               </label>
               
               <label className="flex items-center gap-3 text-base-content font-medium cursor-pointer">
@@ -362,14 +362,14 @@ const BookEditPage: React.FC = () => {
                   checked={formData.library_only}
                   onChange={(e) => handleInputChange('library_only', e.target.checked)}
                 />
-                <span>📚 Library Only</span>
+                <span>Library Only</span>
               </label>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">📖 Started Reading</span>
+                  <span className="label-text font-semibold">Started Reading</span>
                 </label>
                 <input 
                   type="date" 
@@ -381,7 +381,7 @@ const BookEditPage: React.FC = () => {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold">✅ Finished Reading</span>
+                  <span className="label-text font-semibold">Finished Reading</span>
                 </label>
                 <input 
                   type="date" 

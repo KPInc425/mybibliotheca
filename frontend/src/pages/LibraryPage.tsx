@@ -147,13 +147,9 @@ const LibraryPage: React.FC = () => {
 	return (
 		<div className='space-y-8'>
 			{/* Library Header */}
-			<div className='dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8'>
-				<h1 className='text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10'>
-					📚 Library
-				</h1>
-				<p className='text-xl opacity-90 mt-2'>
-					Browse and manage your book collection
-				</p>
+			<div className='page-header px-6 py-5 mb-6'>
+				<h1 className="page-header-title">Library</h1>
+				<p className="page-header-subtitle">Browse and manage your book collection</p>
 			</div>
 
 			{/* Navigation Tabs */}
@@ -439,7 +435,7 @@ const LibraryPage: React.FC = () => {
 			</div>
 
 			{/* Books Display */}
-			<div className='bookshelf-container bg-gradient-to-br from-base-200 to-base-300 rounded-3xl p-6 shadow-inner relative'>
+			<div className='bookshelf-container bg-base-200 rounded-box p-6 relative'>
 				{sortedBooks.length > 0 ? (
 					viewMode === 'grid' ? (
 						<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4'>
@@ -453,7 +449,7 @@ const LibraryPage: React.FC = () => {
 										<div className='book-cover-wrapper relative mb-3 rounded-lg overflow-hidden shadow-lg aspect-[3/4] w-full h-40 bg-base-200 flex items-center justify-center'>
 											<Link to={`/book/${book.uid}`}>
 												<img
-													src={book.cover_url ?? '/bookshelf.png'}
+													src={book.cover_url?.trim() || '/static/bookshelf.png'}
 													className='book-cover-shelf w-full h-full object-contain rounded'
 													alt={`${book.title} cover`}
 													loading='lazy'
@@ -462,9 +458,9 @@ const LibraryPage: React.FC = () => {
 														// Prevent infinite loop by checking if we're already using the fallback
 														if (
 															target.src !==
-															window.location.origin + '/bookshelf.png'
+															window.location.origin + '/static/bookshelf.png'
 														) {
-															target.src = '/bookshelf.png'
+															target.src = '/static/bookshelf.png'
 														} else {
 															// If fallback also fails, hide the image and show a placeholder
 															target.style.display = 'none'
@@ -552,7 +548,7 @@ const LibraryPage: React.FC = () => {
 										<div className='flex items-center gap-4'>
 											<div className='w-16 h-20 bg-base-200 rounded-lg overflow-hidden flex-shrink-0'>
 												<img
-													src={book.cover_url ?? '/bookshelf.png'}
+													src={book.cover_url?.trim() || '/static/bookshelf.png'}
 													className='w-full h-full object-cover'
 													alt={`${book.title} cover`}
 													loading='lazy'
@@ -561,9 +557,9 @@ const LibraryPage: React.FC = () => {
 														// Prevent infinite loop by checking if we're already using the fallback
 														if (
 															target.src !==
-															window.location.origin + '/bookshelf.png'
+															window.location.origin + '/static/bookshelf.png'
 														) {
-															target.src = '/bookshelf.png'
+															target.src = '/static/bookshelf.png'
 														} else {
 															// If fallback also fails, hide the image and show a placeholder
 															target.style.display = 'none'

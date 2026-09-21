@@ -276,9 +276,10 @@ const BookDetailPage: React.FC = () => {
         </Link>
       </div>
 
-      {/* Book Header */}
-      <div className="book-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white p-8 mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold m-0 text-shadow-lg relative z-10">{book.title}</h1>
+      {/* Book Header: flat, quiet. Was a gradient block with a text-shadow heading. */}
+      <div className="page-header px-6 py-5 mb-6">
+        <h1 className="page-header-title">{book.title}</h1>
+        {book.author && <p className="page-header-subtitle">{book.author}</p>}
       </div>
 
       {/* Book Content */}
@@ -286,14 +287,14 @@ const BookDetailPage: React.FC = () => {
         {/* Book Cover Section */}
         <div className="lg:col-span-1 text-center">
           <img 
-            src={book.cover_url || '/bookshelf.png'} 
+            src={book.cover_url || '/static/bookshelf.png'} 
             alt={`${book.title} cover`} 
             className="max-w-full max-h-96 rounded-2xl shadow-2xl mx-auto mb-4"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               // Prevent infinite loop by checking if we're already using the fallback
-              if (target.src !== window.location.origin + '/bookshelf.png') {
-                target.src = '/bookshelf.png';
+              if (target.src !== window.location.origin + '/static/bookshelf.png') {
+                target.src = '/static/bookshelf.png';
               } else {
                 // If fallback also fails, hide the image and show a placeholder
                 target.style.display = 'none';

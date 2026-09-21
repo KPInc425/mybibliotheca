@@ -59,9 +59,9 @@ const DashboardPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">📊 Dashboard</h1>
-          <p className="text-xl opacity-90 mt-2">Loading your reading statistics...</p>
+        <div className="page-header px-6 py-5 mb-6">
+          <h1 className="page-header-title">Dashboard</h1>
+          <p className="page-header-subtitle">Loading your reading statistics...</p>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -79,9 +79,9 @@ const DashboardPage: React.FC = () => {
   if (error) {
     return (
       <div className="space-y-8">
-        <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-error to-error/80 text-white text-center py-8 mb-8">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">❌ Error</h1>
-          <p className="text-xl opacity-90 mt-2">{error}</p>
+        <div className="page-header px-6 py-5 mb-6">
+          <h1 className="page-header-title">Error</h1>
+          <p className="page-header-subtitle">{error}</p>
         </div>
         
         <div className="bg-base-100 border-2 border-error/20 rounded-2xl p-8 shadow-lg text-center">
@@ -103,9 +103,9 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">📊 Dashboard</h1>
-        <p className="text-xl opacity-90 mt-2">Welcome back, {user?.username}!</p>
+      <div className="page-header px-6 py-5 mb-6">
+        <h1 className="page-header-title">Dashboard</h1>
+        <p className="page-header-subtitle">Welcome back, {user?.username}!</p>
       </div>
 
       {/* Statistics Cards */}
@@ -183,14 +183,14 @@ const DashboardPage: React.FC = () => {
                 <div key={book.uid} className="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
                   <div className="w-12 h-16 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
                     <img
-                      src={book.cover_url ?? '/bookshelf.png'}
+                      src={book.cover_url?.trim() || '/static/bookshelf.png'}
                       className="w-full h-full object-cover"
                       alt={`${book.title} cover`}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         // Prevent infinite loop by checking if we're already using the fallback
-                        if (target.src !== window.location.origin + '/bookshelf.png') {
-                          target.src = '/bookshelf.png';
+                        if (target.src !== window.location.origin + '/static/bookshelf.png') {
+                          target.src = '/static/bookshelf.png';
                         } else {
                           // If fallback also fails, hide the image and show a placeholder
                           target.style.display = 'none';
@@ -239,14 +239,14 @@ const DashboardPage: React.FC = () => {
                 <div key={book.uid} className="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
                   <div className="w-12 h-16 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
                     <img
-                      src={book.cover_url ?? '/bookshelf.png'}
+                      src={book.cover_url?.trim() || '/static/bookshelf.png'}
                       className="w-full h-full object-cover"
                       alt={`${book.title} cover`}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         // Prevent infinite loop by checking if we're already using the fallback
-                        if (target.src !== window.location.origin + '/bookshelf.png') {
-                          target.src = '/bookshelf.png';
+                        if (target.src !== window.location.origin + '/static/bookshelf.png') {
+                          target.src = '/static/bookshelf.png';
                         } else {
                           // If fallback also fails, hide the image and show a placeholder
                           target.style.display = 'none';

@@ -2,10 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export interface UserSettings {
-  // Icon preferences
-  useHeroIcons: boolean;
-  
   // UI preferences
+  useHeroIcons: boolean;
+
   theme: 'light' | 'dark' | 'auto';
   compactMode: boolean;
   
@@ -30,7 +29,10 @@ interface SettingsState {
 }
 
 const defaultSettings: UserSettings = {
-  useHeroIcons: false, // Default to emoji icons
+  // Real icons by default. Emoji-as-interface-chrome was the shipped default and
+  // is the single clearest sign an app is unfinished; emoji remains available as
+  // an explicit choice for anyone who wants it.
+  useHeroIcons: true,
   theme: 'auto',
   compactMode: false,
   autoFetchBookData: true,

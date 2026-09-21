@@ -44,7 +44,7 @@ const CommunityActivityPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-base-content">👥 Community Activity</h1>
+          <h1 className="text-3xl font-bold text-base-content">Community Activity</h1>
           <p className="text-base-content/70 mt-1">Loading community activity...</p>
         </div>
         
@@ -76,7 +76,7 @@ const CommunityActivityPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-base-content">👥 Community Activity</h1>
+          <h1 className="text-3xl font-bold text-base-content">Community Activity</h1>
           <p className="text-base-content/70 mt-1">See what others are reading</p>
         </div>
         
@@ -97,7 +97,7 @@ const CommunityActivityPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-base-content">👥 Community Activity</h1>
+        <h1 className="text-3xl font-bold text-base-content">Community Activity</h1>
         <p className="text-base-content/70 mt-1">See what others are reading</p>
       </div>
 
@@ -184,7 +184,7 @@ const CommunityActivityPage: React.FC = () => {
               <div className="card-body">
                 {activeSection === 'active_readers' && (
                   <div className="text-center py-8">
-                    <h3 className="text-xl font-bold mb-4">🔥 Active Readers</h3>
+                    <h3 className="text-xl font-bold mb-4">Active Readers</h3>
                     <p className="text-base-content/70 mb-4">Community members sharing their reading activity</p>
                     <Link to="/community/active-readers" className="btn btn-primary">
                       View Active Readers
@@ -194,7 +194,7 @@ const CommunityActivityPage: React.FC = () => {
                 
                 {activeSection === 'books_this_month' && (
                   <div className="text-center py-8">
-                    <h3 className="text-xl font-bold mb-4">📚 Books This Month</h3>
+                    <h3 className="text-xl font-bold mb-4">Books This Month</h3>
                     <p className="text-base-content/70 mb-4">Books finished by community members this month</p>
                     <Link to="/community/books-this-month" className="btn btn-success">
                       View Books This Month
@@ -204,7 +204,7 @@ const CommunityActivityPage: React.FC = () => {
                 
                 {activeSection === 'currently_reading' && (
                   <div className="text-center py-8">
-                    <h3 className="text-xl font-bold mb-4">📖 Currently Reading</h3>
+                    <h3 className="text-xl font-bold mb-4">Currently Reading</h3>
                     <p className="text-base-content/70 mb-4">Books currently being read by community members</p>
                     <Link to="/community/currently-reading" className="btn btn-warning">
                       View Currently Reading
@@ -214,7 +214,7 @@ const CommunityActivityPage: React.FC = () => {
                 
                 {activeSection === 'recent_activity' && (
                   <div className="text-center py-8">
-                    <h3 className="text-xl font-bold mb-4">📅 Recent Activity</h3>
+                    <h3 className="text-xl font-bold mb-4">Recent Activity</h3>
                     <p className="text-base-content/70 mb-4">Recent reading activity from community members</p>
                     <Link to="/community/recent-activity" className="btn btn-info">
                       View Recent Activity
@@ -267,7 +267,7 @@ const CommunityActivityPage: React.FC = () => {
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body text-center py-12">
             <div className="mb-6">
-              <span className="text-6xl">👥</span>
+              <span className="text-6xl"></span>
             </div>
             <h2 className="text-2xl font-bold mb-3">No Community Activity</h2>
             <p className="text-base-content/70 mb-6">

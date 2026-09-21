@@ -13,6 +13,7 @@ import {
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
+import BookCover from '@/components/BookCover';
 
 interface MonthWrapupData {
   month: string;
@@ -132,7 +133,7 @@ const MonthWrapupPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-base-content">📊 Month Wrap-up</h1>
+          <h1 className="text-3xl font-bold text-base-content">Month Wrap-up</h1>
           <p className="text-base-content/70 mt-1">Loading your monthly reading statistics...</p>
         </div>
         
@@ -152,7 +153,7 @@ const MonthWrapupPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-base-content">📊 Month Wrap-up</h1>
+          <h1 className="text-3xl font-bold text-base-content">Month Wrap-up</h1>
           <p className="text-base-content/70 mt-1">Your monthly reading statistics</p>
         </div>
         
@@ -173,7 +174,7 @@ const MonthWrapupPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-base-content">📊 Month Wrap-up</h1>
+        <h1 className="text-3xl font-bold text-base-content">Month Wrap-up</h1>
         <p className="text-base-content/70 mt-1">
           {wrapupData?.month} {wrapupData?.year} Reading Summary
         </p>
@@ -181,11 +182,10 @@ const MonthWrapupPage: React.FC = () => {
 
       {isEmpty ? (
         // Empty State - No books finished this month
-        <div className="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-12 rounded-box mb-8">
+        <div className="hero bg-base-300 py-12 rounded-box mb-8">
           <div className="hero-content text-center">
             <div>
-              <h1 className="text-4xl font-bold mb-4">
-                📅 Month Wrap Up - {wrapupData?.month} {wrapupData?.year}
+              <h1 className="text-4xl font-bold mb-4">Month Wrap Up - {wrapupData?.month} {wrapupData?.year}
               </h1>
               <p className="text-xl opacity-90">See your monthly reading summary</p>
             </div>
@@ -370,7 +370,7 @@ const MonthWrapupPage: React.FC = () => {
           <div className="card bg-base-100 shadow-xl w-full max-w-2xl">
             <div className="card-body items-center text-center py-12">
               <div className="mb-6">
-                <span className="text-6xl">📚</span>
+                <span className="text-6xl"></span>
               </div>
               <h2 className="text-2xl font-bold mb-3">No Books Finished This Month</h2>
               <p className="text-base-content/70 mb-6">
@@ -406,24 +406,10 @@ const MonthWrapupPage: React.FC = () => {
               {wrapupData.books_finished.map((book) => (
                 <div key={book.uid} className="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
                   <div className="w-12 h-16 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
-                      src={book.cover_url ?? '/bookshelf.png'}
-                      className="w-full h-full object-cover"
+                    <BookCover
+                      src={book.cover_url?.trim() || '/static/bookshelf.png'}
                       alt={`${book.title} cover`}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        // Prevent infinite loop by checking if we're already using the fallback
-                        if (target.src !== window.location.origin + '/bookshelf.png') {
-                          target.src = '/bookshelf.png';
-                        } else {
-                          // If fallback also fails, hide the image and show a placeholder
-                          target.style.display = 'none';
-                          const placeholder = document.createElement('div');
-                          placeholder.className = 'w-full h-full bg-base-200 rounded flex items-center justify-center text-lg';
-                          placeholder.innerHTML = '📚';
-                          target.parentNode?.appendChild(placeholder);
-                        }
-                      }}
+                      className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex-grow min-w-0">

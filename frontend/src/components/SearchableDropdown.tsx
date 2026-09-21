@@ -148,7 +148,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
                   >
                     <span>{option}</span>
                     {multiple && selectedValues.includes(option) && (
-                      <span className="text-xs">✓</span>
+                      <span className="text-xs"></span>
                     )}
                   </div>
                 ))

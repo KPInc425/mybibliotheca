@@ -217,7 +217,7 @@ const UserProfilePage: React.FC = () => {
                       <figure className="px-4 pt-4">
                         {book.cover_url ? (
                           <img 
-                            src={book.cover_url} 
+                            src={book.cover_url?.trim() || '/static/bookshelf.png'} 
                             alt={`Cover of ${book.title}`}
                             className="rounded-lg h-32 w-full object-cover"
                           />

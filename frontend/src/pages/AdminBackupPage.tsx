@@ -102,9 +102,9 @@ const AdminBackupPage: React.FC = () => {
   if (!user?.is_admin) {
     return (
       <div className="space-y-8">
-        <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-error to-error/80 text-white text-center py-8 mb-8">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">🚫 Access Denied</h1>
-          <p className="text-xl opacity-90 mt-2">Admin privileges required</p>
+        <div className="page-header rounded-box bg-base-300 px-6 py-5 mb-6">
+          <h1 className="page-header-title">Access Denied</h1>
+          <p className="page-header-subtitle">Admin privileges required</p>
         </div>
         
         <div className="bg-base-100 border-2 border-error/20 rounded-2xl p-8 shadow-lg text-center">
@@ -127,9 +127,9 @@ const AdminBackupPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">💾 Database Backup</h1>
-        <p className="text-xl opacity-90 mt-2">Create and manage system backups</p>
+      <div className="page-header rounded-box bg-base-300 px-6 py-5 mb-6">
+        <h1 className="page-header-title">Database Backup</h1>
+        <p className="page-header-subtitle">Create and manage system backups</p>
       </div>
 
       {/* Navigation */}
@@ -160,8 +160,7 @@ const AdminBackupPage: React.FC = () => {
         {/* Backup Status */}
         <div className="card bg-base-100 shadow-xl">
           <div className="card-body">
-                         <h2 className="card-title text-primary mb-6">
-               💾 Backup Status
+                         <h2 className="card-title text-primary mb-6">Backup Status
              </h2>
             
             <div className="space-y-4">
@@ -250,7 +249,7 @@ const AdminBackupPage: React.FC = () => {
       {/* Backup Information */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title text-primary mb-6">📋 Backup Information</h2>
+          <h2 className="card-title text-primary mb-6">Backup Information</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="stat bg-base-200 rounded-box">
@@ -277,7 +276,7 @@ const AdminBackupPage: React.FC = () => {
       {/* Quick Actions */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title text-primary mb-6">⚡ Quick Actions</h2>
+          <h2 className="card-title text-primary mb-6">Quick Actions</h2>
           <div className="flex flex-wrap gap-3">
             <Link to="/admin" className="btn btn-outline btn-primary">
               📊 Admin Dashboard

@@ -171,15 +171,15 @@ const BookLogPage: React.FC = () => {
         <div className="flex items-center gap-4 mb-4">
           <div className="w-16 h-20 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
             <img 
-              src={book.cover_url ?? '/bookshelf.png'}
+              src={book.cover_url?.trim() || '/static/bookshelf.png'}
               className="w-full h-full object-cover"
               alt={`${book.title} cover`}
               loading="lazy"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 // Prevent infinite loop by checking if we're already using the fallback
-                if (target.src !== window.location.origin + '/bookshelf.png') {
-                  target.src = '/bookshelf.png';
+                if (target.src !== window.location.origin + '/static/bookshelf.png') {
+                  target.src = '/static/bookshelf.png';
                 } else {
                   // If fallback also fails, hide the image and show a placeholder
                   target.style.display = 'none';

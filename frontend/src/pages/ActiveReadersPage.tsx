@@ -47,7 +47,7 @@ const ActiveReadersPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-base-content">🔥 Active Readers</h1>
+          <h1 className="text-3xl font-bold text-base-content">Active Readers</h1>
           <p className="text-base-content/70 mt-1">Loading active readers...</p>
         </div>
         
@@ -94,7 +94,7 @@ const ActiveReadersPage: React.FC = () => {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-base-content">🔥 Active Readers</h1>
+          <h1 className="text-3xl font-bold text-base-content">Active Readers</h1>
           <p className="text-base-content/70 mt-1">Community members sharing their reading activity</p>
         </div>
         
@@ -115,7 +115,7 @@ const ActiveReadersPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-base-content">🔥 Active Readers</h1>
+        <h1 className="text-3xl font-bold text-base-content">Active Readers</h1>
         <p className="text-base-content/70 mt-1">Community members sharing their reading activity</p>
       </div>
 

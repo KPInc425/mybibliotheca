@@ -84,21 +84,19 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 dark:from-primary/20 dark:via-secondary/20 dark:to-accent/20 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        {/* Header Card */}
-        <div className="bg-base-100 border-2 border-secondary rounded-2xl p-8 shadow-xl mb-6">
-          <div className="text-center">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mb-4">
-              <Icon hero={<BookOpenIcon className="w-8 h-8 text-white" />} emoji="📚" />
-            </div>
-            <h1 className="text-3xl font-bold text-primary mb-2">Welcome Back</h1>
-            <p className="text-base-content/70">Sign in to continue your reading journey</p>
+    <div className="min-h-screen flex items-center justify-center bg-base-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-sm w-full">
+        {/* Brand: flat lavender logomark, no gradient, no glow */}
+        <div className="text-center mb-8">
+          <div className="mx-auto w-12 h-12 rounded-field bg-primary flex items-center justify-center mb-4">
+            <Icon hero={<BookOpenIcon className="w-6 h-6 text-primary-content" />} emoji="📚" />
           </div>
+          <h1 className="text-2xl font-bold text-base-content mb-1">BookOracle</h1>
+          <p className="text-sm text-base-content/60">Sign in to continue your reading journey</p>
         </div>
 
-        {/* Login Form Card */}
-        <div className="bg-base-100 border-2 border-secondary rounded-2xl p-8 shadow-xl">
+        {/* Form card: one quiet surface step, no border, no shadow */}
+        <div className="bg-base-300 rounded-box p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="alert alert-error">
@@ -111,7 +109,7 @@ const LoginPage = () => {
               {/* Username Field */}
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold flex items-center gap-2">
+                  <span className="label-text font-semibold flex items-center gap-2 text-base-content/70">
                     <Icon hero={<UserIcon className="w-4 h-4" />} emoji="👤" />
                     Username
                   </span>
@@ -130,7 +128,7 @@ const LoginPage = () => {
               {/* Password Field */}
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-semibold flex items-center gap-2">
+                  <span className="label-text font-semibold flex items-center gap-2 text-base-content/70">
                     <Icon hero={<LockClosedIcon className="w-4 h-4" />} emoji="🔒" />
                     Password
                   </span>

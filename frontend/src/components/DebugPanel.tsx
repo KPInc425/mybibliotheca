@@ -115,9 +115,7 @@ const DebugPanel: React.FC<DebugPanelProps> = ({
               gap: 8,
             }}
           >
-            <span role="img" aria-label="bug">
-              🐞
-            </span>
+            <span role="img" aria-label="bug"></span>
             <span>{title}</span>
             <button
               onClick={handleCopy}

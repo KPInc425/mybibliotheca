@@ -253,15 +253,15 @@ const AddBookPage: React.FC = () => {
         defaultOpen={false}
       />
       {/* Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-4 md:py-8 mb-8">
-        <h1 className="text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold m-0 text-shadow-lg relative z-10 flex items-center justify-center gap-2 md:gap-4">
+      <div className="page-header px-6 py-5 mb-6">
+        <h1 className="page-header-title flex items-center gap-3 justify-center">
           <Icon
             hero={<BookOpenIcon className="w-8 h-8 md:w-16 md:h-16" />}
             emoji="📚"
           />
           Add New Book
         </h1>
-        <p className="text-lg md:text-xl opacity-90 mt-2">
+        <p className="page-header-subtitle">
           Scan or search for books to add to your library
         </p>
       </div>

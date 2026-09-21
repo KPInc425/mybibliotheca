@@ -75,13 +75,13 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 dark:from-primary/20 dark:via-secondary/20 dark:to-accent/20 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-base-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
         {/* Header Card */}
         <div className="bg-base-100 border-2 border-secondary rounded-2xl p-8 shadow-xl mb-6">
           <div className="text-center">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center mb-4">
-              <Icon hero={<BookOpenIcon className="w-8 h-8 text-white" />} emoji="📚" />
+            <div className="mx-auto w-16 h-16 bg-primary rounded-field flex items-center justify-center mb-4">
+              <Icon hero={<BookOpenIcon className="w-8 h-8 text-primary-content" />} emoji="📚" />
             </div>
             <h1 className="text-3xl font-bold text-primary mb-2">Join BookOracle</h1>
             <p className="text-base-content/70">Start your reading journey today</p>

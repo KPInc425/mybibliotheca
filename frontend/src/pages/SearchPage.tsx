@@ -10,6 +10,7 @@ import {
   PlusIcon
 } from '@heroicons/react/24/outline';
 import Icon from '@/components/Icon';
+import BookCover from '@/components/BookCover';
 
 interface SearchFilters {
   query: string;
@@ -465,24 +466,10 @@ const SearchPage: React.FC = () => {
               {searchResults.map((book, index) => (
                 <div key={index} className="card bg-base-100 shadow-xl">
                   <figure className="px-4 pt-4">
-                    <img
-                      src={book.cover_url ?? '/bookshelf.png'}
+                    <BookCover
+                      src={book.cover_url?.trim() || '/static/bookshelf.png'}
                       alt={book.title}
                       className="rounded-xl h-64 w-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        // Prevent infinite loop by checking if we're already using the fallback
-                        if (target.src !== window.location.origin + '/bookshelf.png') {
-                          target.src = '/bookshelf.png';
-                        } else {
-                          // If fallback also fails, hide the image and show a placeholder
-                          target.style.display = 'none';
-                          const placeholder = document.createElement('div');
-                          placeholder.className = 'h-64 w-full bg-base-200 rounded-xl flex items-center justify-center text-4xl';
-                          placeholder.innerHTML = '📚';
-                          target.parentNode?.appendChild(placeholder);
-                        }
-                      }}
                     />
                   </figure>
                   <div className="card-body">
@@ -528,7 +515,7 @@ const SearchPage: React.FC = () => {
                         <div className="flex items-center gap-2 text-sm text-base-content/60">
                           <span className="font-medium">Rating:</span>
                           <div className="flex items-center gap-1">
-                            <span className="text-yellow-500">★</span>
+                            <span className="text-yellow-500"></span>
                             <span>{book.average_rating.toFixed(1)}</span>
                             {book.rating_count && (
                               <span className="text-xs">({book.rating_count} reviews)</span>

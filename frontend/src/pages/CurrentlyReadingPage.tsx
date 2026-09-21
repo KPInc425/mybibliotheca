@@ -101,7 +101,7 @@ const CurrentlyReadingPage: React.FC = () => {
               <figure className="px-6 pt-6">
                 {book.cover_url ? (
                   <img 
-                    src={book.cover_url} 
+                    src={book.cover_url?.trim() || '/static/bookshelf.png'} 
                     alt={`Cover of ${book.title}`}
                     className="rounded-xl h-48 w-full object-cover"
                   />

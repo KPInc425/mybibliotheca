@@ -124,9 +124,9 @@ const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">⚙️ Settings</h1>
-        <p className="text-xl opacity-90 mt-2">Manage your account settings and preferences</p>
+      <div className="page-header rounded-box bg-base-300 px-6 py-5 mb-6">
+        <h1 className="page-header-title">Settings</h1>
+        <p className="page-header-subtitle">Manage your account settings and preferences</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -171,7 +171,7 @@ const SettingsPage: React.FC = () => {
                    <div className="flex gap-4 mt-2">
                      <span className="text-sm">
                        {settings.useHeroIcons ? (
-                         <span>📚 Library</span>
+                         <span>Library</span>
                        ) : (
                          <span className="flex items-center gap-1">
                            <BuildingLibraryIcon className="w-4 h-4" />
@@ -181,7 +181,7 @@ const SettingsPage: React.FC = () => {
                      </span>
                      <span className="text-sm">
                        {settings.useHeroIcons ? (
-                         <span>➕ Add Book</span>
+                         <span>Add Book</span>
                        ) : (
                          <span className="flex items-center gap-1">
                            <PlusIcon className="w-4 h-4" />
@@ -191,7 +191,7 @@ const SettingsPage: React.FC = () => {
                      </span>
                      <span className="text-sm">
                        {settings.useHeroIcons ? (
-                         <span>🔍 Search</span>
+                         <span>Search</span>
                        ) : (
                          <span className="flex items-center gap-1">
                            <MagnifyingGlassIcon className="w-4 h-4" />
@@ -477,7 +477,7 @@ const SettingsPage: React.FC = () => {
        {showResetConfirm && (
          <div className="modal modal-open">
            <div className="modal-box">
-             <h3 className="font-bold text-lg text-error mb-4">⚠️ Reset Settings</h3>
+             <h3 className="font-bold text-lg text-error mb-4">Reset Settings</h3>
              <p className="mb-4">
                Are you sure you want to reset all settings to their default values? 
                This action cannot be undone.
@@ -504,7 +504,7 @@ const SettingsPage: React.FC = () => {
        {showChangePassword && (
          <div className="modal modal-open">
            <div className="modal-box">
-             <h3 className="font-bold text-lg text-primary mb-4">🔒 Change Password</h3>
+             <h3 className="font-bold text-lg text-primary mb-4">Change Password</h3>
              <form onSubmit={handlePasswordSubmit} className="space-y-4">
                {passwordError && (
                  <div className="alert alert-error">

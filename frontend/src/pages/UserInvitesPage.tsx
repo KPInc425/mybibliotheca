@@ -167,9 +167,9 @@ const UserInvitesPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">🎫 My Invites</h1>
-        <p className="text-xl opacity-90 mt-2">Create and manage your invite tokens</p>
+      <div className="page-header rounded-box bg-base-300 px-6 py-5 mb-6">
+        <h1 className="page-header-title">My Invites</h1>
+        <p className="page-header-subtitle">Create and manage your invite tokens</p>
       </div>
 
       {/* Navigation */}

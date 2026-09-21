@@ -1,61 +1,111 @@
 @import "tailwindcss";
 @plugin "daisyui" {
-	themes:
-			all;
+  themes: false;
 }
 
+/*
+ * Reading Room theme set.
+ *
+ * Two explicit themes, no stock daisyUI themes. Until now `themes: all` was
+ * loaded while the app set data-theme="dark"/"light" from ThemeProvider, so
+ * every user got daisyUI's STOCK themes and the custom palette below was never
+ * applied in production. The palette here is Asset Forge's (see DESIGN.md) so
+ * KP's apps read as one family.
+ */
+
+/* ---------- Dark: the default ---------- */
 @plugin "daisyui/theme" {
-  name: "mybibliotheca";
+  name: "readingroom";
   default: true;
-  prefersdark: false;
-  color-scheme: light;
-	
-  /* Base colors - Warm, book-themed palette */
-  --color-base-100: oklch(0.99 0.01 85); /* Warm white */
-  --color-base-200: oklch(0.96 0.02 85); /* Light cream */
-  --color-base-300: oklch(0.92 0.03 85); /* Medium cream */
-  --color-base-content: oklch(0.2 0.05 85); /* Dark brown text */
+  prefersdark: true;
+  color-scheme: dark;
 
-  /* Primary - Rich brown */
-  --color-primary: oklch(0.45 0.12 85);
-  --color-primary-content: oklch(0.98 0.01 85);
+  --color-base-100: #0a0e19;
+  --color-base-200: #0e1320;
+  --color-base-300: #131929;
+  --color-base-content: #dee5ff;
 
-  /* Secondary - Golden accent */
-  --color-secondary: oklch(0.75 0.15 85);
-  --color-secondary-content: oklch(0.2 0.05 85);
+  --color-primary: #ac8aff;
+  --color-primary-content: #280067;
 
-  /* Accent - Warm gold */
-  --color-accent: oklch(0.7 0.18 85);
-  --color-accent-content: oklch(0.2 0.05 85);
+  --color-secondary: #002a31;
+  --color-secondary-content: #2fd9f4;
 
-  /* Neutral - Muted brown */
-  --color-neutral: oklch(0.6 0.08 85);
-  --color-neutral-content: oklch(0.98 0.01 85);
+  --color-accent: #bdfca1;
+  --color-accent-content: #1a4f07;
 
-  /* Status colors */
-  --color-info: oklch(0.7 0.2 220);
-  --color-info-content: oklch(0.98 0.01 220);
-  --color-success: oklch(0.65 0.25 140);
-  --color-success-content: oklch(0.98 0.01 140);
-  --color-warning: oklch(0.8 0.25 80);
-  --color-warning-content: oklch(0.2 0.05 80);
-  --color-error: oklch(0.65 0.3 30);
-  --color-error-content: oklch(0.98 0.01 30);
+  --color-neutral: #181f31;
+  --color-neutral-content: #dee5ff;
 
-  /* Border radius */
-  --radius-selector: 0.75rem;
-  --radius-field: 0.5rem;
-  --radius-box: 1rem;
+  --color-info: #2fd9f4;
+  --color-info-content: #002a31;
 
-  /* Base sizes */
+  --color-success: #bdfca1;
+  --color-success-content: #1a4f07;
+
+  --color-warning: #edffdf;
+  --color-warning-content: #356b22;
+
+  --color-error: #fd6f85;
+  --color-error-content: #490013;
+
+  --radius-selector: 9999px;
+  --radius-field: 6px;
+  --radius-box: 10px;
+
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
 
-  /* Border size */
   --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
 
-  /* Effects */
-  --depth: 1;
+/* ---------- Light: same hues, inverted lightness ---------- */
+@plugin "daisyui/theme" {
+  name: "readingroom-light";
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #faf8ff;
+  --color-base-200: #f4f2fa;
+  --color-base-300: #eeeaf6;
+  --color-base-content: #1a1b21;
+
+  --color-primary: #6e3bd7;
+  --color-primary-content: #faf8ff;
+
+  --color-secondary: #e0f7fa;
+  --color-secondary-content: #006573;
+
+  --color-accent: #dff5cf;
+  --color-accent-content: #376d24;
+
+  --color-neutral: #e8e4f0;
+  --color-neutral-content: #1a1b21;
+
+  --color-info: #006573;
+  --color-info-content: #faf8ff;
+
+  --color-success: #376d24;
+  --color-success-content: #faf8ff;
+
+  --color-warning: #8a6d00;
+  --color-warning-content: #faf8ff;
+
+  --color-error: #c8475d;
+  --color-error-content: #faf8ff;
+
+  --radius-selector: 9999px;
+  --radius-field: 6px;
+  --radius-box: 10px;
+
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  --border: 1px;
+  --depth: 0;
   --noise: 0;
 }
 
@@ -63,15 +113,24 @@
   animation-delay: --value(integer)ms;
 }
 
-/* Animations */
 @layer utilities {
   .animate-fade-in {
     animation: fadeIn 0.5s ease-in-out;
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.3s ease-out;
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 /* Global Styles */
@@ -90,6 +149,54 @@ body {
   background-color: var(--color-base-100);
 }
 
+/* Display type uses Space Grotesk, matching Asset Forge. */
+h1, h2, h3, .font-display {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * Metric values need tabular figures so columns of numbers do not jitter as the
+ * values change.
+ */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Section labels: uppercase, letter-spaced, small. The only uppercase in the app. */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--color-base-content) 62%, transparent);
+}
+
+/* Page header: a quiet, flat band. Replaces the neon pink-to-purple gradient
+   banners that repeated on 11 pages. */
+.page-header {
+  background: var(--color-base-300);
+  border-radius: var(--radius-box);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-base-content) 8%, transparent);
+}
+
+.page-header-title {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--color-base-content);
+}
+
+.page-header-subtitle {
+  font-size: 0.9375rem;
+  color: color-mix(in oklab, var(--color-base-content) 62%, transparent);
+  margin-top: 0.25rem;
+}
+
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 8px;
@@ -105,5 +212,5 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-base-content);
+  background: color-mix(in oklab, var(--color-base-content) 40%, transparent);
 }

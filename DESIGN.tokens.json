@@ -1,0 +1,593 @@
+{
+  "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
+  "$description": "A quiet, dark-first reading room. Lavender-violet ink on deep navy-black, built as one design family with Asset Forge.",
+  "color": {
+    "$type": "color",
+    "primary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.675,
+          0.541,
+          1
+        ],
+        "hex": "#ac8aff"
+      }
+    },
+    "primary-container": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.561,
+          0.376,
+          0.98
+        ],
+        "hex": "#8f60fa"
+      }
+    },
+    "primary-dim": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.518,
+          0.333,
+          0.937
+        ],
+        "hex": "#8455ef"
+      }
+    },
+    "primary-fixed": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.796,
+          0.714,
+          1
+        ],
+        "hex": "#cbb6ff"
+      }
+    },
+    "on-primary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.157,
+          0,
+          0.404
+        ],
+        "hex": "#280067"
+      }
+    },
+    "on-tertiary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.208,
+          0.42,
+          0.133
+        ],
+        "hex": "#356b22"
+      }
+    },
+    "on-tertiary-fixed": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.102,
+          0.31,
+          0.027
+        ],
+        "hex": "#1a4f07"
+      }
+    },
+    "on-error": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.286,
+          0,
+          0.075
+        ],
+        "hex": "#490013"
+      }
+    },
+    "secondary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.184,
+          0.851,
+          0.957
+        ],
+        "hex": "#2fd9f4"
+      }
+    },
+    "secondary-container": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0,
+          0.165,
+          0.192
+        ],
+        "hex": "#002a31"
+      }
+    },
+    "secondary-dim": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0,
+          0.796,
+          0.902
+        ],
+        "hex": "#00cbe6"
+      }
+    },
+    "tertiary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.929,
+          1,
+          0.875
+        ],
+        "hex": "#edffdf"
+      }
+    },
+    "tertiary-container": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.741,
+          0.988,
+          0.631
+        ],
+        "hex": "#bdfca1"
+      }
+    },
+    "tertiary-dim": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.69,
+          0.929,
+          0.58
+        ],
+        "hex": "#b0ed94"
+      }
+    },
+    "background": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.039,
+          0.055,
+          0.098
+        ],
+        "hex": "#0a0e19"
+      }
+    },
+    "surface": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.039,
+          0.055,
+          0.098
+        ],
+        "hex": "#0a0e19"
+      }
+    },
+    "surface-container-lowest": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0,
+          0,
+          0
+        ],
+        "hex": "#000000"
+      }
+    },
+    "surface-container-low": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.055,
+          0.075,
+          0.125
+        ],
+        "hex": "#0e1320"
+      }
+    },
+    "surface-container": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.075,
+          0.098,
+          0.161
+        ],
+        "hex": "#131929"
+      }
+    },
+    "surface-container-high": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.094,
+          0.122,
+          0.192
+        ],
+        "hex": "#181f31"
+      }
+    },
+    "surface-container-highest": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.114,
+          0.145,
+          0.227
+        ],
+        "hex": "#1d253a"
+      }
+    },
+    "surface-bright": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.137,
+          0.173,
+          0.263
+        ],
+        "hex": "#232c43"
+      }
+    },
+    "on-surface": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.871,
+          0.898,
+          1
+        ],
+        "hex": "#dee5ff"
+      }
+    },
+    "on-surface-variant": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.639,
+          0.667,
+          0.773
+        ],
+        "hex": "#a3aac5"
+      }
+    },
+    "outline": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.427,
+          0.459,
+          0.553
+        ],
+        "hex": "#6d758d"
+      }
+    },
+    "outline-variant": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.251,
+          0.278,
+          0.369
+        ],
+        "hex": "#40475e"
+      }
+    },
+    "error": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.992,
+          0.435,
+          0.522
+        ],
+        "hex": "#fd6f85"
+      }
+    },
+    "error-container": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.541,
+          0.086,
+          0.196
+        ],
+        "hex": "#8a1632"
+      }
+    },
+    "on-error-container": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.592,
+          0.639
+        ],
+        "hex": "#ff97a3"
+      }
+    },
+    "light-background": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.98,
+          0.973,
+          1
+        ],
+        "hex": "#faf8ff"
+      }
+    },
+    "light-surface-container-low": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.957,
+          0.949,
+          0.98
+        ],
+        "hex": "#f4f2fa"
+      }
+    },
+    "light-surface-container": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.933,
+          0.918,
+          0.965
+        ],
+        "hex": "#eeeaf6"
+      }
+    },
+    "light-surface-container-high": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.91,
+          0.894,
+          0.941
+        ],
+        "hex": "#e8e4f0"
+      }
+    },
+    "light-on-surface": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.102,
+          0.106,
+          0.129
+        ],
+        "hex": "#1a1b21"
+      }
+    },
+    "light-on-surface-variant": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.322,
+          0.329,
+          0.388
+        ],
+        "hex": "#525463"
+      }
+    },
+    "light-primary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.431,
+          0.231,
+          0.843
+        ],
+        "hex": "#6e3bd7"
+      }
+    },
+    "light-secondary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0,
+          0.396,
+          0.451
+        ],
+        "hex": "#006573"
+      }
+    },
+    "light-tertiary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.216,
+          0.427,
+          0.141
+        ],
+        "hex": "#376d24"
+      }
+    },
+    "light-outline-variant": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.788,
+          0.776,
+          0.831
+        ],
+        "hex": "#c9c6d4"
+      }
+    }
+  },
+  "spacing": {
+    "$type": "dimension",
+    "xs": {
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "sm": {
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "md": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "lg": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "xl": {
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    },
+    "xxl": {
+      "$value": {
+        "value": 48,
+        "unit": "px"
+      }
+    }
+  },
+  "rounded": {
+    "$type": "dimension",
+    "sm": {
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      }
+    },
+    "md": {
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "lg": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "full": {
+      "$value": {
+        "value": 9999,
+        "unit": "px"
+      }
+    }
+  },
+  "typography": {
+    "display": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Space Grotesk",
+        "fontSize": {
+          "value": 2.25,
+          "unit": "rem"
+        },
+        "fontWeight": 700,
+        "letterSpacing": {
+          "value": -0.02,
+          "unit": "em"
+        }
+      }
+    },
+    "h1": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Space Grotesk",
+        "fontSize": {
+          "value": 1.75,
+          "unit": "rem"
+        },
+        "fontWeight": 700,
+        "letterSpacing": {
+          "value": -0.01,
+          "unit": "em"
+        }
+      }
+    },
+    "h2": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Space Grotesk",
+        "fontSize": {
+          "value": 1.25,
+          "unit": "rem"
+        },
+        "fontWeight": 600
+      }
+    },
+    "body-md": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 0.9375,
+          "unit": "rem"
+        },
+        "fontWeight": 400
+      }
+    },
+    "body-sm": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 0.8125,
+          "unit": "rem"
+        },
+        "fontWeight": 400
+      }
+    },
+    "label": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 0.6875,
+          "unit": "rem"
+        },
+        "fontWeight": 600,
+        "letterSpacing": {
+          "value": 0.08,
+          "unit": "em"
+        }
+      }
+    },
+    "numeric": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Space Grotesk",
+        "fontSize": {
+          "value": 2,
+          "unit": "rem"
+        },
+        "fontWeight": 700
+      }
+    }
+  }
+}

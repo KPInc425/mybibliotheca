@@ -134,7 +134,7 @@ const PublicLibraryPage: React.FC = () => {
 
       {/* Books Grid */}
       {books.length > 0 ? (
-        <div className="rounded-2xl bg-gradient-to-br from-base-200 to-base-300 py-8 px-2">
+        <div className="rounded-2xl bg-base-200 py-8 px-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 justify-center">
             {books.map((book) => {
               const statusBadge = getStatusBadge(book);
@@ -142,14 +142,14 @@ const PublicLibraryPage: React.FC = () => {
                 <div key={book.uid} className="card bg-base-100 border-2 border-secondary shadow-md flex flex-col items-center p-4">
                   <div className="w-full h-48 bg-base-300 rounded-lg overflow-hidden flex items-center justify-center mb-3">
                     <img
-                      src={book.cover_url ?? '/bookshelf.png'}
+                      src={book.cover_url?.trim() || '/static/bookshelf.png'}
                       alt={`${book.title} cover`}
                       className="h-full w-auto object-contain rounded"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         // Prevent infinite loop by checking if we're already using the fallback
-                        if (target.src !== window.location.origin + '/bookshelf.png') {
-                          target.src = '/bookshelf.png';
+                        if (target.src !== window.location.origin + '/static/bookshelf.png') {
+                          target.src = '/static/bookshelf.png';
                         } else {
                           // If fallback also fails, hide the image and show a placeholder
                           target.style.display = 'none';

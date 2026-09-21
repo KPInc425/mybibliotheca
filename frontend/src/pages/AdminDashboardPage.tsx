@@ -390,11 +390,9 @@ const AdminDashboardPage: React.FC = () => {
   if (!user?.is_admin) {
     return (
       <div className="space-y-8">
-        <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-error to-error/80 text-white text-center py-8 mb-8">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">
-            🚫 Access Denied
-          </h1>
-          <p className="text-xl opacity-90 mt-2">Admin privileges required</p>
+        <div className="page-header px-6 py-5 mb-6">
+          <h1 className="page-header-title">Access Denied</h1>
+          <p className="page-header-subtitle">Admin privileges required</p>
         </div>
 
         <div className="bg-base-100 border-2 border-error/20 rounded-2xl p-8 shadow-lg text-center">
@@ -417,11 +415,9 @@ const AdminDashboardPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="space-y-8">
-        <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">
-            ⚙️ Admin Dashboard
-          </h1>
-          <p className="text-xl opacity-90 mt-2">Loading system overview...</p>
+        <div className="page-header px-6 py-5 mb-6">
+          <h1 className="page-header-title">Admin Dashboard</h1>
+          <p className="page-header-subtitle">Loading system overview...</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -439,11 +435,9 @@ const AdminDashboardPage: React.FC = () => {
   if (error) {
     return (
       <div className="space-y-8">
-        <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-error to-error/80 text-white text-center py-8 mb-8">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">
-            ❌ Error
-          </h1>
-          <p className="text-xl opacity-90 mt-2">{error}</p>
+        <div className="page-header px-6 py-5 mb-6">
+          <h1 className="page-header-title">Error</h1>
+          <p className="page-header-subtitle">{error}</p>
         </div>
 
         <div className="bg-base-100 border-2 border-error/20 rounded-2xl p-8 shadow-lg text-center">
@@ -468,13 +462,9 @@ const AdminDashboardPage: React.FC = () => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="dashboard-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-secondary text-white text-center py-8 mb-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold m-0 text-shadow-lg relative z-10">
-          ⚙️ Admin Dashboard
-        </h1>
-        <p className="text-xl opacity-90 mt-2">
-          System overview and management
-        </p>
+      <div className="page-header px-6 py-5 mb-6">
+        <h1 className="page-header-title">Admin Dashboard</h1>
+        <p className="page-header-subtitle">System overview and management</p>
       </div>
 
       {/* Navigation */}
@@ -498,36 +488,36 @@ const AdminDashboardPage: React.FC = () => {
 
       {/* System Statistics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="stat bg-primary text-primary-content rounded-box">
-          <div className="stat-title text-primary-content/80">Total Users</div>
+        <div className="stat bg-base-300 rounded-box">
+          <div className="stat-title text-base-content/60">Total Users</div>
           <div className="stat-value text-3xl">{stats.total_users}</div>
           {stats.new_users_30d > 0 && (
-            <div className="stat-desc text-primary-content/80">
+            <div className="stat-desc text-base-content/60">
               +{stats.new_users_30d} this month
             </div>
           )}
         </div>
 
-        <div className="stat bg-success text-success-content rounded-box">
-          <div className="stat-title text-success-content/80">Active Users</div>
+        <div className="stat bg-base-300 rounded-box">
+          <div className="stat-title text-base-content/60">Active Users</div>
           <div className="stat-value text-3xl">{stats.active_users}</div>
-          <div className="stat-desc text-success-content/80">
+          <div className="stat-desc text-base-content/60">
             {stats.admin_users} admin(s)
           </div>
         </div>
 
-        <div className="stat bg-info text-info-content rounded-box">
-          <div className="stat-title text-info-content/80">Total Books</div>
+        <div className="stat bg-base-300 rounded-box">
+          <div className="stat-title text-base-content/60">Total Books</div>
           <div className="stat-value text-3xl">{stats.total_books}</div>
           {stats.new_books_30d > 0 && (
-            <div className="stat-desc text-info-content/80">
+            <div className="stat-desc text-base-content/60">
               +{stats.new_books_30d} this month
             </div>
           )}
         </div>
 
-        <div className="stat bg-warning text-warning-content rounded-box">
-          <div className="stat-title text-warning-content/80">
+        <div className="stat bg-base-300 rounded-box">
+          <div className="stat-title text-base-content/60">
             Avg Books/User
           </div>
           <div className="stat-value text-3xl">
@@ -535,7 +525,7 @@ const AdminDashboardPage: React.FC = () => {
               ? Math.round(stats.total_books / stats.total_users)
               : 0}
           </div>
-          <div className="stat-desc text-warning-content/80">
+          <div className="stat-desc text-base-content/60">
             System average
           </div>
         </div>
@@ -683,7 +673,7 @@ const AdminDashboardPage: React.FC = () => {
                 >
                   <div className="w-12 h-16 bg-base-300 rounded-lg overflow-hidden flex-shrink-0">
                     <img
-                      src={book.cover_url ?? "/bookshelf.png"}
+                      src={book.cover_url?.trim() || "/static/bookshelf.png"}
                       className="w-full h-full object-cover"
                       alt={`${book.title} cover`}
                       onError={(e) => {
@@ -691,9 +681,9 @@ const AdminDashboardPage: React.FC = () => {
                         // Prevent infinite loop by checking if we're already using the fallback
                         if (
                           target.src !==
-                          window.location.origin + "/bookshelf.png"
+                          window.location.origin + "/static/bookshelf.png"
                         ) {
-                          target.src = "/bookshelf.png";
+                          target.src = "/static/bookshelf.png";
                         } else {
                           // If fallback also fails, hide the image and show a placeholder
                           target.style.display = "none";
