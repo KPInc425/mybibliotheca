@@ -16,10 +16,19 @@ name: CI
 # see that. It also asserts the SECRET_KEY guard, by booting four real workers
 # from a cold database and checking that sessions survive across them.
 
+# TRIGGERS ARE MANUAL ON PURPOSE - do not re-add push/pull_request without reading this.
+#
+# This repo is PRIVATE, so GitHub Actions minutes bill against the account (public repos
+# are free). A push here used to run the jobs below automatically. On kpwarz2 this was
+# measured at ~18 BILLED minutes per push - jobs bill separately and round UP per job, so
+# the true cost is the SUM, not the wall-clock the run displays. Left alone it exhausts the
+# account allowance, and then every job refuses to start at all with
+# "recent account payments have failed".
+#
+# Run it deliberately when a change warrants the runner:
+#   gh workflow run ci
+# Otherwise use the local gates. Push and pull cost nothing; only Actions minutes do.
 on:
-  push:
-    branches: [main, development]
-  pull_request:
   workflow_dispatch:
 
 jobs:
